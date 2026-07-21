@@ -14,6 +14,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var bottomNav: BottomNavigationView
 
+    private var homeFragment: HomeFragment? = null
+    private var searchFragment: SearchFragment? = null
+    private var ongoingFragment: OngoingFragment? = null
+    private var settingsFragment: SettingsFragment? = null
+    private var activeFragment: Fragment? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -22,25 +28,25 @@ class MainActivity : AppCompatActivity() {
         bottomNav.itemIconTintList = null
 
         if (savedInstanceState == null) {
-            loadFragment(HomeFragment())
+            showFragment(getHomeFragment())
         }
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    loadFragment(HomeFragment())
+                    showFragment(getHomeFragment())
                     true
                 }
                 R.id.nav_search -> {
-                    loadFragment(SearchFragment())
+                    showFragment(getSearchFragment())
                     true
                 }
                 R.id.nav_ongoing -> {
-                    loadFragment(OngoingFragment())
+                    showFragment(getOngoingFragment())
                     true
                 }
                 R.id.nav_settings -> {
-                    loadFragment(SettingsFragment())
+                    showFragment(getSettingsFragment())
                     true
                 }
                 else -> false
@@ -48,9 +54,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragmentContainer, fragment)
-            .commit()
+    private fun showFragment(target: Fragment) {
+        if (target === activeFragment) return
+        val transaction = supportFragmentManager.beginTransaction()
+        activeFragment?.let { transaction.hide(it) }
+        if (target.isAdded) {
+            transaction.show(target)
+        } else {
+            transaction.add(R.id.fragmentContainer, target)
+        }
+        transaction.commit()
+        activeFragment = target
+    }
+
+    private fun getHomeFragment(): HomeFragment {
+        homeFragment?.let { return it }
+        return HomeFragment().also { homeFragment = it }
+    }
+
+    private fun getSearchFragment(): SearchFragment {
+        searchFragment?.let { return it }
+        return SearchFragment().also { searchFragment = it }
+    }
+
+    private fun getOngoingFragment(): OngoingFragment {
+        ongoingFragment?.let { return it }
+        return OngoingFragment().also { ongoingFragment = it }
+    }
+
+    private fun getSettingsFragment(): SettingsFragment {
+        settingsFragment?.let { return it }
+        return SettingsFragment().also { settingsFragment = it }
     }
 }

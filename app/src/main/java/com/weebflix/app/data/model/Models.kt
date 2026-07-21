@@ -34,3 +34,10 @@ data class AnimeDetail(
     val anime: Anime,
     val episodes: List<Episode> = emptyList()
 )
+
+data class EpisodeNavigation(
+    val prevEpisodeUrl: String = "",
+    val prevEpisodeTitle: String = "",
+    val nextEpisodeUrl: String = "",
+    val nextEpisodeTitle: String = ""
+)

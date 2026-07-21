@@ -4,6 +4,7 @@ import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.model.AnimeDetail
 import com.weebflix.app.data.model.Episode
+import com.weebflix.app.data.model.EpisodeNavigation
 import com.weebflix.app.data.model.VideoServer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +16,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 class SamehadakuScraper {
@@ -22,7 +24,7 @@ class SamehadakuScraper {
     private val baseUrl: String
         get() = ProviderConfig.baseUrl
 
-    private val cookieStore = mutableMapOf<String, List<Cookie>>()
+    private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
 
     private val cookieJar = object : CookieJar {
         override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<Cookie>) {
@@ -49,8 +51,10 @@ class SamehadakuScraper {
             .build()
 
         val response = client.newCall(request).execute()
-        val html = response.body?.string() ?: throw Exception("Empty response")
-        return Jsoup.parse(html)
+        return response.use {
+            val html = it.body?.string() ?: throw Exception("Empty response")
+            Jsoup.parse(html)
+        }
     }
 
     private fun postAjax(url: String, body: RequestBody): String {
@@ -65,7 +69,9 @@ class SamehadakuScraper {
             .build()
 
         val response = client.newCall(request).execute()
-        return response.body?.string() ?: ""
+        return response.use {
+            it.body?.string() ?: ""
+        }
     }
 
     suspend fun getLatestEpisodes(): List<Episode> = withContext(Dispatchers.IO) {
@@ -193,23 +199,29 @@ class SamehadakuScraper {
 
     suspend fun getPopularAnime(): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument(baseUrl)
+            val doc = fetchDocument("$baseUrl/anime-terbaru/")
             val animeList = mutableListOf<Anime>()
 
-            doc.select(".widget.poplr ul li, .widget.populer ul li, .widgetseries.poplr ul li").forEach { element ->
+            doc.select("article.bs, .bsx").forEach { element ->
                 try {
-                    val title = element.select("a").text()
-                    val url = element.select("a").attr("href")
-                    val imageUrl = element.select("img").attr("src")
-                    val episode = element.select(".ctr, .numep").text()
+                    val a = element.select("a").first()
+                    val title = element.select(".tt h2, .tt, h2").text()
+                    val url = a?.attr("href") ?: ""
+                    val imageUrl = element.select("img").let { imgs ->
+                        imgs.first()?.attr("data-src")?.ifEmpty { null }
+                            ?: imgs.first()?.attr("src") ?: ""
+                    }
+                    val episode = element.select(".epx, .ep, .bt .epx").text()
+                    val type = element.select(".typez, .type, .sb").text()
 
-                    if (title.isNotEmpty()) {
+                    if (title.isNotEmpty() && url.isNotEmpty()) {
                         animeList.add(
                             Anime(
                                 title = title,
                                 url = url,
                                 imageUrl = imageUrl,
-                                episode = episode
+                                episode = episode,
+                                type = type
                             )
                         )
                     }
@@ -217,39 +229,6 @@ class SamehadakuScraper {
                     e.printStackTrace()
                 }
             }
-
-            if (animeList.isEmpty()) {
-                doc.select(".widgetschedule .widget-body .slider .items .item, .widget.schedule .widget-body .slider .items .item").forEach { element ->
-                    try {
-                        val title = element.select(".info .name, a").text()
-                        val url = element.select("a").attr("href")
-                        val imageUrl = element.select("img").attr("src")
-
-                        if (title.isNotEmpty()) {
-                            animeList.add(
-                                Anime(
-                                    title = title,
-                                    url = url,
-                                    imageUrl = imageUrl
-                                )
-                            )
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }
-
-            if (animeList.isEmpty()) {
-                doc.select(".post_taxs a, .filter a").forEach { element ->
-                    val title = element.text()
-                    val url = element.attr("href")
-                    if (title.isNotEmpty() && url.isNotEmpty()) {
-                        animeList.add(Anime(title = title, url = url))
-                    }
-                }
-            }
-
             animeList
         } catch (e: Exception) {
             e.printStackTrace()
@@ -259,7 +238,8 @@ class SamehadakuScraper {
 
     suspend fun searchAnime(query: String): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument("$baseUrl/?s=$query")
+            val encodedQuery = URLEncoder.encode(query, "UTF-8")
+            val doc = fetchDocument("$baseUrl/?s=$encodedQuery")
             val animeList = mutableListOf<Anime>()
 
             doc.select(".bs, .bsx, .animepost").forEach { element ->
@@ -406,7 +386,11 @@ class SamehadakuScraper {
                             val iframeSrc = Jsoup.parse(responseHtml).select("iframe").first()?.attr("src") ?: ""
 
                             if (iframeSrc.isNotEmpty()) {
-                                val fullUrl = if (iframeSrc.startsWith("http")) iframeSrc else "$baseUrl$iframeSrc"
+                                val fullUrl = when {
+                                    iframeSrc.startsWith("http") -> iframeSrc
+                                    iframeSrc.startsWith("//") -> "https:$iframeSrc"
+                                    else -> "$baseUrl$iframeSrc"
+                                }
                                 servers.add(VideoServer(name = name, url = fullUrl))
                             }
                         } catch (e: Exception) {
@@ -422,7 +406,11 @@ class SamehadakuScraper {
                 doc.select("iframe[src]").forEach { iframe ->
                     val src = iframe.attr("src")
                     if (src.isNotEmpty() && servers.none { it.url == src }) {
-                        val fullUrl = if (src.startsWith("http")) src else "$baseUrl$src"
+                        val fullUrl = when {
+                            src.startsWith("http") -> src
+                            src.startsWith("//") -> "https:$src"
+                            else -> "$baseUrl$src"
+                        }
                         servers.add(VideoServer(name = "Server ${servers.size + 1}", url = fullUrl))
                     }
                 }
@@ -463,6 +451,26 @@ class SamehadakuScraper {
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {
+        try {
+            val doc = fetchDocument(episodeUrl)
+            val prevUrl = doc.select(".epnav .prev a, .episodelist .prev a, a.prev").attr("href")
+            val prevTitle = doc.select(".epnav .prev a, .episodelist .prev a, a.prev").text()
+            val nextUrl = doc.select(".epnav .next a, .episodelist .next a, a.next").attr("href")
+            val nextTitle = doc.select(".epnav .next a, .episodelist .next a, a.next").text()
+
+            EpisodeNavigation(
+                prevEpisodeUrl = prevUrl,
+                prevEpisodeTitle = prevTitle,
+                nextEpisodeUrl = nextUrl,
+                nextEpisodeTitle = nextTitle
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            EpisodeNavigation()
         }
     }
 }

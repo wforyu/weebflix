@@ -45,8 +45,9 @@
             android:name=".ui.player.PlayerActivity"
             android:exported="false"
             android:theme="@style/Theme.WeebFlix.Player"
+            android:supportsPictureInPicture="true"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize" />
 
     </application>
 

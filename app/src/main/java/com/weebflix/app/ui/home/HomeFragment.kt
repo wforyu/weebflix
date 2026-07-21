@@ -22,6 +22,7 @@ import com.weebflix.app.data.model.Episode
 import com.weebflix.app.ui.adapter.AnimeAdapter
 import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
+import com.weebflix.app.ui.player.PlayerActivity
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -79,8 +80,11 @@ class HomeFragment : Fragment() {
 
         btnHeroPlay.setOnClickListener {
             heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
+                val intent = Intent(requireContext(), PlayerActivity::class.java)
                 intent.putExtra("url", ep.url)
+                intent.putExtra("title", ep.title)
+                intent.putExtra("episodeNumber", ep.episodeNumber)
+                intent.putExtra("animeTitle", ep.title)
                 startActivity(intent)
             }
         }
@@ -151,7 +155,13 @@ class HomeFragment : Fragment() {
                     if (latest.isNotEmpty()) {
                         heroEpisode = latest.first()
                         tvHeroTitle.text = heroEpisode?.title
-                        tvHeroEpisode.text = "Episode ${heroEpisode?.episodeNumber} - ${heroEpisode?.uploadDate}"
+                        val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
+                        val epDate = heroEpisode?.uploadDate?.takeIf { it.isNotEmpty() }
+                        tvHeroEpisode.text = when {
+                            epNum != null && epDate != null -> "Episode $epNum - $epDate"
+                            epNum != null -> "Episode $epNum"
+                            else -> ""
+                        }
 
                         if (heroEpisode?.imageUrl?.isNotEmpty() == true) {
                             Glide.with(requireContext())

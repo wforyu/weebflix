@@ -63,11 +63,20 @@ class AnimeDetailActivity : AppCompatActivity() {
         ivBack.setOnClickListener { finish() }
 
         episodeAdapter = EpisodeListAdapter { episode ->
+            val episodeIndex = detail?.episodes?.indexOfFirst { it.url == episode.url } ?: -1
+            val nextEp = if (episodeIndex > 0) {
+                detail?.episodes?.get(episodeIndex - 1)
+            } else null
+
             val intent = Intent(this, PlayerActivity::class.java)
             intent.putExtra("url", episode.url)
             intent.putExtra("title", episode.title)
             intent.putExtra("episodeNumber", episode.episodeNumber)
             intent.putExtra("animeTitle", detail?.anime?.title ?: "")
+            nextEp?.let {
+                intent.putExtra("nextEpisodeUrl", it.url)
+                intent.putExtra("nextEpisodeTitle", it.title)
+            }
             startActivity(intent)
         }
 
@@ -81,11 +90,18 @@ class AnimeDetailActivity : AppCompatActivity() {
             detail?.let { d ->
                 val latestEp = d.episodes.firstOrNull()
                 if (latestEp != null) {
+                    val latestIndex = d.episodes.indexOfFirst { it.url == latestEp.url }
+                    val nextEp = if (latestIndex > 0) d.episodes[latestIndex - 1] else null
+
                     val intent = Intent(this, PlayerActivity::class.java)
                     intent.putExtra("url", latestEp.url)
                     intent.putExtra("title", latestEp.title)
                     intent.putExtra("episodeNumber", latestEp.episodeNumber)
                     intent.putExtra("animeTitle", d.anime.title)
+                    nextEp?.let {
+                        intent.putExtra("nextEpisodeUrl", it.url)
+                        intent.putExtra("nextEpisodeTitle", it.title)
+                    }
                     startActivity(intent)
                 } else {
                     Toast.makeText(this, "Belum ada episode", Toast.LENGTH_SHORT).show()
