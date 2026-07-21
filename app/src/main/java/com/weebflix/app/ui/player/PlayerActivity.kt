@@ -376,20 +376,47 @@ class PlayerActivity : AppCompatActivity() {
     private fun initExoPlayer(videoUrl: String) {
         exoPlayer?.release()
 
+        val cacheDir = java.io.File(cacheDir, "exo_player_cache")
+        val cache = androidx.media3.datasource.cache.SimpleCache(
+            cacheDir,
+            androidx.media3.datasource.cache.NoOpCacheEvictor(),
+            androidx.media3.database.StandaloneDatabaseProvider(this)
+        )
+
         val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .cache(okhttp3.Cache(java.io.File(cacheDir, "okhttp_cache"), 100L * 1024 * 1024))
             .addInterceptor { chain ->
                 chain.proceed(chain.request().newBuilder()
                     .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
                     .addHeader("Referer", ProviderConfig.baseUrl)
+                    .addHeader("Connection", "keep-alive")
                     .build())
             }
             .build()
 
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        val upstreamFactory = OkHttpDataSource.Factory(okHttpClient)
+
+        val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(upstreamFactory)
+            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                50_000,   // minBufferMs — YouTube-like aggressive pre-buffer
+                120_000,  // maxBufferMs — keep 2 min in buffer
+                2_500,    // bufferForPlaybackMs — start playing after 2.5s
+                5_000     // bufferForPlaybackAfterRebufferMs — resume after 5s
+            )
+            .setTargetBufferBytes(-1)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
 
         exoPlayer = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(mediaSourceFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
+            .setLoadControl(loadControl)
             .build()
             .also { player ->
                 playerView.player = player
