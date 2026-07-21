@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="netflix_red">#FFE50914</color>
+    <color name="netflix_red_dark">#B20710</color>
+    <color name="netflix_black">#141414</color>
+    <color name="netflix_dark_bg">#000000</color>
+    <color name="netflix_card_bg">#1A1A1A</color>
+    <color name="netflix_surface">#1F1F1F</color>
+    <color name="netflix_surface_light">#2A2A2A</color>
+    <color name="netflix_text_primary">#FFFFFF</color>
+    <color name="netflix_text_secondary">#B3B3B3</color>
+    <color name="netflix_text_hint">#808080</color>
+    <color name="netflix_divider">#333333</color>
+    <color name="netflix_gradient_start">#000000</color>
+    <color name="netflix_gradient_end">#00000000</color>
+    <color name="netflix_badge_bg">#E50914</color>
+    <color name="netflix_badge_text">#FFFFFF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="splash_bg">#141414</color>
+    <color name="nav_active">#E50914</color>
+    <color name="nav_inactive">#808080</color>
+    <color name="search_bg">#2A2A2A</color>
+    <color name="chip_bg">#333333</color>
+    <color name="chip_active">#E50914</color>
+    <color name="episode_card_bg">#1F1F1F</color>
+    <color name="server_btn_bg">#2A2A2A</color>
+    <color name="server_btn_active">#E50914</color>
+</resources>
