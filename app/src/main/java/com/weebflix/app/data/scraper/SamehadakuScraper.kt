@@ -1,5 +1,6 @@
 package com.weebflix.app.data.scraper
 
+import android.util.Log
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.model.AnimeDetail
@@ -57,7 +58,7 @@ class SamehadakuScraper {
         }
     }
 
-    private fun postAjax(url: String, body: RequestBody): String {
+    private fun postAjax(url: String, body: RequestBody, referer: String = baseUrl): String {
         val request = Request.Builder()
             .url(url)
             .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
@@ -65,7 +66,23 @@ class SamehadakuScraper {
             .addHeader("Accept-Language", "id-ID,id;q=0.9,en;q=0.8")
             .addHeader("X-Requested-With", "XMLHttpRequest")
             .addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .addHeader("Referer", referer)
             .post(body)
+            .build()
+
+        val response = client.newCall(request).execute()
+        return response.use {
+            it.body?.string() ?: ""
+        }
+    }
+
+    private fun fetchHtml(url: String): String {
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .addHeader("Accept-Language", "id-ID,id;q=0.9,en;q=0.8")
+            .addHeader("Referer", baseUrl)
             .build()
 
         val response = client.newCall(request).execute()
@@ -199,20 +216,22 @@ class SamehadakuScraper {
 
     suspend fun getPopularAnime(): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument("$baseUrl/anime-terbaru/")
+            val doc = fetchDocument("$baseUrl/daftar-anime-2/?order=popular")
             val animeList = mutableListOf<Anime>()
 
-            doc.select("article.bs, .bsx").forEach { element ->
+            doc.select("article.animpost").forEach { element ->
                 try {
-                    val a = element.select("a").first()
-                    val title = element.select(".tt h2, .tt, h2").text()
+                    val a = element.select(".animposx a").first()
+                    val title = element.select(".data .title h2").text()
                     val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select("img").let { imgs ->
+                    val imageUrl = element.select(".content-thumb img").let { imgs ->
                         imgs.first()?.attr("data-src")?.ifEmpty { null }
                             ?: imgs.first()?.attr("src") ?: ""
                     }
-                    val episode = element.select(".epx, .ep, .bt .epx").text()
-                    val type = element.select(".typez, .type, .sb").text()
+                    val type = element.select(".content-thumb .type").text()
+                    val score = element.select(".score").text()
+                        .replace("★", "").replace("Score:", "").trim()
+                    val status = element.select(".data .type").last()?.text() ?: ""
 
                     if (title.isNotEmpty() && url.isNotEmpty()) {
                         animeList.add(
@@ -220,8 +239,10 @@ class SamehadakuScraper {
                                 title = title,
                                 url = url,
                                 imageUrl = imageUrl,
-                                episode = episode,
-                                type = type
+                                episode = type,
+                                type = type,
+                                status = status,
+                                score = score
                             )
                         )
                     }
@@ -351,52 +372,24 @@ class SamehadakuScraper {
         try {
             val doc = fetchDocument(episodeUrl)
             val servers = mutableListOf<VideoServer>()
-            val ajaxUrl = "$baseUrl/wp-admin/admin-ajax.php"
 
-            doc.select("#server .east_player_option, #embedserver li, .mirror option, #servers-list li").forEach { element ->
+            doc.select("#server .east_player_option").forEach { element ->
                 try {
                     val name = element.select("span").text().trim()
                         .ifEmpty { element.attr("data-type") }
-                        .ifEmpty { element.select("option").text() }
                         .ifEmpty { element.select("a").text() }
+                    if (name.isEmpty()) return@forEach
 
                     val dataPost = element.attr("data-post")
                     val dataNume = element.attr("data-nume")
-                    val dataType = element.attr("data-type")
-                    val dataUrl = element.attr("data-url")
+                    val dataType = element.attr("data-type").ifEmpty { "schtml" }
 
-                    if (name.isEmpty()) return@forEach
-
-                    if (dataUrl.isNotEmpty()) {
-                        servers.add(VideoServer(name = name, url = dataUrl))
-                        return@forEach
-                    }
-
-                    if (dataPost.isNotEmpty() && dataNume.isNotEmpty()) {
-                        try {
-                            val body = FormBody.Builder()
-                                .add("action", "player_ajax")
-                                .add("post", dataPost)
-                                .add("nume", dataNume)
-                                .add("type", dataType.ifEmpty { "schtml" })
-                                .build()
-
-                            val responseHtml = postAjax(ajaxUrl, body)
-
-                            val iframeSrc = Jsoup.parse(responseHtml).select("iframe").first()?.attr("src") ?: ""
-
-                            if (iframeSrc.isNotEmpty()) {
-                                val fullUrl = when {
-                                    iframeSrc.startsWith("http") -> iframeSrc
-                                    iframeSrc.startsWith("//") -> "https:$iframeSrc"
-                                    else -> "$baseUrl$iframeSrc"
-                                }
-                                servers.add(VideoServer(name = name, url = fullUrl))
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                    servers.add(VideoServer(
+                        name = name,
+                        dataPost = dataPost,
+                        dataNume = dataNume,
+                        dataType = dataType
+                    ))
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -405,12 +398,8 @@ class SamehadakuScraper {
             if (servers.isEmpty()) {
                 doc.select("iframe[src]").forEach { iframe ->
                     val src = iframe.attr("src")
-                    if (src.isNotEmpty() && servers.none { it.url == src }) {
-                        val fullUrl = when {
-                            src.startsWith("http") -> src
-                            src.startsWith("//") -> "https:$src"
-                            else -> "$baseUrl$src"
-                        }
+                    if (src.isNotEmpty()) {
+                        val fullUrl = normalizeUrl(src, episodeUrl)
                         servers.add(VideoServer(name = "Server ${servers.size + 1}", url = fullUrl))
                     }
                 }
@@ -420,6 +409,227 @@ class SamehadakuScraper {
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
+        try {
+            val ajaxUrl = "$baseUrl/wp-admin/admin-ajax.php"
+            var embedUrl = server.url
+            Log.d("Scraper", "Resolving server: ${server.name}, dataPost=${server.dataPost}, dataNume=${server.dataNume}, url=$embedUrl")
+
+            if (server.dataPost.isNotEmpty() && server.dataNume.isNotEmpty() && embedUrl.isEmpty()) {
+                val body = FormBody.Builder()
+                    .add("action", "player_ajax")
+                    .add("post", server.dataPost)
+                    .add("nume", server.dataNume)
+                    .add("type", server.dataType)
+                    .build()
+
+                val responseHtml = postAjax(ajaxUrl, body, referer = episodeUrl)
+                Log.d("Scraper", "AJAX response (${responseHtml.length} chars): ${responseHtml.take(500)}")
+
+                if (isCloudflareChallenge(responseHtml)) {
+                    Log.w("Scraper", "Cloudflare challenge detected on AJAX for server: ${server.name}")
+                    return@withContext ""
+                }
+
+                val directVideo = extractVideoUrlFromHtml(responseHtml, ajaxUrl)
+                if (directVideo.isNotEmpty()) {
+                    Log.d("Scraper", "Found direct video in AJAX response: $directVideo")
+                    return@withContext directVideo
+                }
+
+                val responseDoc = Jsoup.parse(responseHtml)
+
+                responseDoc.select("source[src]").firstOrNull()?.attr("src")?.let { src ->
+                    if (src.isNotEmpty()) {
+                        Log.d("Scraper", "Found source tag in AJAX: $src")
+                        return@withContext normalizeUrl(src, episodeUrl)
+                    }
+                }
+
+                val iframeSrc = responseDoc.select("iframe").first()?.attr("src") ?: ""
+                Log.d("Scraper", "AJAX iframe src: $iframeSrc")
+                if (iframeSrc.isNotEmpty()) {
+                    embedUrl = normalizeUrl(iframeSrc, episodeUrl)
+                }
+            }
+
+            if (embedUrl.isEmpty()) {
+                Log.d("Scraper", "No embed URL found for server: ${server.name}")
+                return@withContext ""
+            }
+
+            Log.d("Scraper", "Fetching embed page: $embedUrl")
+            val html = fetchHtml(embedUrl)
+            Log.d("Scraper", "Embed page (${html.length} chars): ${html.take(500)}")
+
+            if (isCloudflareChallenge(html)) {
+                Log.w("Scraper", "Cloudflare challenge on embed page: $embedUrl")
+                return@withContext ""
+            }
+
+            val videoUrl = extractVideoUrlFromHtml(html, embedUrl)
+            if (videoUrl.isNotEmpty()) {
+                Log.d("Scraper", "Found video in embed page: $videoUrl")
+                return@withContext videoUrl
+            }
+
+            val doc = Jsoup.parse(html)
+            doc.select("iframe[src]").firstOrNull()?.attr("src")?.let { nestedSrc ->
+                if (nestedSrc.isNotEmpty()) {
+                    val nestedUrl = normalizeUrl(nestedSrc, embedUrl)
+                    Log.d("Scraper", "Following nested iframe: $nestedUrl")
+                    val nestedHtml = fetchHtml(nestedUrl)
+                    if (isCloudflareChallenge(nestedHtml)) {
+                        Log.w("Scraper", "Cloudflare challenge on nested iframe: $nestedUrl")
+                    } else {
+                        val nestedVideo = extractVideoUrlFromHtml(nestedHtml, nestedUrl)
+                        if (nestedVideo.isNotEmpty()) {
+                            Log.d("Scraper", "Found video in nested iframe: $nestedVideo")
+                            return@withContext nestedVideo
+                        }
+                    }
+                }
+            }
+
+            Log.d("Scraper", "Failed to find video URL for server: ${server.name}")
+            ""
+        } catch (e: Exception) {
+            Log.e("Scraper", "Error resolving server: ${server.name}", e)
+            e.printStackTrace()
+            ""
+        }
+    }
+
+    private fun extractVideoFromEmbed(embedUrl: String): String {
+        try {
+            val html = fetchHtml(embedUrl)
+            return extractVideoUrlFromHtml(html, embedUrl)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return ""
+    }
+
+    private fun isCloudflareChallenge(html: String): Boolean {
+        return html.contains("challenge-platform") || html.contains("Enable JavaScript and cookies")
+            || html.contains("cf-challenge") || html.contains("Checking your browser")
+            || html.contains("Just a moment")
+    }
+
+    private fun unpackPackedJs(html: String): String {
+        val pattern = Regex("""eval\(function\(p,a,c,k,e,d\).+?\}\)""", RegexOption.DOT_MATCHES_ALL)
+        val packedMatch = pattern.find(html) ?: return html
+        return try {
+            val packed = packedMatch.value
+            val base64Pattern = Regex("""}\'(.+)\',(\d+),(\d+),\'([^\']+)\'\.(split|slice)""")
+            val m = base64Pattern.find(packed) ?: return html
+            val payload = m.groupValues[1]
+            val wordsBase = m.groupValues[4]
+
+            val a = m.groupValues[2].toInt()
+            val c = m.groupValues[3].toInt()
+            val words = wordsBase.split('|')
+
+            val dictionary = HashMap<String, String>()
+            for (i in 0 until c) {
+                val key = if (i < words.size) words[i] else ""
+                val value = toString26(i, a)
+                dictionary[value] = key
+            }
+
+            var result = payload
+            for ((key, value) in dictionary) {
+                result = result.replace(key, value)
+            }
+            result
+        } catch (_: Exception) {
+            html
+        }
+    }
+
+    private fun toString26(num: Int, base: Int): String {
+        val sb = StringBuilder()
+        var n = num
+        while (n > 0) {
+            n--
+            sb.append(('a' + n % base))
+            n /= base
+        }
+        return sb.reverse().toString()
+    }
+
+    private fun extractVideoUrlFromHtml(html: String, embedUrl: String): String {
+        val unpacked = unpackPackedJs(html)
+        val searchHtml = unpacked + "\n" + html
+        val doc = Jsoup.parse(searchHtml)
+
+        doc.select("video source, video").firstOrNull()?.attr("src")?.let { src ->
+            if (src.isNotEmpty() && (src.contains(".mp4") || src.contains(".m3u8") || src.contains(".mpd"))) {
+                return normalizeUrl(src, embedUrl)
+            }
+        }
+
+        doc.select("video").firstOrNull()?.attr("src")?.let { src ->
+            if (src.isNotEmpty() && (src.contains(".mp4") || src.contains(".m3u8") || src.contains(".mpd"))) {
+                return normalizeUrl(src, embedUrl)
+            }
+        }
+
+        val patterns = listOf(
+            Regex("""["']video_url["']\s*:\s*["'](https?://[^"']+)["']"""),
+            Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""["']src["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""["']url["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""sources\s*:\s*\[\s*\{[^}]*src\s*:\s*["']([^"']+)["']"""),
+            Regex("""file\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""(?:https?:)?//[^\s'"<>]+\.(?:mp4|m3u8|mpd)(?:\?[^\s'"<>]*)?"""),
+            Regex("""["'](?:videoUrl|mp4Url|m3u8Url|stream)["']\s*:\s*["'](https?://[^"']+)["']"""),
+            Regex("""src\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""(?:https?:)?//[^"'\s<>]*bp\.blogspot\.com[^"'\s<>]*\.(?:mp4|m3u8)[^"'\s<>]*"""),
+            Regex("""["'](https?://[^"']*blogspot[^"']*\.mp4[^"']*)["']"""),
+            Regex("""["'](https?://[^"']*googlevideo[^"']*)["']"""),
+            Regex("""(?:file|source|src|video)\s*[=:]\s*["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']""")
+        )
+
+        for (pattern in patterns) {
+            val match = pattern.find(searchHtml)
+            if (match != null) {
+                val url = match.groupValues.getOrElse(1) { match.value }
+                if (url.isNotEmpty() && url.startsWith("http")) {
+                    return url
+                } else if (url.isNotEmpty()) {
+                    return normalizeUrl(url, embedUrl)
+                }
+            }
+        }
+
+        doc.select("iframe[src]").firstOrNull()?.attr("src")?.let { nestedSrc ->
+            if (nestedSrc.isNotEmpty()) {
+                val nestedUrl = normalizeUrl(nestedSrc, embedUrl)
+                return extractVideoFromEmbed(nestedUrl)
+            }
+        }
+
+        return ""
+    }
+
+    private fun normalizeUrl(url: String, baseUrl: String): String {
+        return when {
+            url.startsWith("http") -> url
+            url.startsWith("//") -> "https:$url"
+            url.startsWith("/") -> {
+                try {
+                    val base = java.net.URL(baseUrl)
+                    "${base.protocol}://${base.host}$url"
+                } catch (_: Exception) {
+                    url
+                }
+            }
+            else -> url
         }
     }
 

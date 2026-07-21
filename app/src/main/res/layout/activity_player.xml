@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black">
 
-    <!-- WebView Container -->
+    <!-- ExoPlayer Container -->
     <FrameLayout
         android:id="@+id/playerContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/playerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:use_controller="false"
+            app:resize_mode="fit" />
+    </FrameLayout>
 
     <!-- Loading Spinner -->
     <ProgressBar
@@ -22,13 +31,26 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
-    <!-- Gesture Overlay (catches touch for gestures) -->
+    <!-- Error Text -->
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:padding="24dp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        tools:text="Gagal memuat video" />
+
+    <!-- Gesture Overlay (drawn before controls so controls get touches first) -->
     <FrameLayout
         android:id="@+id/gestureOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clickable="false"
-        android:focusable="false" />
+        android:clickable="true"
+        android:focusable="true" />
 
     <!-- Brightness Indicator -->
     <LinearLayout

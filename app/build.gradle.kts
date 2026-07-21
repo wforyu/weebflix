@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -47,7 +48,7 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.0.0")
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
-    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0")
 
     implementation("org.jsoup:jsoup:1.17.1")
 
@@ -59,5 +60,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    implementation("androidx.webkit:webkit:1.9.0")
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
+    implementation("androidx.media3:media3-session:1.2.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.2.1")
 }

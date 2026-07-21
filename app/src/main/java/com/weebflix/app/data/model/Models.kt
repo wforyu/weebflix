@@ -27,7 +27,11 @@ data class Episode(
 
 data class VideoServer(
     val name: String,
-    val url: String
+    val url: String = "",
+    val videoUrl: String = "",
+    val dataPost: String = "",
+    val dataNume: String = "",
+    val dataType: String = "schtml"
 )
 
 data class AnimeDetail(

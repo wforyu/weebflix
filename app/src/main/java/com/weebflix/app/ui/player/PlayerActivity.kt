@@ -1,6 +1,5 @@
 package com.weebflix.app.ui.player
 
-import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.res.Configuration
@@ -11,13 +10,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.util.Rational
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -33,19 +34,32 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.PlayerView
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.VideoServer
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
 
-    private lateinit var webView: WebView
+    companion object {
+        private const val TAG = "PlayerActivity"
+    }
+
+    private lateinit var playerView: PlayerView
     private lateinit var playerContainer: FrameLayout
     private lateinit var gestureOverlay: FrameLayout
     private lateinit var loadingPlayer: ProgressBar
+    private lateinit var tvError: TextView
     private lateinit var tvAnimeTitle: TextView
     private lateinit var tvEpisodeTitle: TextView
     private lateinit var topBar: LinearLayout
@@ -53,8 +67,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var centerControls: FrameLayout
     private lateinit var btnCenterPlayPause: ImageView
     private lateinit var btnPlayPause: ImageView
-    private lateinit var btnPrevEp: ImageView
-    private lateinit var btnNextEp: ImageView
+    private lateinit var btnPrevServer: ImageView
+    private lateinit var btnNextServer: ImageView
     private lateinit var btnBack: ImageView
     private lateinit var btnPip: ImageView
     private lateinit var btnFullscreen: ImageView
@@ -79,6 +93,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var seekIcon: ImageView
     private lateinit var seekText: TextView
 
+    private var exoPlayer: ExoPlayer? = null
     private var episodeUrl: String = ""
     private var episodeTitle: String = ""
     private var episodeNumber: String = ""
@@ -86,6 +101,11 @@ class PlayerActivity : AppCompatActivity() {
     private var servers: List<VideoServer> = emptyList()
     private var currentServerIndex: Int = 0
     private var isPlaying: Boolean = true
+    private val resolvedUrlCache = mutableMapOf<Int, String>()
+
+    private var webView: WebView? = null
+    private var webViewResolving = false
+    private var webViewResolveCallback: ((String) -> Unit)? = null
 
     private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
     private val maxVolume by lazy { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
@@ -99,31 +119,11 @@ class PlayerActivity : AppCompatActivity() {
     private var isSeekingGesture: Boolean = false
     private var seekDelta: Long = 0L
 
-    // Skip opening timing (seconds)
     private var skipOpeningStart: Int = 90
     private var skipOpeningEnd: Int = 120
-
-    // Skip outro timing (seconds) - outro typically starts ~30s before end
     private var skipOutroStart: Int = 1270
     private var skipOutroEnd: Int = 1400
 
-    private var currentTimeSeconds: Float = 0f
-
-    // WebView estimated playback time tracking
-    private val timeUpdateHandler = Handler(Looper.getMainLooper())
-    private val timeUpdateRunnable = object : Runnable {
-        override fun run() {
-            if (isPlaying) {
-                currentTimeSeconds += 1f
-                updateSeekBarFromTime()
-                checkSkipButtonsVisibility()
-                checkAutoPlay()
-            }
-            timeUpdateHandler.postDelayed(this, 1000)
-        }
-    }
-
-    // Auto-play next episode
     private var nextEpisodeUrl: String = ""
     private var nextEpisodeTitle: String = ""
     private var autoPlayCountdown: Int = 0
@@ -146,7 +146,21 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetector
     private var isPipMode: Boolean = false
 
-    @SuppressLint("SetJavaScriptEnabled")
+    private val progressUpdateHandler = Handler(Looper.getMainLooper())
+    private val progressUpdateRunnable = object : Runnable {
+        override fun run() {
+            exoPlayer?.let { player ->
+                if (player.isPlaying) {
+                    checkSkipButtonsVisibility()
+                    checkAutoPlay()
+                    updateSeekBarFromPlayer()
+                }
+            }
+            progressUpdateHandler.postDelayed(this, 500)
+        }
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
@@ -169,10 +183,10 @@ class PlayerActivity : AppCompatActivity() {
         nextEpisodeTitle = intent.getStringExtra("nextEpisodeTitle") ?: ""
 
         initViews()
-        setupWebView()
         setupGestureDetector()
         setupControls()
         setupSeekBar()
+        initWebView()
 
         tvAnimeTitle.text = animeTitle
         tvEpisodeTitle.text = if (episodeTitle.isNotEmpty()) episodeTitle else "Episode $episodeNumber"
@@ -191,8 +205,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun initViews() {
         playerContainer = findViewById(R.id.playerContainer)
+        playerView = findViewById(R.id.playerView)
         gestureOverlay = findViewById(R.id.gestureOverlay)
         loadingPlayer = findViewById(R.id.loadingPlayer)
+        tvError = findViewById(R.id.tvError)
         tvAnimeTitle = findViewById(R.id.tvAnimeTitle)
         tvEpisodeTitle = findViewById(R.id.tvEpisodeTitle)
         topBar = findViewById(R.id.topBar)
@@ -200,8 +216,8 @@ class PlayerActivity : AppCompatActivity() {
         centerControls = findViewById(R.id.centerControls)
         btnCenterPlayPause = findViewById(R.id.btnCenterPlayPause)
         btnPlayPause = findViewById(R.id.btnPlayPause)
-        btnPrevEp = findViewById(R.id.btnPrevEp)
-        btnNextEp = findViewById(R.id.btnNextEp)
+        btnPrevServer = findViewById(R.id.btnPrevEp)
+        btnNextServer = findViewById(R.id.btnNextEp)
         btnBack = findViewById(R.id.btnBack)
         btnPip = findViewById(R.id.btnPip)
         btnFullscreen = findViewById(R.id.btnFullscreen)
@@ -225,74 +241,220 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator = findViewById(R.id.seekIndicator)
         seekIcon = findViewById(R.id.seekIcon)
         seekText = findViewById(R.id.seekText)
+
+        playerView.useController = false
+        playerView.keepScreenOn = true
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun setupWebView() {
+    // ===== Hidden WebView for resolving video URLs (bypasses Cloudflare) =====
+
+    private fun initWebView() {
         webView = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.allowContentAccess = true
+            settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            settings.mediaPlaybackRequiresUserGesture = false
+            settings.blockNetworkImage = true
+            settings.loadsImagesAutomatically = false
+
+            addJavascriptInterface(WebViewBridge(), "AndroidBridge")
+
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    if (webViewResolving) {
+                        Log.d(TAG, "WebView page loaded: $url, injecting server click...")
+                        injectServerClick()
+                    }
+                }
+
+                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                    Log.e(TAG, "WebView error: $description at $failingUrl")
+                    if (webViewResolving) {
+                        webViewResolving = false
+                        webViewResolveCallback?.invoke("")
+                        webViewResolveCallback = null
+                    }
+                }
+            }
+            webChromeClient = WebChromeClient()
+
+            visibility = View.INVISIBLE
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            settings.loadWithOverviewMode = true
-            settings.useWideViewPort = true
-            settings.displayZoomControls = false
-            settings.cacheMode = WebSettings.LOAD_DEFAULT
-            settings.allowFileAccess = true
-            settings.allowContentAccess = true
-            settings.setSupportMultipleWindows(false)
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            settings.userAgentString =
-                "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-
-            webViewClient = object : WebViewClient() {
-                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                    loadingPlayer.visibility = View.VISIBLE
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    loadingPlayer.visibility = View.GONE
-                    injectVideoAutoplay()
-                }
-
-                override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
-                    return false
-                }
-            }
-
-            webChromeClient = object : WebChromeClient() {
-                override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                    if (newProgress == 100) {
-                        loadingPlayer.visibility = View.GONE
-                    }
-                }
-
-                override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-                    super.onShowCustomView(view, callback)
-                }
-
-                override fun onHideCustomView() {
-                    super.onHideCustomView()
-                }
-            }
         }
         playerContainer.addView(webView)
     }
 
-    private fun injectVideoAutoplay() {
+    private fun resolveWithWebView(server: VideoServer, callback: (String) -> Unit) {
+        if (webViewResolving) {
+            callback("")
+            return
+        }
+        webViewResolving = true
+        webViewResolveCallback = callback
+        pendingResolveServer = server
+
+        Log.d(TAG, "WebView resolving server: ${server.name}, loading episode page...")
+        webView?.loadUrl(episodeUrl)
+    }
+
+    private var pendingResolveServer: VideoServer? = null
+
+    private fun injectServerClick() {
+        val server = pendingResolveServer ?: return
+        val nume = server.dataNume
+
         val js = """
             (function() {
-                var videos = document.querySelectorAll('video');
-                for (var i = 0; i < videos.length; i++) {
-                    videos[i].play().catch(function(){});
+                var serverEl = document.querySelector('[data-nume="$nume"]');
+                if (!serverEl) {
+                    window.AndroidBridge.onUrlFound('');
+                    return;
                 }
+                serverEl.click();
+                var attempts = 0;
+                var maxAttempts = 30;
+                var checkInterval = setInterval(function() {
+                    attempts++;
+                    var embed = document.getElementById('player_embed');
+                    if (!embed) {
+                        if (attempts >= maxAttempts) {
+                            clearInterval(checkInterval);
+                            window.AndroidBridge.onUrlFound('');
+                        }
+                        return;
+                    }
+                    var html = embed.innerHTML.trim();
+                    if (html.length < 20 && attempts < maxAttempts) return;
+                    clearInterval(checkInterval);
+                    var iframe = embed.querySelector('iframe');
+                    if (iframe && iframe.src) {
+                        window.AndroidBridge.onUrlFound(iframe.src);
+                        return;
+                    }
+                    var video = embed.querySelector('video source') || embed.querySelector('video');
+                    if (video) {
+                        var src = video.src || video.getAttribute('src') || '';
+                        if (src) {
+                            window.AndroidBridge.onUrlFound(src);
+                            return;
+                        }
+                    }
+                    var links = embed.querySelectorAll('a[href*=".mp4"], a[href*=".m3u8"], a[href*=".mpd"]');
+                    if (links.length > 0) {
+                        window.AndroidBridge.onUrlFound(links[0].href);
+                        return;
+                    }
+                    window.AndroidBridge.onUrlFound('');
+                }, 500);
             })();
         """.trimIndent()
-        webView.evaluateJavascript(js, null)
+
+        webView?.evaluateJavascript(js, null)
+    }
+
+    inner class WebViewBridge {
+        @JavascriptInterface
+        fun onUrlFound(url: String?) {
+            val resolvedUrl = url ?: ""
+            Log.d(TAG, "WebView resolved URL: $resolvedUrl")
+            runOnUiThread {
+                webViewResolving = false
+                val callback = webViewResolveCallback
+                webViewResolveCallback = null
+                pendingResolveServer = null
+                callback?.invoke(resolvedUrl)
+            }
+        }
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun initExoPlayer(videoUrl: String) {
+        exoPlayer?.release()
+
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(chain.request().newBuilder()
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                    .addHeader("Referer", ProviderConfig.baseUrl)
+                    .build())
+            }
+            .build()
+
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+
+        exoPlayer = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build()
+            .also { player ->
+                playerView.player = player
+
+                val mediaItem = MediaItem.fromUri(videoUrl)
+                player.setMediaItem(mediaItem)
+                player.prepare()
+                player.playWhenReady = true
+
+                player.addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        isPlaying = playing
+                        runOnUiThread {
+                            val icon = if (playing) R.drawable.ic_player_pause else R.drawable.ic_player_play
+                            btnPlayPause.setImageResource(icon)
+                            btnCenterPlayPause.setImageResource(icon)
+                        }
+                    }
+
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        runOnUiThread {
+                            when (playbackState) {
+                                Player.STATE_BUFFERING -> {
+                                    loadingPlayer.visibility = View.VISIBLE
+                                    tvError.visibility = View.GONE
+                                }
+                                Player.STATE_READY -> {
+                                    loadingPlayer.visibility = View.GONE
+                                    tvError.visibility = View.GONE
+                                }
+                                Player.STATE_ENDED -> {
+                                    isPlaying = false
+                                    btnPlayPause.setImageResource(R.drawable.ic_player_play)
+                                    btnCenterPlayPause.setImageResource(R.drawable.ic_player_play)
+                                    showControls()
+                                }
+                                Player.STATE_IDLE -> {}
+                            }
+                        }
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        runOnUiThread {
+                            loadingPlayer.visibility = View.GONE
+                            val nextIndex = currentServerIndex + 1
+                            if (nextIndex < servers.size) {
+                                tvError.visibility = View.VISIBLE
+                                tvError.text = "Server ${servers[currentServerIndex].name} gagal.\nMencoba server berikutnya..."
+                                tvError.postDelayed({
+                                    if (!isFinishing) {
+                                        currentServerIndex = nextIndex
+                                        updateServerUI()
+                                        loadServer(nextIndex)
+                                    }
+                                }, 1500)
+                            } else {
+                                tvError.visibility = View.VISIBLE
+                                tvError.text = "Semua server gagal. Coba pilih server lain."
+                            }
+                        }
+                    }
+                })
+
+                progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
+            }
     }
 
     private fun setupGestureDetector() {
@@ -327,10 +489,8 @@ class PlayerActivity : AppCompatActivity() {
                     handleSeekGesture(e1.x, e2.x)
                     return true
                 } else if (abs(deltaY) > abs(deltaX) && abs(deltaY) > 20) {
-                    val viewWidth = gestureOverlay.width
                     val startX = e1.x
-
-                    if (startX < viewWidth / 2f) {
+                    if (startX < gestureOverlay.width / 2f) {
                         handleBrightnessGesture(deltaY)
                     } else {
                         handleVolumeGesture(deltaY)
@@ -343,7 +503,6 @@ class PlayerActivity : AppCompatActivity() {
 
         gestureOverlay.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
                 hideBrightnessIndicator()
                 hideVolumeIndicator()
@@ -358,11 +517,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun setupControls() {
         btnBack.setOnClickListener { finish() }
-
         btnPlayPause.setOnClickListener { togglePlayPause() }
         btnCenterPlayPause.setOnClickListener { togglePlayPause() }
 
-        btnPrevEp.setOnClickListener {
+        btnPrevServer.setOnClickListener {
             if (currentServerIndex > 0) {
                 currentServerIndex--
                 loadServer(currentServerIndex)
@@ -370,7 +528,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
 
-        btnNextEp.setOnClickListener {
+        btnNextServer.setOnClickListener {
             if (currentServerIndex < servers.size - 1) {
                 currentServerIndex++
                 loadServer(currentServerIndex)
@@ -379,31 +537,23 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnPip.setOnClickListener { enterPipMode() }
-
-        btnFullscreen.setOnClickListener { /* Already landscape fullscreen */ }
-
+        btnFullscreen.setOnClickListener { }
         tvServerName.setOnClickListener { showServerPickerDialog() }
+        tvError.setOnClickListener { if (servers.isNotEmpty()) showServerPickerDialog() }
 
         btnSkipOpening.setOnClickListener {
-            val skipTo = skipOpeningEnd.toFloat()
-            seekTo(skipTo)
-            currentTimeSeconds = skipTo
-            updateSeekBarFromTime()
+            exoPlayer?.seekTo(skipOpeningEnd * 1000L)
             btnSkipOpening.visibility = View.GONE
+            scheduleAutoHide()
         }
 
         btnSkipOutro.setOnClickListener {
-            val skipTo = skipOutroEnd.toFloat()
-            seekTo(skipTo)
-            currentTimeSeconds = skipTo
-            updateSeekBarFromTime()
+            exoPlayer?.seekTo(skipOutroEnd * 1000L)
             btnSkipOutro.visibility = View.GONE
+            scheduleAutoHide()
         }
 
-        btnCancelAutoPlay.setOnClickListener {
-            cancelAutoPlay()
-        }
-
+        btnCancelAutoPlay.setOnClickListener { cancelAutoPlay() }
         btnPlayNow.setOnClickListener {
             autoPlayHandler.removeCallbacks(autoPlayRunnable)
             navigateToNextEpisode()
@@ -414,27 +564,25 @@ class PlayerActivity : AppCompatActivity() {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val totalTime = getTimeFromSeekBar()
-                    tvCurrentTime.text = formatTime(progress.toFloat() / seekBar!!.max * totalTime)
+                    val duration = exoPlayer?.duration?.takeIf { it > 0 } ?: return
+                    val time = progress.toFloat() / (seekBar?.max ?: 1) * duration / 1000f
+                    tvCurrentTime.text = formatTime(time)
                 }
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 showControls()
-                timeUpdateHandler.removeCallbacks(timeUpdateRunnable)
+                progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 if (seekBar == null) return
-                val totalTime = getTimeFromSeekBar()
+                val duration = exoPlayer?.duration?.takeIf { it > 0 } ?: return
                 val progress = seekBar.progress.toFloat() / seekBar.max
-                val seekToTime = progress * totalTime
-                currentTimeSeconds = seekToTime
-                seekTo(seekToTime)
+                val seekToMs = (progress * duration).toLong()
+                exoPlayer?.seekTo(seekToMs)
                 scheduleAutoHide()
-                if (isPlaying) {
-                    timeUpdateHandler.postDelayed(timeUpdateRunnable, 1000)
-                }
+                progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
             }
         })
     }
@@ -444,11 +592,9 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleBrightnessGesture(deltaY: Float) {
         val delta = (-deltaY / (gestureOverlay.height.toFloat() / 2f)).coerceIn(-0.05f, 0.05f)
         currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
-
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
         window.attributes = layoutParams
-
         val percent = (currentBrightness * 100).toInt()
         brightnessProgress.progress = percent
         brightnessText.text = "$percent%"
@@ -459,7 +605,6 @@ class PlayerActivity : AppCompatActivity() {
         val delta = (-deltaY / (gestureOverlay.height.toFloat() / 2f) * maxVolume).coerceIn(-maxVolume.toFloat() / 50f, maxVolume.toFloat() / 50f)
         currentVolume = (currentVolume + delta.toInt()).coerceIn(0, maxVolume)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
-
         val percent = (currentVolume * 100f / maxVolume).toInt()
         volumeProgress.progress = percent
         volumeText.text = "$percent%"
@@ -469,62 +614,21 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleSeekGesture(startX: Float, currentX: Float) {
         val deltaX = currentX - startX
         seekDelta = (deltaX / gestureOverlay.width * 120f).toLong()
-
         isSeekingGesture = true
-        if (seekDelta >= 0) {
-            seekIcon.setImageResource(R.drawable.ic_player_skip_forward)
-            seekText.text = "+${abs(seekDelta)}s"
-        } else {
-            seekIcon.setImageResource(R.drawable.ic_player_skip_backward)
-            seekText.text = "-${abs(seekDelta)}s"
-        }
+        seekText.text = if (seekDelta >= 0) "+${abs(seekDelta)}s" else "-${abs(seekDelta)}s"
         showSeekIndicator(seekDelta >= 0, seekText.text.toString())
     }
 
     private fun seekBy(seconds: Float) {
-        val newTime = (currentTimeSeconds + seconds).coerceAtLeast(0f)
-        currentTimeSeconds = newTime
-        seekTo(newTime)
-        updateSeekBarFromTime()
-    }
-
-    private fun seekTo(timeSeconds: Float) {
-        val js = """
-            (function() {
-                var videos = document.querySelectorAll('video');
-                for (var i = 0; i < videos.length; i++) {
-                    try { videos[i].currentTime = $timeSeconds; } catch(e) {}
-                }
-            })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
+        val player = exoPlayer ?: return
+        val newMs = (player.currentPosition + seconds * 1000).coerceAtLeast(0f).toLong()
+        player.seekTo(newMs)
+        scheduleAutoHide()
     }
 
     private fun togglePlayPause() {
-        isPlaying = !isPlaying
-
-        val js = """
-            (function() {
-                var videos = document.querySelectorAll('video');
-                for (var i = 0; i < videos.length; i++) {
-                    try {
-                        if ($isPlaying) { videos[i].play(); } else { videos[i].pause(); }
-                    } catch(e) {}
-                }
-            })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
-
-        val icon = if (isPlaying) R.drawable.ic_player_pause else R.drawable.ic_player_play
-        btnPlayPause.setImageResource(icon)
-        btnCenterPlayPause.setImageResource(icon)
-
-        if (isPlaying) {
-            timeUpdateHandler.postDelayed(timeUpdateRunnable, 1000)
-        } else {
-            timeUpdateHandler.removeCallbacks(timeUpdateRunnable)
-        }
-
+        val player = exoPlayer ?: return
+        if (player.isPlaying) player.pause() else player.play()
         showControls()
         scheduleAutoHide()
     }
@@ -566,9 +670,7 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator.visibility = View.GONE
     }
 
-    private fun hideBrightnessIndicator() {
-        brightnessIndicator.visibility = View.GONE
-    }
+    private fun hideBrightnessIndicator() { brightnessIndicator.visibility = View.GONE }
 
     private fun showVolumeIndicator() {
         volumeIndicator.visibility = View.VISIBLE
@@ -576,54 +678,38 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator.visibility = View.GONE
     }
 
-    private fun hideVolumeIndicator() {
-        volumeIndicator.visibility = View.GONE
-    }
+    private fun hideVolumeIndicator() { volumeIndicator.visibility = View.GONE }
 
     private fun showSeekIndicator(forward: Boolean, text: String) {
         seekIndicator.visibility = View.VISIBLE
         seekText.text = text
-        if (forward) {
-            seekIcon.setImageResource(R.drawable.ic_player_skip_forward)
-        } else {
-            seekIcon.setImageResource(R.drawable.ic_player_skip_backward)
-        }
+        seekIcon.setImageResource(if (forward) R.drawable.ic_player_skip_forward else R.drawable.ic_player_skip_backward)
     }
 
-    private fun hideSeekIndicator() {
-        seekIndicator.visibility = View.GONE
-    }
+    private fun hideSeekIndicator() { seekIndicator.visibility = View.GONE }
 
     // ===== Skip Opening / Outro =====
 
     private fun checkSkipButtonsVisibility() {
-        val totalTime = getTimeFromSeekBar()
+        val player = exoPlayer ?: return
+        val duration = player.duration
+        if (duration <= 0) return
+        val currentSec = player.currentPosition / 1000f
+        val totalSec = duration / 1000f
 
-        // Skip Opening
-        val inOpeningRange = currentTimeSeconds in skipOpeningStart.toFloat()..skipOpeningEnd.toFloat()
-        if (inOpeningRange && controlsVisible) {
-            btnSkipOpening.visibility = View.VISIBLE
-        } else {
-            btnSkipOpening.visibility = View.GONE
-        }
+        btnSkipOpening.visibility = if (currentSec in skipOpeningStart.toFloat()..skipOpeningEnd.toFloat() && controlsVisible) View.VISIBLE else View.GONE
 
-        // Skip Outro
-        val adjustedOutroStart = (totalTime - 130f).coerceAtLeast(skipOutroStart.toFloat())
-        val inOutroRange = currentTimeSeconds >= adjustedOutroStart && currentTimeSeconds < totalTime
-        if (inOutroRange && controlsVisible && nextEpisodeUrl.isNotEmpty()) {
-            btnSkipOutro.visibility = View.VISIBLE
-        } else {
-            btnSkipOutro.visibility = View.GONE
-        }
+        val adjustedOutroStart = (totalSec - 130f).coerceAtLeast(skipOutroStart.toFloat())
+        btnSkipOutro.visibility = if (currentSec >= adjustedOutroStart && currentSec < totalSec && controlsVisible && nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
-    // ===== Auto-play Next Episode =====
+    // ===== Auto-play =====
 
     private fun checkAutoPlay() {
-        val totalTime = getTimeFromSeekBar()
-        val timeRemaining = totalTime - currentTimeSeconds
-
-        // Show auto-play overlay in last 10 seconds
+        val player = exoPlayer ?: return
+        val duration = player.duration
+        if (duration <= 0) return
+        val timeRemaining = (duration - player.currentPosition) / 1000f
         if (timeRemaining in 0f..10f && nextEpisodeUrl.isNotEmpty() && !autoPlayActive) {
             startAutoPlayCountdown()
         }
@@ -652,7 +738,7 @@ class PlayerActivity : AppCompatActivity() {
                 putExtra("url", nextEpisodeUrl)
                 putExtra("title", nextEpisodeTitle)
                 putExtra("animeTitle", animeTitle)
-                putExtra("nextEpisodeUrl", "") // Will be fetched in new instance
+                putExtra("nextEpisodeUrl", "")
             }
             startActivity(intent)
             finish()
@@ -661,40 +747,31 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    // ===== Episode Navigation (scrape from page) =====
+    // ===== Navigation =====
 
     private fun fetchEpisodeNavigation() {
         if (nextEpisodeUrl.isNotEmpty()) return
-
         lifecycleScope.launch {
             try {
                 val nav = WeebFlixApp.instance.scraper.getEpisodeNavigation(episodeUrl)
-                if (!isFinishing) {
-                    if (nav.nextEpisodeUrl.isNotEmpty()) {
-                        nextEpisodeUrl = nav.nextEpisodeUrl
-                        nextEpisodeTitle = nav.nextEpisodeTitle
-                    }
+                if (!isFinishing && nav.nextEpisodeUrl.isNotEmpty()) {
+                    nextEpisodeUrl = nav.nextEpisodeUrl
+                    nextEpisodeTitle = nav.nextEpisodeTitle
                 }
-            } catch (_: Exception) {
-                // Navigation not available, that's fine
-            }
+            } catch (_: Exception) { }
         }
     }
 
     // ===== Time Tracking =====
 
-    private fun updateSeekBarFromTime() {
-        val totalTime = getTimeFromSeekBar()
-        if (totalTime > 0) {
-            val progress = (currentTimeSeconds / totalTime * seekBar.max).toInt().coerceIn(0, seekBar.max)
-            seekBar.progress = progress
-            tvCurrentTime.text = formatTime(currentTimeSeconds)
-            tvTotalTime.text = formatTime(totalTime)
-        }
-    }
-
-    private fun getTimeFromSeekBar(): Float {
-        return 1400f
+    private fun updateSeekBarFromPlayer() {
+        val player = exoPlayer ?: return
+        val duration = player.duration
+        if (duration <= 0) return
+        val currentMs = player.currentPosition
+        seekBar.progress = (currentMs.toFloat() / duration * seekBar.max).toInt().coerceIn(0, seekBar.max)
+        tvCurrentTime.text = formatTime(currentMs / 1000f)
+        tvTotalTime.text = formatTime(duration / 1000f)
     }
 
     private fun formatTime(seconds: Float): String {
@@ -702,23 +779,15 @@ class PlayerActivity : AppCompatActivity() {
         val hrs = totalSeconds / 3600
         val mins = (totalSeconds % 3600) / 60
         val secs = totalSeconds % 60
-        return if (hrs > 0) {
-            String.format("%d:%02d:%02d", hrs, mins, secs)
-        } else {
-            String.format("%02d:%02d", mins, secs)
-        }
+        return if (hrs > 0) String.format("%d:%02d:%02d", hrs, mins, secs)
+        else String.format("%02d:%02d", mins, secs)
     }
-
-    // ===== Screen Brightness =====
 
     private fun getScreenBrightness(): Float {
         val lp = window.attributes
         if (lp.screenBrightness < 0) {
-            return try {
-                Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f
-            } catch (e: Settings.SettingNotFoundException) {
-                0.5f
-            }
+            return try { Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f }
+            catch (_: Settings.SettingNotFoundException) { 0.5f }
         }
         return lp.screenBrightness
     }
@@ -734,16 +803,19 @@ class PlayerActivity : AppCompatActivity() {
                         updateServerUI()
                         loadServer(0)
                     } else {
-                        loadUrl(episodeUrl)
+                        showError("Tidak ada server yang tersedia")
                     }
                 }
             } catch (e: Exception) {
-                if (!isFinishing) {
-                    Toast.makeText(this@PlayerActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    loadUrl(episodeUrl)
-                }
+                if (!isFinishing) showError("Error: ${e.message}")
             }
         }
+    }
+
+    private fun showError(message: String) {
+        loadingPlayer.visibility = View.GONE
+        tvError.visibility = View.VISIBLE
+        tvError.text = message
     }
 
     private fun updateServerUI() {
@@ -765,35 +837,163 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun loadServer(index: Int) {
-        if (index in servers.indices) {
-            val server = servers[index]
-            val url = if (server.url.startsWith("http")) server.url
-            else "${ProviderConfig.baseUrl}${server.url}"
-            loadUrl(url)
+        if (index in servers.indices) playServer(servers[index])
+    }
+
+    private fun playServer(server: VideoServer) {
+        loadingPlayer.visibility = View.VISIBLE
+        tvError.visibility = View.GONE
+        seekBar.progress = 0
+        tvCurrentTime.text = "00:00"
+        tvTotalTime.text = "00:00"
+
+        val serverIndex = servers.indexOf(server)
+        val cachedUrl = resolvedUrlCache[serverIndex]
+        if (cachedUrl != null && cachedUrl.isNotEmpty()) {
+            Log.d(TAG, "Playing cached URL: $cachedUrl")
+            loadingPlayer.visibility = View.GONE
+            initExoPlayer(cachedUrl)
+            return
+        }
+
+        if (server.videoUrl.isNotEmpty()) {
+            Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
+            resolvedUrlCache[serverIndex] = server.videoUrl
+            loadingPlayer.visibility = View.GONE
+            initExoPlayer(server.videoUrl)
+            return
+        }
+
+        val url = server.url
+        if (url.isNotEmpty() && (url.contains(".mp4") || url.contains(".m3u8") || url.contains(".mpd") || url.contains("googlevideo.com"))) {
+            Log.d(TAG, "Playing direct video URL: $url")
+            resolvedUrlCache[serverIndex] = url
+            loadingPlayer.visibility = View.GONE
+            initExoPlayer(url)
+            return
+        }
+
+        Log.d(TAG, "Resolving via WebView for server: ${server.name}")
+        resolveWithWebView(server) { resolvedUrl ->
+            runOnUiThread {
+                if (!isFinishing) {
+                    if (resolvedUrl.isNotEmpty()) {
+                        Log.d(TAG, "WebView resolved: $resolvedUrl")
+                        resolvedUrlCache[serverIndex] = resolvedUrl
+                        loadingPlayer.visibility = View.GONE
+                        tvError.visibility = View.GONE
+
+                        if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mpd")) {
+                            initExoPlayer(resolvedUrl)
+                        } else {
+                            resolveEmbedUrl(resolvedUrl, server, serverIndex)
+                        }
+                    } else {
+                        val nextIndex = currentServerIndex + 1
+                        if (nextIndex < servers.size) {
+                            tvError.visibility = View.VISIBLE
+                            tvError.text = "Server ${server.name} gagal. Mencoba server berikutnya..."
+                            tvError.postDelayed({
+                                if (!isFinishing) {
+                                    currentServerIndex = nextIndex
+                                    updateServerUI()
+                                    loadServer(nextIndex)
+                                }
+                            }, 1500)
+                        } else {
+                            showError("Tidak dapat memutar dari server ${server.name}.\nKlik untuk pilih server lain.")
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private fun loadUrl(url: String) {
-        loadingPlayer.visibility = View.VISIBLE
-        webView.loadUrl(url)
+    private fun resolveEmbedUrl(embedUrl: String, server: VideoServer, serverIndex: Int) {
+        Log.d(TAG, "Fetching embed page via WebView: $embedUrl")
+        webViewResolving = true
+
+        webView?.evaluateJavascript("") {}
+
+        webView?.loadUrl(embedUrl)
+
+        webView?.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                if (!webViewResolving) return
+
+                val extractJs = """
+                    (function() {
+                        var video = document.querySelector('video source') || document.querySelector('video');
+                        if (video) {
+                            var src = video.src || video.getAttribute('src') || '';
+                            if (src) { window.AndroidBridge.onUrlFound(src); return; }
+                        }
+                        var iframes = document.querySelectorAll('iframe');
+                        for (var i = 0; i < iframes.length; i++) {
+                            if (iframes[i].src && iframes[i].src.indexOf('about:blank') === -1) {
+                                window.AndroidBridge.onUrlFound(iframes[i].src);
+                                return;
+                            }
+                        }
+                        var all = document.body.innerHTML;
+                        var m = all.match(/["'](?:file|source|src|video_url)["']\s*[:=]\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/);
+                        if (m) { window.AndroidBridge.onUrlFound(m[1]); return; }
+                        m = all.match(/(https?:\/\/[^\s"'<>]+\.(?:mp4|m3u8|mpd)(?:\?[^\s"'<>]*)?)/);
+                        if (m) { window.AndroidBridge.onUrlFound(m[1]); return; }
+                        window.AndroidBridge.onUrlFound('');
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(extractJs, null)
+            }
+        }
+
+        webViewResolveCallback = { finalUrl ->
+            runOnUiThread {
+                webViewResolving = false
+                webView?.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        if (webViewResolving) {
+                            injectServerClick()
+                        }
+                    }
+                }
+
+                if (!isFinishing && finalUrl.isNotEmpty()) {
+                    resolvedUrlCache[serverIndex] = finalUrl
+                    loadingPlayer.visibility = View.GONE
+                    initExoPlayer(finalUrl)
+                } else if (!isFinishing) {
+                    val nextIndex = currentServerIndex + 1
+                    if (nextIndex < servers.size) {
+                        tvError.visibility = View.VISIBLE
+                        tvError.text = "Server ${server.name} gagal. Mencoba server berikutnya..."
+                        tvError.postDelayed({
+                            if (!isFinishing) {
+                                currentServerIndex = nextIndex
+                                updateServerUI()
+                                loadServer(nextIndex)
+                            }
+                        }, 1500)
+                    } else {
+                        showError("Semua server gagal.\nKlik untuk pilih server lain.")
+                    }
+                }
+            }
+        }
     }
 
     // ===== PiP =====
 
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
             try {
-                enterPictureInPictureMode(params)
+                enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build())
                 isPipMode = true
                 hideControls()
             } catch (e: Exception) {
                 Toast.makeText(this, "PiP not supported", Toast.LENGTH_SHORT).show()
             }
-        } else {
-            Toast.makeText(this, "PiP requires Android 8.0+", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -801,59 +1001,46 @@ class PlayerActivity : AppCompatActivity() {
         super.onPictureInPictureModeChanged(isInPipMode, newConfig)
         isPipMode = isInPipMode
         if (isInPipMode) {
-            topBar.visibility = View.GONE
-            bottomBar.visibility = View.GONE
-            centerControls.visibility = View.GONE
-            btnSkipOpening.visibility = View.GONE
-            btnSkipOutro.visibility = View.GONE
-            autoPlayOverlay.visibility = View.GONE
+            topBar.visibility = View.GONE; bottomBar.visibility = View.GONE; centerControls.visibility = View.GONE
+            btnSkipOpening.visibility = View.GONE; btnSkipOutro.visibility = View.GONE; autoPlayOverlay.visibility = View.GONE
             gestureOverlay.visibility = View.GONE
         } else {
             gestureOverlay.visibility = View.VISIBLE
         }
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-    }
-
-    // ===== Back Press =====
-
     @Suppress("DEPRECATION")
     @Deprecated("Use OnBackPressedCallback")
-    override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
+    override fun onBackPressed() { super.onBackPressed() }
 
     // ===== Lifecycle =====
 
     override fun onResume() {
         super.onResume()
-        webView.onResume()
-        if (isPlaying) {
-            timeUpdateHandler.postDelayed(timeUpdateRunnable, 1000)
-        }
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
+        exoPlayer?.playWhenReady = true
+        progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
+        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onPause() {
         super.onPause()
-        webView.onPause()
-        timeUpdateHandler.removeCallbacks(timeUpdateRunnable)
+        exoPlayer?.playWhenReady = false
+        progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
     }
 
     override fun onDestroy() {
-        timeUpdateHandler.removeCallbacks(timeUpdateRunnable)
+        progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
-        webView.destroy()
+        exoPlayer?.release()
+        exoPlayer = null
+        webView?.apply {
+            stopLoading()
+            destroy()
+        }
+        webView = null
         super.onDestroy()
     }
 }
