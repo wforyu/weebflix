@@ -164,7 +164,7 @@
                         android:clipToPadding="false"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
-                        android:overScrollMode="none" />
+                        android:overScrollMode="never" />
 
                 </LinearLayout>
 
@@ -193,7 +193,7 @@
                         android:clipToPadding="false"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
-                        android:overScrollMode="none" />
+                        android:overScrollMode="never" />
 
                 </LinearLayout>
 

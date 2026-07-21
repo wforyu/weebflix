@@ -19,7 +19,7 @@ class SplashActivity : AppCompatActivity() {
         val ivLogo = findViewById<ImageView>(R.id.ivLogo)
 
         // Netflix Tudum-style animation: zoom in from small, hold, then zoom+fade out
-        val logoAnim = AnimationUtils.loadAnimation(this, R.drawable.logo_anim)
+        val logoAnim = AnimationUtils.loadAnimation(this, R.anim.logo_anim)
         ivLogo.startAnimation(logoAnim)
 
         // Navigate to main after animation completes

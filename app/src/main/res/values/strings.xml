@@ -26,4 +26,10 @@
     <string name="season">Season</string>
     <string name="studio">Studio</string>
     <string name="all_episodes">All Episodes</string>
+    <string name="settings">Settings</string>
+    <string name="provider_domain">Provider Domain (URL)</string>
+    <string name="change_domain_hint">Ganti domain provider jika situs berpindah. Perubahan akan berlaku untuk semua pencarian dan streaming.</string>
+    <string name="enter_new_domain">https://contoh-domain.com</string>
+    <string name="save">Simpan</string>
+    <string name="reset_default">Kembalikan ke Default</string>
 </resources>

@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
+import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.VideoServer
 import kotlinx.coroutines.launch
 
@@ -182,7 +183,7 @@ class PlayerActivity : AppCompatActivity() {
                 loadUrl(server.url)
             } else {
                 val fullUrl = if (server.url.startsWith("http")) server.url
-                else "https://v2.samehadaku.how${server.url}"
+                else "${ProviderConfig.baseUrl}${server.url}"
                 loadUrl(fullUrl)
             }
         }

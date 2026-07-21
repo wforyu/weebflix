@@ -22,6 +22,7 @@ import com.weebflix.app.data.model.Episode
 import com.weebflix.app.ui.adapter.AnimeAdapter
 import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -135,9 +136,9 @@ class HomeFragment : Fragment() {
             try {
                 val scraper = WeebFlixApp.instance.scraper
 
-                val latestDeferred = launch { scraper.getLatestEpisodes() }
-                val ongoingDeferred = launch { scraper.getOngoingAnime() }
-                val popularDeferred = launch { scraper.getPopularAnime() }
+                val latestDeferred = async { scraper.getLatestEpisodes() }
+                val ongoingDeferred = async { scraper.getOngoingAnime() }
+                val popularDeferred = async { scraper.getPopularAnime() }
 
                 val latest = latestDeferred.await()
                 val ongoing = ongoingDeferred.await()

@@ -8,6 +8,7 @@ import com.weebflix.app.R
 import com.weebflix.app.ui.home.HomeFragment
 import com.weebflix.app.ui.ongoing.OngoingFragment
 import com.weebflix.app.ui.search.SearchFragment
+import com.weebflix.app.ui.settings.SettingsFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,6 +37,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_ongoing -> {
                     loadFragment(OngoingFragment())
+                    true
+                }
+                R.id.nav_settings -> {
+                    loadFragment(SettingsFragment())
                     true
                 }
                 else -> false
