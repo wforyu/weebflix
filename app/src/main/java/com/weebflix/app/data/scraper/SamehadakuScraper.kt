@@ -453,6 +453,11 @@ class SamehadakuScraper {
                 Log.d("Scraper", "AJAX iframe src: $iframeSrc")
                 if (iframeSrc.isNotEmpty()) {
                     embedUrl = normalizeUrl(iframeSrc, episodeUrl)
+
+                    if (embedUrl.contains("blogger.com") || embedUrl.contains("bp.blogspot.com")) {
+                        Log.d("Scraper", "Blogger embed detected, returning URL for WebView XHR extraction: $embedUrl")
+                        return@withContext embedUrl
+                    }
                 }
             }
 
@@ -520,29 +525,27 @@ class SamehadakuScraper {
     }
 
     private fun unpackPackedJs(html: String): String {
-        val pattern = Regex("""eval\(function\(p,a,c,k,e,d\).+?\}\)""", RegexOption.DOT_MATCHES_ALL)
+        val pattern = Regex("""eval\(function\(p,a,c,k,e,d\)\s*\{.*?\}\)""", RegexOption.DOT_MATCHES_ALL)
         val packedMatch = pattern.find(html) ?: return html
         return try {
             val packed = packedMatch.value
-            val base64Pattern = Regex("""}\'(.+)\',(\d+),(\d+),\'([^\']+)\'\.(split|slice)""")
-            val m = base64Pattern.find(packed) ?: return html
+            val argsPattern = Regex("""\}\('(.+)',(\d+),(\d+),'([^']+)'\.split\)""")
+            val m = argsPattern.find(packed) ?: return html
             val payload = m.groupValues[1]
-            val wordsBase = m.groupValues[4]
-
             val a = m.groupValues[2].toInt()
             val c = m.groupValues[3].toInt()
-            val words = wordsBase.split('|')
+            val words = m.groupValues[4].split('|')
 
             val dictionary = HashMap<String, String>()
             for (i in 0 until c) {
                 val key = if (i < words.size) words[i] else ""
-                val value = toString26(i, a)
+                val value = baseConvert(i, a)
                 dictionary[value] = key
             }
 
             var result = payload
             for ((key, value) in dictionary) {
-                result = result.replace(key, value)
+                result = result.replace("$key", value)
             }
             result
         } catch (_: Exception) {
@@ -550,7 +553,7 @@ class SamehadakuScraper {
         }
     }
 
-    private fun toString26(num: Int, base: Int): String {
+    private fun baseConvert(num: Int, base: Int): String {
         val sb = StringBuilder()
         var n = num
         while (n > 0) {
@@ -589,9 +592,12 @@ class SamehadakuScraper {
             Regex("""(?:https?:)?//[^\s'"<>]+\.(?:mp4|m3u8|mpd)(?:\?[^\s'"<>]*)?"""),
             Regex("""["'](?:videoUrl|mp4Url|m3u8Url|stream)["']\s*:\s*["'](https?://[^"']+)["']"""),
             Regex("""src\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
-            Regex("""(?:https?:)?//[^"'\s<>]*bp\.blogspot\.com[^"'\s<>]*\.(?:mp4|m3u8)[^"'\s<>]*"""),
+            Regex("""["'](https?://[^"']*googleusercontent\.com[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
+            Regex("""["'](https?://[^"']*bp\.blogspot\.com[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
             Regex("""["'](https?://[^"']*blogspot[^"']*\.mp4[^"']*)["']"""),
             Regex("""["'](https?://[^"']*googlevideo[^"']*)["']"""),
+            Regex("""["'](https?://[^"']*wibufile[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
+            Regex("""["'](https?://[^"']*vipstream[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
             Regex("""(?:file|source|src|video)\s*[=:]\s*["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']""")
         )
 
@@ -631,6 +637,238 @@ class SamehadakuScraper {
             }
             else -> url
         }
+    }
+
+    private fun extractBloggerVideo(bloggerUrl: String): String {
+        try {
+            val html = fetchHtml(bloggerUrl)
+            Log.d("Scraper", "Blogger page (${html.length} chars): ${html.take(300)}")
+
+            // Extract video.g?token= URL from iframes or script content
+            val tokenPatterns = listOf(
+                Regex("""["']?(https?://[^"'\s]*blogger\.com/video\.g\?token=[^"'\s&]+)[&"'\s]"""),
+                Regex("""["'](https?://[^"']*blogger\.com/video\.g\?token=[^"']+)"""),
+                Regex("""src=(https?://[^"'\s]*blogger\.com/video\.g\?token=[^"'\s>]+)""")
+            )
+            for (pattern in tokenPatterns) {
+                val match = pattern.find(html)
+                if (match != null) {
+                    val videoGUrl = match.groupValues[1]
+                    Log.d("Scraper", "Found video.g URL: $videoGUrl")
+                    val videoFromBatch = fetchBloggerVideoG(videoGUrl)
+                    if (videoFromBatch.isNotEmpty()) return videoFromBatch
+                }
+            }
+
+            // Search in iframe tags
+            val doc = Jsoup.parse(html)
+            doc.select("iframe[src]").forEach { iframe ->
+                val src = iframe.attr("src")
+                if (src.contains("blogger.com/video.g") || src.contains("blogger.com/video-embed") || src.contains("blogger.com/video-play")) {
+                    Log.d("Scraper", "Found blogger iframe: $src")
+                    val fullUrl = if (src.startsWith("http")) src else "https:$src"
+                    val videoFromIframe = fetchBloggerVideoG(fullUrl)
+                    if (videoFromIframe.isNotEmpty()) return videoFromIframe
+                }
+            }
+
+            doc.select("iframe[data-src]").forEach { iframe ->
+                val src = iframe.attr("data-src")
+                if (src.contains("blogger.com/video.g") || src.contains("blogger.com/video-embed")) {
+                    Log.d("Scraper", "Found blogger data-src iframe: $src")
+                    val fullUrl = if (src.startsWith("http")) src else "https:$src"
+                    val videoFromIframe = fetchBloggerVideoG(fullUrl)
+                    if (videoFromIframe.isNotEmpty()) return videoFromIframe
+                }
+            }
+
+            // Search for token in JS
+            val videoGJsPattern = Regex("""video\.g\?token=([A-Za-z0-9_-]+)""")
+            val jsTokenMatch = videoGJsPattern.find(html)
+            if (jsTokenMatch != null) {
+                val token = jsTokenMatch.groupValues[1]
+                val videoGUrl = "https://www.blogger.com/video.g?token=$token"
+                Log.d("Scraper", "Found video.g token in JS: $token")
+                val videoFromVideoG = fetchBloggerVideoG(videoGUrl)
+                if (videoFromVideoG.isNotEmpty()) return videoFromVideoG
+            }
+
+            val gvMatch = Regex("""https?://[^\s"'<>]*googlevideo\.com[^\s"'<>]*""").find(html)
+            if (gvMatch != null) return gvMatch.value
+
+            val bpMatch = Regex("""https?://[^\s"'<>]*bp\.blogspot\.com[^\s"'<>]*""").find(html)
+            if (bpMatch != null) return bpMatch.value
+
+            Log.d("Scraper", "No Blogger video URL found")
+        } catch (e: Exception) {
+            Log.e("Scraper", "Blogger extraction failed: ${e.message}")
+        }
+        return ""
+    }
+
+    suspend fun resolveBloggerVideoG(videoGUrl: String): String = withContext(Dispatchers.IO) {
+        fetchBloggerVideoG(videoGUrl)
+    }
+
+    private fun fetchBloggerVideoG(videoGUrl: String): String {
+        try {
+            Log.d("Scraper", "=== Blogger batchexecute extraction ===")
+            Log.d("Scraper", "Fetching video.g page: $videoGUrl")
+
+            val html = fetchHtml(videoGUrl)
+            Log.d("Scraper", "video.g HTML: ${html.length} chars")
+
+            val token = Regex("""token=([A-Za-z0-9_-]+)""").find(videoGUrl)
+                ?.groupValues?.get(1)
+            val sid = Regex(""""FdrFJe"\s*:\s*"([^"]+)"""").find(html)
+                ?.groupValues?.get(1)
+            val bh = Regex(""""cfb2h"\s*:\s*"([^"]+)"""").find(html)
+                ?.groupValues?.get(1)
+            val at = Regex(""""SNlM0e"\s*:\s*"([^"]+)"""").find(html)
+                ?.groupValues?.get(1) ?: ""
+
+            Log.d("Scraper", "token=${token?.take(30)}... sid=${sid?.take(30)}... bh=$bh at=${at.take(30)}")
+
+            if (token == null || sid == null || bh == null) {
+                Log.e("Scraper", "Failed to extract token/sid/bh from video.g page")
+                Log.d("Scraper", "HTML preview: ${html.take(500)}")
+                return ""
+            }
+
+            val innerJsonArr = org.json.JSONArray().apply {
+                put(token)
+                put("")
+                put(0)
+            }
+            val innerStr = innerJsonArr.toString()
+            Log.d("Scraper", "innerJson: $innerStr")
+
+            val rpcArr = org.json.JSONArray().apply {
+                put("WcwnYd")
+                put(innerStr)
+                put(org.json.JSONObject.NULL)
+                put("generic")
+            }
+            val fReqArr = org.json.JSONArray().apply {
+                put(org.json.JSONArray().apply { put(rpcArr) })
+            }
+            val fReq = fReqArr.toString()
+
+            val batchUrl = "https://www.blogger.com/_/BloggerVideoPlayerUi/data/batchexecute?" +
+                "rpcids=WcwnYd&source-path=%2Fvideo.g" +
+                "&f.sid=${java.net.URLEncoder.encode(sid, "UTF-8")}" +
+                "&bl=${java.net.URLEncoder.encode(bh, "UTF-8")}" +
+                "&hl=en-US&_reqid=100001&rt=c"
+
+            Log.d("Scraper", "batchexecute URL: $batchUrl")
+            Log.d("Scraper", "f.req: $fReq")
+
+            val formBody = FormBody.Builder()
+                .add("f.req", fReq)
+            if (at.isNotEmpty()) {
+                formBody.add("at", at)
+            }
+
+            val request = Request.Builder()
+                .url(batchUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .addHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+                .addHeader("X-Same-Domain", "1")
+                .addHeader("Origin", "https://www.blogger.com")
+                .addHeader("Referer", videoGUrl)
+                .addHeader("Accept", "*/*")
+                .post(formBody.build())
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.use { it.body?.string() ?: "" }
+
+            Log.d("Scraper", "batchexecute response: ${body.length} chars")
+            Log.d("Scraper", "batchexecute response preview: ${body.take(1000)}")
+
+            if (body.isEmpty()) {
+                Log.e("Scraper", "Empty batchexecute response")
+                return ""
+            }
+
+            val videoUrl = parseBatchexecuteResponse(body)
+            if (videoUrl.isNotEmpty()) {
+                Log.d("Scraper", "Found video URL from batchexecute: ${videoUrl.take(200)}")
+                return videoUrl
+            }
+
+            val gvMatch = Regex("""https?://[^"'\s<>]+?\.googlevideo\.com/[^"'\s<>]+""").find(body)
+            if (gvMatch != null) {
+                Log.d("Scraper", "Fallback googlevideo URL: ${gvMatch.value.take(200)}")
+                return gvMatch.value
+            }
+
+            Log.e("Scraper", "No video URL found in batchexecute response")
+            Log.d("Scraper", "Full response: $body")
+
+        } catch (e: Exception) {
+            Log.e("Scraper", "fetchBloggerVideoG failed: ${e.message}", e)
+        }
+        return ""
+    }
+
+    private fun parseBatchexecuteResponse(body: String): String {
+        var bestUrl = ""
+        var bestQuality = 0
+
+        for (line in body.split("\n")) {
+            if (!line.contains("wrb.fr")) continue
+            try {
+                val outer = org.json.JSONArray(line)
+                for (i in 0 until outer.length()) {
+                    val entry = outer.optJSONArray(i) ?: continue
+                    if (entry.length() < 3) continue
+                    if (entry.optString(0) != "wrb.fr" || entry.optString(1) != "WcwnYd") continue
+
+                    val innerStr = entry.optString(2, "")
+                    if (innerStr.isEmpty()) continue
+
+                    val inner = try { org.json.JSONArray(innerStr) } catch (e: Exception) { continue }
+                    val streamsUrl = findStreamsInArray(inner)
+                    if (streamsUrl != null) {
+                        return streamsUrl
+                    }
+                }
+            } catch (e: Exception) {
+                continue
+            }
+        }
+        return bestUrl
+    }
+
+    private fun findStreamsInArray(data: org.json.JSONArray): String? {
+        for (i in 0 until data.length()) {
+            val elem = data.optJSONArray(i) ?: continue
+            if (elem.length() > 0 && elem.optJSONArray(0) != null) {
+                val streams = elem
+                for (j in 0 until streams.length()) {
+                    val streamArr = streams.optJSONArray(j) ?: continue
+                    if (streamArr.length() < 1) continue
+                    val url = streamArr.optString(0, "")
+                    if (url.contains("googlevideo.com") && (url.contains("mime=video%2Fmp4") || url.contains("mime=video/mp4"))) {
+                        if (url.contains("itag=22")) {
+                            Log.d("Scraper", "Found 720p stream (itag=22)")
+                            return url
+                        }
+                    }
+                }
+                for (j in 0 until streams.length()) {
+                    val streamArr = streams.optJSONArray(j) ?: continue
+                    if (streamArr.length() < 1) continue
+                    val url = streamArr.optString(0, "")
+                    if (url.contains("googlevideo.com")) {
+                        Log.d("Scraper", "Found stream URL (fallback)")
+                        return url
+                    }
+                }
+            }
+        }
+        return null
     }
 
     suspend fun getSchedule(): List<Anime> = withContext(Dispatchers.IO) {

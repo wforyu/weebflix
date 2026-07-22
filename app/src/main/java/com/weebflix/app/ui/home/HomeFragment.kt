@@ -38,7 +38,6 @@ class HomeFragment : Fragment() {
     private lateinit var tvHeroTitle: TextView
     private lateinit var tvHeroEpisode: TextView
     private lateinit var btnHeroPlay: TextView
-    private lateinit var btnHeroDetail: TextView
 
     private lateinit var latestAdapter: LatestEpisodeAdapter
     private lateinit var ongoingAdapter: AnimeAdapter
@@ -67,7 +66,6 @@ class HomeFragment : Fragment() {
         tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
         tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
         btnHeroPlay = view.findViewById(R.id.btnHeroPlay)
-        btnHeroDetail = view.findViewById(R.id.btnHeroDetail)
 
         swipeRefresh.setColorSchemeResources(R.color.netflix_red)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
@@ -85,14 +83,6 @@ class HomeFragment : Fragment() {
                 intent.putExtra("title", ep.title)
                 intent.putExtra("episodeNumber", ep.episodeNumber)
                 intent.putExtra("animeTitle", ep.title)
-                startActivity(intent)
-            }
-        }
-
-        btnHeroDetail.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
                 startActivity(intent)
             }
         }

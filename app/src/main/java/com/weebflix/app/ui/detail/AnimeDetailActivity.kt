@@ -64,8 +64,8 @@ class AnimeDetailActivity : AppCompatActivity() {
 
         episodeAdapter = EpisodeListAdapter { episode ->
             val episodeIndex = detail?.episodes?.indexOfFirst { it.url == episode.url } ?: -1
-            val nextEp = if (episodeIndex > 0) {
-                detail?.episodes?.get(episodeIndex - 1)
+            val nextEp = if (episodeIndex >= 0 && episodeIndex < (detail?.episodes?.size ?: 0) - 1) {
+                detail?.episodes?.get(episodeIndex + 1)
             } else null
 
             val intent = Intent(this, PlayerActivity::class.java)
@@ -91,7 +91,9 @@ class AnimeDetailActivity : AppCompatActivity() {
                 val latestEp = d.episodes.firstOrNull()
                 if (latestEp != null) {
                     val latestIndex = d.episodes.indexOfFirst { it.url == latestEp.url }
-                    val nextEp = if (latestIndex > 0) d.episodes[latestIndex - 1] else null
+                    val nextEp = if (latestIndex >= 0 && latestIndex < d.episodes.size - 1) {
+                        d.episodes[latestIndex + 1]
+                    } else null
 
                     val intent = Intent(this, PlayerActivity::class.java)
                     intent.putExtra("url", latestEp.url)
