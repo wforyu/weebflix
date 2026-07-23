@@ -69,21 +69,37 @@ class MainActivity : AppCompatActivity() {
 
     private fun getHomeFragment(): HomeFragment {
         homeFragment?.let { return it }
-        return HomeFragment().also { homeFragment = it }
+        return supportFragmentManager.findFragmentByTag("home") as? HomeFragment
+            ?: HomeFragment().also {
+                homeFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "home").hide(it).commitNow()
+            }
     }
 
     private fun getSearchFragment(): SearchFragment {
         searchFragment?.let { return it }
-        return SearchFragment().also { searchFragment = it }
+        return supportFragmentManager.findFragmentByTag("search") as? SearchFragment
+            ?: SearchFragment().also {
+                searchFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "search").hide(it).commitNow()
+            }
     }
 
     private fun getOngoingFragment(): OngoingFragment {
         ongoingFragment?.let { return it }
-        return OngoingFragment().also { ongoingFragment = it }
+        return supportFragmentManager.findFragmentByTag("ongoing") as? OngoingFragment
+            ?: OngoingFragment().also {
+                ongoingFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "ongoing").hide(it).commitNow()
+            }
     }
 
     private fun getSettingsFragment(): SettingsFragment {
         settingsFragment?.let { return it }
-        return SettingsFragment().also { settingsFragment = it }
+        return supportFragmentManager.findFragmentByTag("settings") as? SettingsFragment
+            ?: SettingsFragment().also {
+                settingsFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "settings").hide(it).commitNow()
+            }
     }
 }

@@ -7,7 +7,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:paddingTop="16dp">
 
@@ -69,6 +69,90 @@
 
         </HorizontalScrollView>
 
+        <!-- Search History Section -->
+        <LinearLayout
+            android:id="@+id/historyLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_history"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/search_history"
+                    android:textColor="@color/netflix_text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnClearHistory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/clear_history"
+                    android:textColor="@color/netflix_red"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:overScrollMode="never" />
+
+        </LinearLayout>
+
+        <!-- Empty state when no history -->
+        <LinearLayout
+            android:id="@+id/noHistoryLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:src="@drawable/ic_search_inactive"
+                android:alpha="0.3" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_hint_empty"
+                android:textColor="@color/netflix_text_hint"
+                android:textSize="14sp"
+                android:layout_marginTop="12dp" />
+
+        </LinearLayout>
+
+        <!-- Search Results -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSearchResults"
             android:layout_width="match_parent"
@@ -77,17 +161,19 @@
             android:clipToPadding="false"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
-            android:paddingBottom="16dp" />
+            android:paddingBottom="16dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 
+    <!-- Initial empty state (no search, no history) -->
     <LinearLayout
         android:id="@+id/emptyLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:visibility="visible">
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="80dp"
@@ -98,7 +184,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cari anime favorit kamu"
+            android:text="@string/search_hint_empty"
             android:textColor="@color/netflix_text_hint"
             android:textSize="16sp"
             android:layout_marginTop="16dp" />

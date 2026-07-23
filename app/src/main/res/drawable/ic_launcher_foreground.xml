@@ -5,22 +5,29 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Netflix-style red W on black background -->
-    <!-- Centered in adaptive icon safe zone (21-87dp) -->
-    <!-- W geometry: perfectly symmetrical, center at (54, 54) -->
+    <!-- Left vertical bar -->
     <path
         android:fillColor="#E50914"
-        android:pathData="
-            M24,28
-            L24,80
-            L38,80
-            L54,36
-            L70,80
-            L84,80
-            L84,28
-            L70,28
-            L54,72
-            L38,28
-            Z" />
+        android:pathData="M28,26 L42,26 L42,82 L28,82 Z" />
+
+    <!-- Diagonal ribbon -->
+    <path
+        android:fillColor="#E50914"
+        android:pathData="M42,26 L56,26 L80,82 L66,82 Z" />
+
+    <!-- Right vertical bar -->
+    <path
+        android:fillColor="#E50914"
+        android:pathData="M66,26 L80,26 L80,82 L66,82 Z" />
+
+    <!-- Top fold shadow (dark red) -->
+    <path
+        android:fillColor="#B20710"
+        android:pathData="M56,26 L66,26 L66,54 Z" />
+
+    <!-- Bottom fold shadow (dark red) -->
+    <path
+        android:fillColor="#B20710"
+        android:pathData="M42,60 L42,82 L66,82 Z" />
 
 </vector>

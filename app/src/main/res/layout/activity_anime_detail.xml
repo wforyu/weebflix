@@ -111,7 +111,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="PUTAR EPISODE TERBARU"
+                        android:text="@string/play_latest_episode"
                         android:textColor="@color/white"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -175,7 +175,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Status"
+                        android:text="@string/status"
                         android:textColor="@color/netflix_text_hint"
                         android:textSize="13sp" />
 
@@ -198,7 +198,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Tipe"
+                        android:text="@string/type"
                         android:textColor="@color/netflix_text_hint"
                         android:textSize="13sp" />
 
@@ -221,7 +221,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Episode"
+                        android:text="@string/episode"
                         android:textColor="@color/netflix_text_hint"
                         android:textSize="13sp" />
 
@@ -244,7 +244,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Studio"
+                        android:text="@string/studio"
                         android:textColor="@color/netflix_text_hint"
                         android:textSize="13sp" />
 
@@ -266,7 +266,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Season"
+                        android:text="@string/season"
                         android:textColor="@color/netflix_text_hint"
                         android:textSize="13sp" />
 
@@ -291,14 +291,31 @@
                 android:paddingEnd="16dp"
                 android:layout_marginTop="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/all_episodes"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/all_episodes"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <Spinner
+                        android:id="@+id/spinnerEpisodeRange"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_chip"
+                        android:paddingHorizontal="12dp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvEpisodes"

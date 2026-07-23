@@ -36,12 +36,24 @@ class SamehadakuScraper {
         }
     }
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .followRedirects(true)
-        .cookieJar(cookieJar)
-        .build()
+    private val client: OkHttpClient by lazy {
+        val trustAllCerts = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
+            override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+        })
+        val sslContext = javax.net.ssl.SSLContext.getInstance("TLS").apply {
+            init(null, trustAllCerts, java.security.SecureRandom())
+        }
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as javax.net.ssl.X509TrustManager)
+            .hostnameVerifier { _, _ -> true }
+            .cookieJar(cookieJar)
+            .build()
+    }
 
     private fun fetchDocument(url: String): Document {
         val request = Request.Builder()
@@ -91,9 +103,10 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getLatestEpisodes(): List<Episode> = withContext(Dispatchers.IO) {
+    suspend fun getLatestEpisodes(page: Int = 1): List<Episode> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument(baseUrl)
+            val url = if (page <= 1) baseUrl else "$baseUrl/anime-terbaru/page/$page/"
+            val doc = fetchDocument(url)
             val episodes = mutableListOf<Episode>()
 
             doc.select("ul > li[itemscope]").forEach { element ->
@@ -129,9 +142,10 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getOngoingAnime(): List<Anime> = withContext(Dispatchers.IO) {
+    suspend fun getOngoingAnime(page: Int = 1): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument("$baseUrl/daftar-anime-2")
+            val url = if (page <= 1) "$baseUrl/daftar-anime-2" else "$baseUrl/daftar-anime-2/page/$page/"
+            val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
             doc.select(".bs").forEach { element ->
@@ -214,9 +228,10 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getPopularAnime(): List<Anime> = withContext(Dispatchers.IO) {
+    suspend fun getPopularAnime(page: Int = 1): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument("$baseUrl/daftar-anime-2/?order=popular")
+            val url = if (page <= 1) "$baseUrl/daftar-anime-2/?order=popular" else "$baseUrl/daftar-anime-2/page/$page/?order=popular"
+            val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
             doc.select("article.animpost").forEach { element ->
@@ -361,7 +376,7 @@ class SamehadakuScraper {
                 genres = genres
             )
 
-            AnimeDetail(anime = anime, episodes = episodes)
+            AnimeDetail(anime = anime, episodes = episodes.reversed())
         } catch (e: Exception) {
             e.printStackTrace()
             AnimeDetail(anime = Anime(title = "Error", synopsis = e.message ?: "Unknown error"))
@@ -458,6 +473,27 @@ class SamehadakuScraper {
                         Log.d("Scraper", "Blogger embed detected, returning URL for WebView XHR extraction: $embedUrl")
                         return@withContext embedUrl
                     }
+
+                    if (embedUrl.contains("wibuu.info")) {
+                        val innerUrl = extractQueryParam(embedUrl, "url")
+                        if (innerUrl.isNotEmpty()) {
+                            Log.d("Scraper", "wibuu.info wrapper detected, extracted inner URL: $innerUrl")
+                            embedUrl = innerUrl
+                            if (innerUrl.contains("blogspot.com") || innerUrl.contains("blogger.com")) {
+                                Log.d("Scraper", "Inner URL is blogspot, returning for WebView: $innerUrl")
+                                return@withContext innerUrl
+                            }
+                        }
+                    }
+                }
+
+                val scriptSrc = responseDoc.select("script[src]").firstOrNull()?.attr("src") ?: ""
+                if (scriptSrc.isNotEmpty() && embedUrl.isEmpty()) {
+                    Log.d("Scraper", "Script-based embed detected: $scriptSrc")
+                    if (scriptSrc.contains("file.fm")) {
+                        Log.d("Scraper", "file.fm player detected, returning embed URL for WebView resolution")
+                        return@withContext scriptSrc
+                    }
                 }
             }
 
@@ -499,8 +535,12 @@ class SamehadakuScraper {
                 }
             }
 
-            Log.d("Scraper", "Failed to find video URL for server: ${server.name}")
-            ""
+            Log.d("Scraper", "Failed to find video URL for server: ${server.name}, returning embed URL for WebView: $embedUrl")
+            if (embedUrl.isNotEmpty() && (embedUrl.contains("embed") || embedUrl.contains("iframe") || embedUrl.contains("wibufile") || embedUrl.contains("filedon") || embedUrl.contains("mega.nz"))) {
+                embedUrl
+            } else {
+                ""
+            }
         } catch (e: Exception) {
             Log.e("Scraper", "Error resolving server: ${server.name}", e)
             e.printStackTrace()
@@ -614,7 +654,7 @@ class SamehadakuScraper {
         }
 
         doc.select("iframe[src]").firstOrNull()?.attr("src")?.let { nestedSrc ->
-            if (nestedSrc.isNotEmpty()) {
+            if (nestedSrc.isNotEmpty() && (nestedSrc.startsWith("http://") || nestedSrc.startsWith("https://") || nestedSrc.startsWith("//"))) {
                 val nestedUrl = normalizeUrl(nestedSrc, embedUrl)
                 return extractVideoFromEmbed(nestedUrl)
             }
@@ -636,6 +676,21 @@ class SamehadakuScraper {
                 }
             }
             else -> url
+        }
+    }
+
+    private fun extractQueryParam(url: String, param: String): String {
+        return try {
+            val uri = java.net.URI(url)
+            val query = uri.query ?: return ""
+            query.split("&")
+                .map { it.split("=", limit = 2) }
+                .firstOrNull { it[0] == param }
+                ?.getOrNull(1)
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                ?: ""
+        } catch (_: Exception) {
+            ""
         }
     }
 

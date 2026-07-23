@@ -81,7 +81,7 @@
                                 android:gravity="center"
                                 android:paddingStart="24dp"
                                 android:paddingEnd="24dp"
-                                android:text="Putar"
+                                android:text="@string/play"
                                 android:textColor="@color/black"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
@@ -97,7 +97,7 @@
                                 android:paddingStart="24dp"
                                 android:paddingEnd="24dp"
                                 android:layout_marginStart="8dp"
-                                android:text="Info"
+                                android:text="@string/info"
                                 android:textColor="@color/white"
                                 android:textSize="13sp"
                                 android:drawableStart="@drawable/ic_info"
@@ -109,6 +109,37 @@
                     </LinearLayout>
 
                 </FrameLayout>
+
+                <!-- Continue Watching Section -->
+                <LinearLayout
+                    android:id="@+id/continueWatchingSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="20dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/continue_watching"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvContinueWatching"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:clipToPadding="false"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:overScrollMode="never" />
+
+                </LinearLayout>
 
                 <!-- Latest Episodes Section -->
                 <LinearLayout
@@ -149,7 +180,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Anime Ongoing"
+                        android:text="@string/anime_ongoing"
                         android:textColor="@color/white"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -178,7 +209,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Populer"
+                        android:text="@string/popular"
                         android:textColor="@color/white"
                         android:textSize="18sp"
                         android:textStyle="bold"

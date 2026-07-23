@@ -1,5 +1,6 @@
 package com.weebflix.app.ui.player
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
@@ -27,7 +28,7 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -47,6 +48,7 @@ import androidx.media3.ui.PlayerView
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
 import com.weebflix.app.data.model.VideoServer
+import com.weebflix.app.data.model.WatchHistoryManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,42 +76,54 @@ class PlayerActivity : AppCompatActivity() {
 
         fun getOkHttpClient(cacheDir: java.io.File): OkHttpClient {
             return sharedOkHttpClient ?: synchronized(this) {
-                sharedOkHttpClient ?: OkHttpClient.Builder()
-                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                    .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .retryOnConnectionFailure(true)
-                    .cache(okhttp3.Cache(java.io.File(cacheDir, "okhttp_cache"), 100L * 1024 * 1024))
-                    .addInterceptor { chain ->
-                        val request = chain.request().newBuilder()
-                            .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                            .addHeader("Connection", "keep-alive")
-                        if (chain.request().url.host.contains("googlevideo.com")) {
-                            request.addHeader("Referer", "https://www.blogger.com/")
-                                .addHeader("Origin", "https://www.blogger.com")
-                            try {
-                                val cookieManager = android.webkit.CookieManager.getInstance()
-                                val cookies = cookieManager.getCookie("https://www.blogger.com")
-                                if (!cookies.isNullOrEmpty()) {
-                                    request.addHeader("Cookie", cookies)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                        chain.proceed(request.build())
+                sharedOkHttpClient ?: run {
+                    val trustAllCerts = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
+                        override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                        override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                    })
+                    val sslContext = javax.net.ssl.SSLContext.getInstance("TLS").apply {
+                        init(null, trustAllCerts, java.security.SecureRandom())
                     }
-                    .addInterceptor { chain ->
-                        var response = chain.proceed(chain.request())
-                        var retries = 0
-                        while (!response.isSuccessful && retries < 2) {
-                            retries++
-                            response.close()
-                            val backoff = retries * 1000L
-                            java.lang.Thread.sleep(backoff)
-                            response = chain.proceed(chain.request())
+                    OkHttpClient.Builder()
+                        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .retryOnConnectionFailure(true)
+                        .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as javax.net.ssl.X509TrustManager)
+                        .hostnameVerifier { _, _ -> true }
+                        .cache(okhttp3.Cache(java.io.File(cacheDir, "okhttp_cache"), 100L * 1024 * 1024))
+                        .addInterceptor { chain ->
+                            val request = chain.request().newBuilder()
+                                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                                .addHeader("Connection", "keep-alive")
+                            if (chain.request().url.host.contains("googlevideo.com")) {
+                                request.addHeader("Referer", "https://www.blogger.com/")
+                                    .addHeader("Origin", "https://www.blogger.com")
+                                try {
+                                    val cookieManager = android.webkit.CookieManager.getInstance()
+                                    val cookies = cookieManager.getCookie("https://www.blogger.com")
+                                    if (!cookies.isNullOrEmpty()) {
+                                        request.addHeader("Cookie", cookies)
+                                    }
+                                } catch (_: Exception) {}
+                            }
+                            chain.proceed(request.build())
                         }
-                        response
-                    }
-                    .build().also { sharedOkHttpClient = it }
+                        .addInterceptor { chain ->
+                            var response = chain.proceed(chain.request())
+                            var retries = 0
+                            while (!response.isSuccessful && retries < 2) {
+                                retries++
+                                response.close()
+                                val backoff = retries * 1000L
+                                java.lang.Thread.sleep(backoff)
+                                response = chain.proceed(chain.request())
+                            }
+                            response
+                        }
+                        .build().also { sharedOkHttpClient = it }
+                }
             }
         }
     }
@@ -157,6 +171,8 @@ class PlayerActivity : AppCompatActivity() {
     private var episodeTitle: String = ""
     private var episodeNumber: String = ""
     private var animeTitle: String = ""
+    private var imageUrl: String = ""
+    private var animeUrl: String = ""
     private var servers: List<VideoServer> = emptyList()
     private var currentServerIndex: Int = 0
     private var isPlaying: Boolean = true
@@ -249,6 +265,8 @@ class PlayerActivity : AppCompatActivity() {
         episodeTitle = intent.getStringExtra("title") ?: ""
         episodeNumber = intent.getStringExtra("episodeNumber") ?: ""
         animeTitle = intent.getStringExtra("animeTitle") ?: ""
+        imageUrl = intent.getStringExtra("imageUrl") ?: ""
+        animeUrl = intent.getStringExtra("animeUrl") ?: ""
         skipOpeningStart = intent.getIntExtra("skipOpeningStart", 90)
         skipOpeningEnd = intent.getIntExtra("skipOpeningEnd", 120)
         nextEpisodeUrl = intent.getStringExtra("nextEpisodeUrl") ?: ""
@@ -258,13 +276,26 @@ class PlayerActivity : AppCompatActivity() {
         setupGestureDetector()
         setupControls()
         setupSeekBar()
-        initWebView()
+        // WebView is initialized lazily on first use
+
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(topBar) { v, insets ->
+            val statusBar = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top
+            v.setPadding(v.paddingLeft, statusBar.coerceAtLeast(8), v.paddingRight, v.paddingBottom)
+            val navBarHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+            bottomBar.setPadding(bottomBar.paddingLeft, bottomBar.paddingTop, bottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
+            insets
+        }
 
         tvAnimeTitle.text = animeTitle
         tvEpisodeTitle.text = if (episodeTitle.isNotEmpty()) episodeTitle else "Episode $episodeNumber"
 
         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         currentBrightness = getScreenBrightness()
+        brightnessProgress.progress = (currentBrightness * 100).toInt()
+        brightnessText.text = "${(currentBrightness * 100).toInt()}%"
+        val volPercent = (currentVolume * 100f / maxVolume).toInt()
+        volumeProgress.progress = volPercent
+        volumeText.text = "$volPercent%"
 
         showControls()
         scheduleAutoHide()
@@ -319,6 +350,14 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     // ===== Hidden WebView for resolving video URLs (bypasses Cloudflare) =====
+
+    private var webViewInitialized = false
+
+    private fun ensureWebView() {
+        if (webViewInitialized) return
+        webViewInitialized = true
+        initWebView()
+    }
 
     private fun initWebView() {
         webView = WebView(this).apply {
@@ -666,6 +705,7 @@ class PlayerActivity : AppCompatActivity() {
             callback("")
             return
         }
+        ensureWebView()
         webViewResolving = true
         webViewResolveMode = ResolveMode.SERVER_CLICK
         webViewResolveCallback = callback
@@ -724,7 +764,8 @@ class PlayerActivity : AppCompatActivity() {
 
                 function scanForMedia() {
                     var badHosts = ['facebook.com', 'disqus.com', 'disquscdn.com', 'twitter.com', 'instagram.com', 'tiktok.com'];
-                    var iframes = document.querySelectorAll('iframe');
+                    var scanRoot = embed || document.body;
+                    var iframes = scanRoot.querySelectorAll('iframe');
                     for (var i = 0; i < iframes.length; i++) {
                         var isrc = iframes[i].src || iframes[i].getAttribute('src') || '';
                         if (isrc && isrc.indexOf('about:blank') === -1 && isrc.indexOf('javascript:') === -1 && isrc.indexOf('data:') === -1) {
@@ -737,7 +778,7 @@ class PlayerActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    var vids = document.querySelectorAll('video, video source, source');
+                    var vids = scanRoot.querySelectorAll('video, video source, source');
                     for (var j = 0; j < vids.length; j++) {
                         var vs = vids[j].src || vids[j].getAttribute('src') || vids[j].currentSrc || '';
                         if (vs && vs.indexOf('about:blank') === -1 && vs.indexOf('blob:') === -1) {
@@ -940,6 +981,11 @@ class PlayerActivity : AppCompatActivity() {
             }
     }
 
+    private var gestureStartY: Float = 0f
+    private var gestureStartX: Float = 0f
+    private var isGestureActive: Boolean = false
+    private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek
+
     private fun setupGestureDetector() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
@@ -951,13 +997,17 @@ class PlayerActivity : AppCompatActivity() {
                 val viewWidth = gestureOverlay.width
                 val tapX = e.x
                 val centerX = viewWidth / 2f
+                val deadZoneTop = topBar.height + 20
+                val deadZoneBottom = gestureOverlay.height - bottomBar.height - 20
 
-                if (tapX < centerX) {
-                    seekBy(-10f)
-                    showSeekIndicator(false, "-10s")
-                } else {
-                    seekBy(10f)
-                    showSeekIndicator(true, "+10s")
+                if (e.y in deadZoneTop.toFloat()..deadZoneBottom.toFloat()) {
+                    if (tapX < centerX) {
+                        seekBy(-10f)
+                        showSeekIndicator(false, "-10s")
+                    } else {
+                        seekBy(10f)
+                        showSeekIndicator(true, "+10s")
+                    }
                 }
                 return true
             }
@@ -965,22 +1015,35 @@ class PlayerActivity : AppCompatActivity() {
             override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
                 if (e1 == null) return false
 
-                val deltaX = e2.x - e1.x
-                val deltaY = e2.y - e1.y
+                val deadZoneTop = topBar.height + 10
+                val deadZoneBottom = gestureOverlay.height - bottomBar.height - 10
+                val startInDeadZone = e1.y < deadZoneTop || e1.y > deadZoneBottom
+                if (startInDeadZone) return false
 
-                if (abs(deltaX) > abs(deltaY) && abs(deltaX) > 30) {
-                    handleSeekGesture(e1.x, e2.x)
-                    return true
-                } else if (abs(deltaY) > abs(deltaX) && abs(deltaY) > 20) {
-                    val startX = e1.x
-                    if (startX < gestureOverlay.width / 2f) {
-                        handleBrightnessGesture(deltaY)
+                if (!isGestureActive) {
+                    val deltaX = e2.x - e1.x
+                    val deltaY = e2.y - e1.y
+                    if (abs(deltaX) < 30 && abs(deltaY) < 20) return false
+
+                    gestureStartX = e1.x
+                    gestureStartY = e1.y
+                    isGestureActive = true
+                    if (abs(deltaX) > abs(deltaY) && abs(deltaX) > 30) {
+                        gestureType = 3 // seek
+                    } else if (abs(deltaY) > abs(deltaX)) {
+                        gestureType = if (e1.x < gestureOverlay.width / 2f) 1 else 2
                     } else {
-                        handleVolumeGesture(deltaY)
+                        isGestureActive = false
+                        return false
                     }
-                    return true
                 }
-                return false
+
+                when (gestureType) {
+                    1 -> handleBrightnessGesture(distanceY)
+                    2 -> handleVolumeGesture(distanceY)
+                    3 -> handleSeekGesture(gestureStartX, e2.x)
+                }
+                return true
             }
         })
 
@@ -994,6 +1057,8 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 hideBrightnessIndicator()
                 hideVolumeIndicator()
+                isGestureActive = false
+                gestureType = 0
             }
             true
         }
@@ -1021,7 +1086,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnPip.setOnClickListener { enterPipMode() }
-        btnFullscreen.setOnClickListener { }
+        btnFullscreen.setOnClickListener { toggleFullscreen() }
         tvServerName.setOnClickListener { showServerPickerDialog() }
         tvError.setOnClickListener { if (servers.isNotEmpty()) showServerPickerDialog() }
 
@@ -1032,7 +1097,8 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnSkipOutro.setOnClickListener {
-            exoPlayer?.seekTo(skipOutroEnd * 1000L)
+            val duration = exoPlayer?.duration?.takeIf { it > 0 } ?: return@setOnClickListener
+            exoPlayer?.seekTo(duration - 5000L)
             btnSkipOutro.visibility = View.GONE
             scheduleAutoHide()
         }
@@ -1073,8 +1139,9 @@ class PlayerActivity : AppCompatActivity() {
 
     // ===== Gesture Handlers =====
 
-    private fun handleBrightnessGesture(deltaY: Float) {
-        val delta = (-deltaY / (gestureOverlay.height.toFloat() / 2f)).coerceIn(-0.05f, 0.05f)
+    private fun handleBrightnessGesture(distanceY: Float) {
+        val sensitivity = 0.004f
+        val delta = distanceY * sensitivity
         currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
@@ -1085,9 +1152,11 @@ class PlayerActivity : AppCompatActivity() {
         showBrightnessIndicator()
     }
 
-    private fun handleVolumeGesture(deltaY: Float) {
-        val delta = (-deltaY / (gestureOverlay.height.toFloat() / 2f) * maxVolume).coerceIn(-maxVolume.toFloat() / 50f, maxVolume.toFloat() / 50f)
-        currentVolume = (currentVolume + delta.toInt()).coerceIn(0, maxVolume)
+    private fun handleVolumeGesture(distanceY: Float) {
+        val sensitivity = maxVolume.toFloat() / (gestureOverlay.height.toFloat() * 0.4f)
+        val delta = (distanceY * sensitivity).toInt()
+        if (delta == 0) return
+        currentVolume = (currentVolume + delta).coerceIn(0, maxVolume)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
         val percent = (currentVolume * 100f / maxVolume).toInt()
         volumeProgress.progress = percent
@@ -1113,6 +1182,23 @@ class PlayerActivity : AppCompatActivity() {
     private fun togglePlayPause() {
         val player = exoPlayer ?: return
         if (player.isPlaying) player.pause() else player.play()
+        showControls()
+        scheduleAutoHide()
+    }
+
+    private var isSystemBarsHidden = false
+
+    private fun toggleFullscreen() {
+        isSystemBarsHidden = !isSystemBarsHidden
+        if (isSystemBarsHidden) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+            btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen_exit)
+        } else {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+            btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen)
+        }
         showControls()
         scheduleAutoHide()
     }
@@ -1178,13 +1264,14 @@ class PlayerActivity : AppCompatActivity() {
         val player = exoPlayer ?: return
         val duration = player.duration
         if (duration <= 0) return
-        val currentSec = player.currentPosition / 1000f
+        val currentMs = player.currentPosition
         val totalSec = duration / 1000f
+        val currentSec = currentMs / 1000f
 
         btnSkipOpening.visibility = if (currentSec in skipOpeningStart.toFloat()..skipOpeningEnd.toFloat() && controlsVisible) View.VISIBLE else View.GONE
 
-        val adjustedOutroStart = skipOutroStart.toFloat()
-        btnSkipOutro.visibility = if (currentSec >= adjustedOutroStart && currentSec < totalSec && controlsVisible && nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
+        val dynamicOutroStart = ((totalSec - 90f).coerceAtLeast(skipOpeningEnd.toFloat() + 30f))
+        btnSkipOutro.visibility = if (currentSec >= dynamicOutroStart && currentSec < totalSec && controlsVisible && nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     // ===== Auto-play =====
@@ -1219,30 +1306,54 @@ class PlayerActivity : AppCompatActivity() {
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
         if (nextEpisodeUrl.isNotEmpty()) {
             val nextEpNum = Regex("""(\d+)""").find(nextEpisodeTitle)?.groupValues?.getOrElse(1) { "" } ?: ""
+            val savedNextUrl = nextEpisodeUrl
+            val savedNextTitle = nextEpisodeTitle
             val intent = Intent(this, PlayerActivity::class.java).apply {
-                putExtra("url", nextEpisodeUrl)
-                putExtra("title", nextEpisodeTitle)
+                putExtra("url", savedNextUrl)
+                putExtra("title", savedNextTitle)
                 putExtra("episodeNumber", nextEpNum)
                 putExtra("animeTitle", animeTitle)
+                putExtra("imageUrl", imageUrl)
+                putExtra("animeUrl", animeUrl)
                 putExtra("nextEpisodeUrl", "")
             }
             startActivity(intent)
             finish()
         } else {
-            Toast.makeText(this, "Episode selanjutnya tidak tersedia", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.next_not_available), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun fetchNextEpisodeNavForChain() {
+        if (nextEpisodeUrl.isEmpty()) return
+        val url = nextEpisodeUrl
+        lifecycleScope.launch {
+            try {
+                val nextNav = WeebFlixApp.instance.scraper.getEpisodeNavigation(url)
+                if (!isFinishing && nextNav.nextEpisodeUrl.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        if (!isFinishing) {
+                            nextEpisodeUrl = nextNav.nextEpisodeUrl
+                            nextEpisodeTitle = nextNav.nextEpisodeTitle
+                        }
+                    }
+                }
+            } catch (_: Exception) { }
         }
     }
 
     // ===== Navigation =====
 
     private fun fetchEpisodeNavigation() {
-        if (nextEpisodeUrl.isNotEmpty()) return
         lifecycleScope.launch {
             try {
                 val nav = WeebFlixApp.instance.scraper.getEpisodeNavigation(episodeUrl)
-                if (!isFinishing && nav.nextEpisodeUrl.isNotEmpty()) {
+                if (!isFinishing && nav.nextEpisodeUrl.isNotEmpty() && nextEpisodeUrl.isEmpty()) {
                     nextEpisodeUrl = nav.nextEpisodeUrl
                     nextEpisodeTitle = nav.nextEpisodeTitle
+                }
+                if (nextEpisodeUrl.isNotEmpty()) {
+                    fetchNextEpisodeNavForChain()
                 }
             } catch (_: Exception) { }
         }
@@ -1289,7 +1400,7 @@ class PlayerActivity : AppCompatActivity() {
                         updateServerUI()
                         loadServer(0)
                     } else {
-                        showError("Tidak ada server yang tersedia")
+                        showError(getString(R.string.no_servers))
                     }
                 }
             } catch (e: Exception) {
@@ -1309,7 +1420,7 @@ class PlayerActivity : AppCompatActivity() {
         val nextIndex = currentServerIndex + 1
         if (nextIndex < servers.size) {
             tvError.visibility = View.VISIBLE
-            tvError.text = "Server $serverName gagal. Mencoba server berikutnya..."
+            tvError.text = getString(R.string.server_failed, serverName)
             val r = Runnable {
                 if (!isFinishing) {
                     currentServerIndex = nextIndex
@@ -1331,16 +1442,83 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showServerPickerDialog() {
-        val serverNames = servers.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this, R.style.Theme_WeebFlix)
-            .setTitle("Pilih Server")
-            .setItems(serverNames) { _, which ->
-                currentServerIndex = which
-                loadServer(which)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 16)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0xE61A1A1A.toInt())
+                cornerRadius = 24f
+            }
+        }
+
+        val titleView = TextView(this).apply {
+            text = getString(R.string.select_server)
+            setTextColor(0xFFE50914.toInt())
+            textSize = 16f
+            setPadding(8, 8, 8, 20)
+        }
+        container.addView(titleView)
+
+        servers.forEachIndexed { index, server ->
+            val item = TextView(this).apply {
+                text = server.name
+                setTextColor(if (index == currentServerIndex) 0xFFE50914.toInt() else 0xFFFFFFFF.toInt())
+                textSize = 14f
+                setPadding(16, 14, 16, 14)
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(if (index == currentServerIndex) 0x33E50914 else 0x00000000)
+                    cornerRadius = 12f
+                }
+                isClickable = true
+                isFocusable = true
+            }
+            item.setOnClickListener {
+                popupWindow?.dismiss()
+                currentServerIndex = index
+                loadServer(index)
                 updateServerUI()
             }
-            .show()
+            container.addView(item)
+        }
+
+        val scrollView = android.widget.ScrollView(this).apply {
+            addView(container)
+            isVerticalScrollBarEnabled = true
+        }
+
+        val maxPopupHeight = (resources.displayMetrics.heightPixels * 0.5f).toInt()
+        val wrapper = FrameLayout(this).apply {
+            addView(scrollView)
+        }
+
+        popupWindow = android.widget.PopupWindow(
+            wrapper,
+            (resources.displayMetrics.widthPixels * 0.55f).toInt(),
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 16f
+
+            wrapper.measure(
+                android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+                android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = wrapper.measuredHeight
+            val location = IntArray(2)
+            tvServerName.getLocationOnScreen(location)
+            val yOff = -(popupHeight + tvServerName.height + 16)
+            showAsDropDown(tvServerName, 0, yOff)
+
+            wrapper.post {
+                val h = wrapper.height
+                if (h > maxPopupHeight) {
+                    wrapper.layoutParams = wrapper.layoutParams.apply { height = maxPopupHeight }
+                }
+            }
+        }
     }
+
+    private var popupWindow: android.widget.PopupWindow? = null
 
     private fun loadServer(index: Int) {
         if (index in servers.indices) playServer(servers[index])
@@ -1587,6 +1765,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun resolveEmbedUrlViaWebView(embedUrl: String, server: VideoServer, serverIndex: Int) {
+        ensureWebView()
         webViewResolving = true
         webViewResolveMode = ResolveMode.EMBED_FETCH
         pendingResolveServer = server
@@ -1614,7 +1793,7 @@ class PlayerActivity : AppCompatActivity() {
         webView?.stopLoading()
         webView?.loadUrl(embedUrl)
 
-        val isBlogger = embedUrl.contains("blogger.com") || embedUrl.contains("bp.blogspot.com")
+        val isBlogger = embedUrl.contains("blogger.com") || embedUrl.contains("bp.blogspot.com") || embedUrl.contains("blogspot.com")
         val isFiledon = embedUrl.contains("filedon.co")
         val timeoutMs = when {
             isBlogger -> 20000L
@@ -1846,63 +2025,124 @@ class PlayerActivity : AppCompatActivity() {
     private fun extractFiledonVideoJs(): String {
         return """
             (function() {
+                var found = false;
                 function notifyUrl(url) {
-                    window.AndroidBridge.onUrlFound(url);
+                    if (found) return;
+                    if (url && url.indexOf('http') === 0 && url.indexOf('about:blank') === -1) {
+                        found = true;
+                        window.AndroidBridge.onUrlFound(url);
+                    }
                 }
-                try {
+                function isVideoUrl(s) {
+                    if (!s || s.indexOf('about:blank') !== -1 || s.indexOf('blob:') !== -1 || s.indexOf('data:') !== -1 || s.indexOf('javascript:') !== -1) return false;
+                    if (s.indexOf('.css') !== -1 || s.indexOf('.js') !== -1 || s.indexOf('.png') !== -1 || s.indexOf('.jpg') !== -1 || s.indexOf('.gif') !== -1 || s.indexOf('.svg') !== -1 || s.indexOf('.ico') !== -1 || s.indexOf('.woff') !== -1) return false;
+                    return s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('.mpd') !== -1 ||
+                           s.indexOf('googlevideo.com') !== -1 || s.indexOf('videoplayback') !== -1 ||
+                           s.indexOf('wibufile') !== -1 || s.indexOf('vipstream') !== -1 ||
+                           (s.indexOf('filedon') !== -1 && (s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('embed') !== -1));
+                }
+                var origOpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function(method, url) {
+                    if (!found && typeof url === 'string' && isVideoUrl(url)) notifyUrl(url);
+                    return origOpen.apply(this, arguments);
+                };
+                var origFetch = window.fetch;
+                window.fetch = function(url) {
+                    if (!found && typeof url === 'string' && isVideoUrl(url)) notifyUrl(url);
+                    return origFetch.apply(this, arguments);
+                };
+                function scanDom() {
+                    var vids = document.querySelectorAll('video, video source, source');
+                    for (var i = 0; i < vids.length; i++) {
+                        var s = vids[i].src || vids[i].getAttribute('src') || vids[i].currentSrc || '';
+                        if (s && s.indexOf('http') === 0 && isVideoUrl(s)) { notifyUrl(s); return true; }
+                    }
+                    var iframes = document.querySelectorAll('iframe');
+                    for (var j = 0; j < iframes.length; j++) {
+                        var isrc = iframes[j].src || iframes[j].getAttribute('src') || '';
+                        if (isrc && isVideoUrl(isrc)) { notifyUrl(isrc); return true; }
+                    }
+                    return false;
+                }
+                function scanScripts() {
                     var scripts = document.querySelectorAll('script');
-                    for (var i = 0; i < scripts.length; i++) {
-                        var txt = scripts[i].textContent || '';
+                    for (var k = 0; k < scripts.length; k++) {
+                        var txt = scripts[k].textContent || '';
                         var patterns = [
-                            /["']file["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i,
-                            /["']source["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i,
-                            /["']src["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i,
-                            /["']url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i,
-                            /["']video_url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i,
+                            /["']file["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']source["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']src["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']video_url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']videoUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']playbackUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']mediaUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /(?:file|source|src|url)\s*[=:]\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
                             /https?:\/\/[^\s"']+\.mp4[^\s"']*/i,
-                            /https?:\/\/[^\s"']+\.m3u8[^\s"']*/i
+                            /https?:\/\/[^\s"']+\.m3u8[^\s"']*/i,
+                            /https?:\/\/[^\s"']+googlevideo\.com[^\s"']*/i,
+                            /https?:\/\/[^\s"']+wibufile[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i,
+                            /https?:\/\/[^\s"']+vipstream[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i
                         ];
                         for (var p = 0; p < patterns.length; p++) {
                             var match = txt.match(patterns[p]);
-                            if (match && match[1]) { notifyUrl(match[1]); return; }
-                            if (match && match[0] && match[0].indexOf('http') === 0) { notifyUrl(match[0]); return; }
+                            if (match && match[1]) { notifyUrl(match[1]); return true; }
+                            if (match && match[0] && match[0].indexOf('http') === 0) { notifyUrl(match[0]); return true; }
                         }
                     }
-                } catch(e) {}
-                try {
-                    var videos = document.querySelectorAll('video, video source, source');
-                    for (var i = 0; i < videos.length; i++) {
-                        var s = videos[i].src || videos[i].getAttribute('src') || videos[i].currentSrc || '';
-                        if (s && s.indexOf('http') === 0 && (s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1)) {
-                            notifyUrl(s); return;
+                    return false;
+                }
+                function scanGlobals() {
+                    var keys = ['videoUrl', 'video_url', 'streamUrl', 'stream_url', 'file', 'source', 'src', 'mediaUrl', 'playbackUrl'];
+                    for (var g = 0; g < keys.length; g++) {
+                        try {
+                            var val = window[keys[g]];
+                            if (val && typeof val === 'string' && val.indexOf('http') === 0 && isVideoUrl(val)) {
+                                notifyUrl(val); return true;
+                            }
+                        } catch(e) {}
+                    }
+                    try {
+                        if (window.jwplayer) {
+                            var item = window.jwplayer().getPlaylistItem ? window.jwplayer().getPlaylistItem() : null;
+                            if (item && item.file) { notifyUrl(item.file); return true; }
                         }
-                    }
-                } catch(e) {}
-                try {
-                    var iframes = document.querySelectorAll('iframe');
-                    for (var i = 0; i < iframes.length; i++) {
-                        var src = iframes[i].src || iframes[i].getAttribute('src') || '';
-                        if (src && (src.indexOf('.mp4') !== -1 || src.indexOf('.m3u8') !== -1)) {
-                            notifyUrl(src); return;
+                    } catch(e) {}
+                    try {
+                        var vc = window.VIDEO_CONFIG;
+                        if (vc && vc.streams) {
+                            for (var i = 0; i < vc.streams.length; i++) {
+                                var s = vc.streams[i];
+                                if (s && s.play_url) { notifyUrl(s.play_url); return true; }
+                                if (s && s.url) { notifyUrl(s.url); return true; }
+                            }
                         }
-                    }
-                } catch(e) {}
-                try {
-                    var entries = performance.getEntriesByType('resource');
-                    for (var i = 0; i < entries.length; i++) {
-                        var name = entries[i].name || '';
-                        if (name.indexOf('.mp4') !== -1 || name.indexOf('.m3u8') !== -1) {
-                            notifyUrl(name); return;
+                    } catch(e) {}
+                    return false;
+                }
+                function scanPerformance() {
+                    try {
+                        var entries = performance.getEntriesByType('resource');
+                        for (var i = 0; i < entries.length; i++) {
+                            var name = entries[i].name || '';
+                            if (isVideoUrl(name)) { notifyUrl(name); return true; }
                         }
+                    } catch(e) {}
+                    return false;
+                }
+                function tryExtract(attempt) {
+                    if (found) return;
+                    if (scanDom()) return;
+                    if (scanScripts()) return;
+                    if (scanGlobals()) return;
+                    if (scanPerformance()) return;
+                    if (attempt < 8) {
+                        setTimeout(function() { tryExtract(attempt + 1); }, 1500);
+                    } else {
+                        notifyUrl('');
                     }
-                } catch(e) {}
-                try {
-                    if (window.jwplayer) {
-                        var item = window.jwplayer().getPlaylistItem ? window.jwplayer().getPlaylistItem() : null;
-                        if (item && item.file) { notifyUrl(item.file); return; }
-                    }
-                } catch(e) {}
-                notifyUrl('');
+                }
+                tryExtract(0);
             })();
         """.trimIndent()
     }
@@ -1912,26 +2152,81 @@ class PlayerActivity : AppCompatActivity() {
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build())
+                val pauseAction = android.app.RemoteAction(
+                    android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_player_pause),
+                    "Pause", "Pause", PendingIntent.getBroadcast(this, 0,
+                        Intent("com.weebflix.app.PIP_PAUSE").setPackage(packageName),
+                        PendingIntent.FLAG_IMMUTABLE)
+                )
+                val playAction = android.app.RemoteAction(
+                    android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_player_play),
+                    "Play", "Play", PendingIntent.getBroadcast(this, 1,
+                        Intent("com.weebflix.app.PIP_PLAY").setPackage(packageName),
+                        PendingIntent.FLAG_IMMUTABLE)
+                )
+
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .setActions(listOf(playAction, pauseAction))
+                    .apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            setAutoEnterEnabled(false)
+                            setSeamlessResizeEnabled(true)
+                        }
+                    }
+                    .build()
+                enterPictureInPictureMode(params)
                 isPipMode = true
                 hideControls()
+                showControlsDelayedInPip()
             } catch (e: Exception) {
-                Toast.makeText(this, "PiP not supported", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "PiP failed: ${e.message}")
+                Toast.makeText(this, getString(R.string.pip_not_supported), Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showControlsDelayedInPip() {
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (isPipMode && !isFinishing) {
+                try {
+                    val params = PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                setAutoEnterEnabled(false)
+                                setSeamlessResizeEnabled(true)
+                            }
+                        }
+                        .build()
+                    setPictureInPictureParams(params)
+                } catch (_: Exception) {}
+            }
+        }, 300)
     }
 
     override fun onPictureInPictureModeChanged(isInPipMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPipMode, newConfig)
         isPipMode = isInPipMode
         if (isInPipMode) {
-            topBar.visibility = View.GONE; bottomBar.visibility = View.GONE; centerControls.visibility = View.GONE
-            btnSkipOpening.visibility = View.GONE; btnSkipOutro.visibility = View.GONE; autoPlayOverlay.visibility = View.GONE
+            topBar.visibility = View.GONE
+            bottomBar.visibility = View.GONE
+            centerControls.visibility = View.GONE
+            btnSkipOpening.visibility = View.GONE
+            btnSkipOutro.visibility = View.GONE
+            autoPlayOverlay.visibility = View.GONE
             gestureOverlay.visibility = View.GONE
+            playerView.useController = false
+            exoPlayer?.playWhenReady = true
         } else {
             gestureOverlay.visibility = View.VISIBLE
+            playerView.useController = false
+            exoPlayer?.playWhenReady = true
+            showControls()
+            scheduleAutoHide()
         }
     }
+
 
     // ===== Lifecycle =====
 
@@ -1942,15 +2237,37 @@ class PlayerActivity : AppCompatActivity() {
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
     }
 
+    private fun saveWatchHistory() {
+        val player = exoPlayer ?: return
+        if (episodeUrl.isEmpty()) return
+        val position = player.currentPosition
+        val duration = player.duration
+        if (duration < 10000) return
+        WatchHistoryManager.saveProgress(
+            context = this,
+            episodeUrl = episodeUrl,
+            animeTitle = animeTitle,
+            episodeTitle = episodeTitle,
+            episodeNumber = episodeNumber,
+            imageUrl = imageUrl,
+            animeUrl = animeUrl,
+            progressMs = position,
+            durationMs = duration
+        )
+    }
+
     override fun onPause() {
         super.onPause()
-        exoPlayer?.playWhenReady = false
-        progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
-        autoHideHandler.removeCallbacks(autoHideRunnable)
-        autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        if (!isPipMode) {
+            exoPlayer?.playWhenReady = false
+            progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
+            autoHideHandler.removeCallbacks(autoHideRunnable)
+            autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        }
     }
 
     override fun onDestroy() {
+        saveWatchHistory()
         progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)

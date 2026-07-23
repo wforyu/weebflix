@@ -40,23 +40,23 @@ class SettingsFragment : Fragment() {
         btnSave.setOnClickListener {
             val newUrl = etBaseUrl.text.toString().trim()
             if (newUrl.isEmpty()) {
-                etBaseUrl.error = "URL tidak boleh kosong"
+                etBaseUrl.error = getString(R.string.url_empty)
                 return@setOnClickListener
             }
             if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
-                etBaseUrl.error = "URL harus diawali http:// atau https://"
+                etBaseUrl.error = getString(R.string.url_invalid)
                 return@setOnClickListener
             }
             ProviderConfig.baseUrl = newUrl
             tvCurrentUrl.text = ProviderConfig.baseUrl
-            Toast.makeText(requireContext(), "Domain berhasil diperbarui", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.domain_updated), Toast.LENGTH_SHORT).show()
         }
 
         btnReset.setOnClickListener {
             ProviderConfig.reset()
             etBaseUrl.setText(ProviderConfig.baseUrl)
             tvCurrentUrl.text = ProviderConfig.baseUrl
-            Toast.makeText(requireContext(), "Domain dikembalikan ke default", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.domain_reset), Toast.LENGTH_SHORT).show()
         }
     }
 }
