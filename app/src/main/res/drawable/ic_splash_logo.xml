@@ -5,25 +5,19 @@
     android:viewportWidth="200"
     android:viewportHeight="200">
 
-    <!-- Black background -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M0,0 L200,0 L200,200 L0,200 Z" />
-
-    <!-- Netflix-style red W, perfectly centered at (100, 100) -->
+    <!-- Main N shape: left bar + diagonal (bright red) -->
     <path
         android:fillColor="#E50914"
-        android:pathData="
-            M40,40
-            L40,160
-            L65,160
-            L100,65
-            L135,160
-            L160,160
-            L160,40
-            L135,40
-            L100,135
-            L65,40
-            Z" />
+        android:pathData="M44.983,0 L114.55,196.682 C134.101,197.18 155.017,199.983 155.017,199.983 L84.276,0 Z" />
+
+    <!-- Right bar (bright red) -->
+    <path
+        android:fillColor="#E50914"
+        android:pathData="M115.819,0 L115.819,76.433 L155.019,187.517 L155.019,0 Z" />
+
+    <!-- Fold shadow at bottom-left (dark red) -->
+    <path
+        android:fillColor="#B20710"
+        android:pathData="M44.983,12.5 L44.983,200 C60.593,198.125 68.393,197.375 84.276,196.682 L84.276,123.583 Z" />
 
 </vector>

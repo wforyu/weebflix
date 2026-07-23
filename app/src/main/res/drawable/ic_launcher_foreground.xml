@@ -5,29 +5,19 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Left vertical bar -->
+    <!-- Main N shape: left bar + diagonal (bright red) -->
     <path
         android:fillColor="#E50914"
-        android:pathData="M28,26 L42,26 L42,82 L28,82 Z" />
+        android:pathData="M24.291,0 L61.857,106.209 C72.414,106.475 83.709,107.991 83.709,107.991 L45.509,0 Z" />
 
-    <!-- Diagonal ribbon -->
+    <!-- Right bar (bright red) -->
     <path
         android:fillColor="#E50914"
-        android:pathData="M42,26 L56,26 L80,82 L66,82 Z" />
+        android:pathData="M62.492,0 L62.492,41.274 L83.71,101.259 L83.71,0 Z" />
 
-    <!-- Right vertical bar -->
-    <path
-        android:fillColor="#E50914"
-        android:pathData="M66,26 L80,26 L80,82 L66,82 Z" />
-
-    <!-- Top fold shadow (dark red) -->
+    <!-- Fold shadow at bottom-left (dark red) -->
     <path
         android:fillColor="#B20710"
-        android:pathData="M56,26 L66,26 L66,54 Z" />
-
-    <!-- Bottom fold shadow (dark red) -->
-    <path
-        android:fillColor="#B20710"
-        android:pathData="M42,60 L42,82 L66,82 Z" />
+        android:pathData="M24.291,6.75 L24.291,108 C32.72,106.987 36.936,106.596 45.509,106.209 L45.509,66.735 Z" />
 
 </vector>
