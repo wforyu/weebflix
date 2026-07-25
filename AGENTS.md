@@ -14,27 +14,40 @@
 ```
 WeebFlix/app/src/main/
 ├── java/com/weebflix/app/
-│   ├── WeebFlixApp.kt              # Application class, holds scraper singleton
+│   ├── WeebFlixApp.kt                  # Application class, provider registry init
 │   ├── data/
-│   │   ├── config/ProviderConfig.kt       # Mutable base URL via SharedPreferences
+│   │   ├── config/ProviderConfig.kt    # Per-provider base URL + active provider via SharedPreferences
 │   │   ├── model/
-│   │   │   ├── Models.kt                 # Anime, Episode, VideoServer, AnimeDetail
-│   │   │   └── WatchHistoryManager.kt    # Watch progress storage (SharedPreferences)
-│   │   └── scraper/SamehadakuScraper.kt  # HTML parser (Jsoup) for v2.samehadaku.how
+│   │   │   ├── Models.kt              # Anime, Episode, VideoServer, AnimeDetail, EpisodeNavigation
+│   │   │   └── WatchHistoryManager.kt # Watch progress storage (per provider, SharedPreferences)
+│   │   ├── provider/
+│   │   │   ├── AnimeProvider.kt       # Provider interface (all scraper methods)
+│   │   │   └── ProviderFactory.kt     # Singleton registry, getActiveProvider(), refreshBaseUrls()
+│   │   └── scraper/
+│   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
+│   │       └── DrakorKitaScraper.kt   # Drakor scraper (Jsoup) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt      # Splash with animated N logo
 │       ├── main/MainActivity.kt          # Bottom nav host (Home/Search/Ongoing/Settings)
-│       ├── home/HomeFragment.kt          # Hero + continue watching + 3 horizontal rows
+│       ├── home/
+│       │   ├── HomeFragment.kt           # Provider chip switcher + fragment container
+│       │   ├── SamehadakuHomeFragment.kt # Samehadaku home (static hero + 3 rows)
+│       │   └── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
-│       ├── settings/SettingsActivity.kt  # Domain configuration
-│       ├── detail/AnimeDetailActivity.kt # Parallax detail + episode list
-│       ├── player/PlayerActivity.kt      # ExoPlayer + WebView server resolution
+│       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
+│       ├── detail/
+│       │   ├── AnimeDetailActivity.kt    # Parallax detail + episode list
+│       │   └── CategoryGridActivity.kt   # Full-screen 3-col grid (DrakorKita categories)
+│       ├── player/PlayerActivity.kt      # ExoPlayer + WebView + multi-provider server resolution
 │       └── adapter/
-│           ├── LatestEpisodeAdapter.kt
-│           ├── AnimeAdapter.kt
-│           ├── EpisodeListAdapter.kt
-│           ├── SearchGridAdapter.kt
+│           ├── LatestEpisodeAdapter.kt   # Samehadaku episode cards
+│           ├── AnimeAdapter.kt           # Samehadaku anime cards
+│           ├── NetflixCardAdapter.kt     # Netflix-style compact card (DrakorKita)
+│           ├── DramaCardAdapter.kt       # Drama card with rating badge
+│           ├── HeroPagerAdapter.kt       # ViewPager2 hero banner carousel
+│           ├── EpisodeListAdapter.kt     # Episode list with spinner
+│           ├── SearchGridAdapter.kt      # Search results grid
 │           ├── SearchHistoryAdapter.kt   # Search history chips
 │           └── ContinueWatchingAdapter.kt # Continue watching with progress bar
 └── res/
@@ -49,36 +62,48 @@ WeebFlix/app/src/main/
 - **App Icon:** Netflix-style ribbon "N" (#E50914 + #B20710 fold shadows) on black background
 - **Splash Screen:** Red "N" on black, Tudum-style zoom-in animation
 - **Theme colors:** Background `#000000` (splash) / `#141414` (app), Red accent `#E50914`, Text primary `#FFFFFF`, Text secondary `#B3B3B3`
-- **All networking** goes through `SamehadakuScraper` using coroutines (`withContext(Dispatchers.IO)`)
+- **Multi-provider architecture:** All scrapers implement `AnimeProvider` interface, registered via `ProviderFactory`
+- **Networking:** Each scraper uses its own OkHttp client (DrakorKita uses trust-all SSL certs)
 - **Image loading** uses Glide with `.placeholder(R.drawable.bg_card)` fallback
-- **Navigation** is single-Activity with Fragment-based bottom tabs + separate Activities for detail/player/settings
+- **Navigation** is single-Activity with Fragment-based bottom tabs + separate Activities for detail/player/category grid
 - **Video playback** uses ExoPlayer (Media3) with OkHttp + SimpleCache
+- **Provider switching** happens in HomeFragment via ChipGroup, content fragment swaps dynamically
 
-## Features
-- **Home:** Hero banner + Continue Watching section + Latest Episode + Ongoing Anime + Popular Anime (all with infinite scroll pagination)
-- **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
-- **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
-- **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
-- **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), skip opening/outro, auto-play next episode, PiP support, fullscreen toggle
-- **Settings:** Configurable provider domain with validation
-- **Continue Watching:** Saves watch progress per episode, shows progress bar on Home, auto-resumes from last position
-- **Domain Switching:** Change scraper base URL from Settings — works with any Samehadaku mirror
+## Provider Architecture
+- **`AnimeProvider` interface:** `id`, `name`, `baseUrl`, `getLatestEpisodes()`, `getOngoingAnime()`, `getPopularAnime()`, `searchAnime()`, `getAnimeDetail()`, `getEpisodeServers()`, `resolveServerVideoUrl()`, `getEpisodeNavigation()`
+- **`ProviderFactory`:** Singleton registry, lazy-init all providers, `getActiveProvider()` reads from `ProviderConfig.activeProviderId`
+- **`ProviderConfig`:** Stores per-provider base URLs (`base_url_samehadaku`, `base_url_drakorkita`) and active provider ID in SharedPreferences
+- **Active provider** is persisted — app remembers last selected provider across restarts
 
-## Modifying the Scraper
+## Providers
+### Samehadaku
 - Website: `https://v2.samehadaku.how`
-- All selectors in `SamehadakuScraper.kt` are CSS selectors via Jsoup
-- If website HTML structure changes, update selectors in the corresponding method
+- Content: Anime (Latest Episodes, Ongoing, Popular)
+- Scraper: `SamehadakuScraper.kt` — CSS selectors via Jsoup
 - Key methods: `getLatestEpisodes(page)`, `getOngoingAnime(page)`, `getPopularAnime(page)`, `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)`
 
-## Common Tasks
-- **Add new section to Home:** Add RecyclerView in `fragment_home.xml`, create adapter, load data in `HomeFragment.loadData()`
-- **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
-- **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation in `MainActivity`
-- **Modify player behavior:** Edit `PlayerActivity.kt`, WebView settings are in `onCreate()`
-- **Release APK:** Run `.\gradlew.bat assembleRelease` (unsigned by default, see keystore.md for signing)
+### DrakorKita
+- Website: `https://drakor.kita.mobi` (also supports legacy domains: nicewap.sbs, drakorita.com/net/cyou/cfd)
+- Content: Korean Drama (Latest Episodes, Movies, Series)
+- Scraper: `DrakorKitaScraper.kt` — CSS selectors via Jsoup + API calls to `nonton.bid`
+- Features: Auto-rewrites dead domain URLs to current domain, trust-all SSL certs, Base64 token decoding for API access
+- Key methods: `getHomeContent()` (returns episodes + movies + series + featured), `getAllAnime(page)`, `getEpisodeServers()`, `getEpisodeNavigation()`
+
+## Features
+- **Home:** Provider chip switcher, each provider has its own home fragment:
+  - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll)
+  - DrakorKita: Auto-scrolling ViewPager2 hero carousel (4s interval) + Continue Watching + Episodes + Movies + Series (infinite scroll)
+- **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
+- **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
+- **Category Grid:** Full-screen 3-column grid for DrakorKita categories (Episodes/Movies/Series/All) with infinite scroll
+- **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
+- **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), skip opening/outro, auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation
+- **Settings:** Per-provider domain configuration with chip selector, validation, and reset
+- **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
+- **Domain Switching:** Change scraper base URL per provider from Settings
 
 ## Video Server Resolution
-### Blogspot Server (WORKING)
+### Blogspot Server (Samehadaku - WORKING)
 - Fast path: Scraper AJAX POST → get `blogger.com/video.g?token=` URL → WebView loads video.g with XHR interception
 - XHR interception injects JS into `video.g` HTML that monkey-patches `XMLHttpRequest.prototype.send` to capture batchexecute responses containing `googlevideo.com` URLs
 - URL cleaning: batchexecute responses have double-encoded escaping (`\\u003d`, `\\u0026`, `\\/`), handled by replace chain + final `replace(/\\/g, '')` to strip residual backslashes
@@ -86,7 +111,15 @@ WeebFlix/app/src/main/
 - `shouldInterceptRequest()` routes `blogger.com/video.g` to `interceptBloggerHtml()`
 - `onUrlFound()` bridge receives clean URL → `initExoPlayer()`
 - Server detection: `server.name.contains("Blogspot")` or `server.url.contains("blogger.com")` or `server.url.contains("bp.blogspot.com")`
-- Reference implementation: `https://github.com/hexxt-git/anime-sdk` (`src/extractors/BloggerExtractor.ts`)
+
+### DrakorKita Server (WORKING)
+- 3-step API resolution pipeline:
+  1. GET `episode.php` → get `server_xid` and `first_ep_id`
+  2. POST `server.php` with episode_id, cat, tag, server_xid, c, t → extract direct URL or Abyss CDN ID
+  3. POST `video_hydrax.php` → extract final video URL
+- Tokens (`c`, `t`) obtained via WebView JS injection: reads global variables from episode page, sends back via `AndroidBridge.onTokensFound()`
+- Abyss CDN: decodes `atob()` payload to extract direct `.mp4` URL
+- `resolveDrakorKitaWithWebView()` orchestrates the full pipeline
 
 ### Other Servers
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
@@ -96,8 +129,31 @@ WeebFlix/app/src/main/
 ## ExoPlayer Configuration
 - Buffer: `minBufferMs=15s`, `maxBufferMs=60s`, `bufferForPlaybackMs=2.5s`, `bufferForPlaybackAfterRebufferMs=1.5s`
 - Cache: `SimpleCache` with 250MB limit
-- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com` URLs
+- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com` and `abysscdn.com`/`hydrax`/`drakor.bid` URLs
 - Track selector: Max 1920x1080, preferred audio `id` (Indonesian)
+- Episode navigation: `EpisodeNavigation` data class with prev/next URLs, auto-play chain pre-fetches next-next episode
+
+## Modifying the Scraper
+### Samehadaku
+- Website: `https://v2.samehadaku.how`
+- All selectors in `SamehadakuScraper.kt` are CSS selectors via Jsoup
+- If website HTML structure changes, update selectors in the corresponding method
+- Key methods: `getLatestEpisodes(page)`, `getOngoingAnime(page)`, `getPopularAnime(page)`, `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)`
+
+### DrakorKita
+- Website: `https://drakor.kita.mobi`
+- CSS selectors in `DrakorKitaScraper.kt` (`.bungkus`, `.titit`, `img.poster`, `.rate`, etc.)
+- Token decoding: `decodePageTokens()` — Base64 decode, digit extraction, character code parsing
+- API endpoints: `api.nonton.bid/c_api/episode.php`, `server.php`, `video_hydrax.php`
+- Domain migration: Old URLs auto-rewritten via `rewriteToCurrentDomain()`
+
+## Common Tasks
+- **Add new provider:** Implement `AnimeProvider` interface, register in `ProviderFactory`, add chip in `HomeFragment`, add config key in `ProviderConfig`
+- **Add new section to Home:** Add RecyclerView in provider's home fragment layout, create adapter, load data in fragment
+- **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
+- **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation
+- **Modify player behavior:** Edit `PlayerActivity.kt`, check `ResolveMode` enum for provider-specific paths
+- **Release APK:** Run `.\gradlew.bat assembleRelease` (unsigned by default, see keystore.md for signing)
 
 ## Bugs & Solutions
 | Bug | Solution |
@@ -117,7 +173,11 @@ WeebFlix/app/src/main/
 | Blogspot.com not detected | `resolveEmbedUrlViaWebView()` now recognizes `blogspot.com` as Blogger |
 | Search crash (suspend in non-coroutine) | Wrap `performSearch` in `lifecycleScope.launch` |
 | Episode order reversed | Fix scraper selector and sorting logic |
+| DrakorKita SSL errors | Trust-all SSL certificates on OkHttpClient |
+| DrakorKita dead domains | Auto-rewrite old domain URLs to current domain in scraper |
+| Stale WebView callbacks | `resolveGeneration` counter prevents old callbacks from being processed |
 
 ## TODO / Next Session
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
+- **Add more providers**: Implement `AnimeProvider` interface for new content sources
