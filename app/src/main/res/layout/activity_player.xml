@@ -427,7 +427,7 @@
                 android:layout_height="36dp"
                 android:padding="6dp"
                 android:src="@drawable/ic_player_skip_backward"
-                android:contentDescription="Previous Episode"
+                android:contentDescription="Rewind 10s"
                 android:scaleType="centerInside"
                 android:layout_marginStart="8dp" />
 
@@ -437,7 +437,7 @@
                 android:layout_height="36dp"
                 android:padding="6dp"
                 android:src="@drawable/ic_player_skip_forward"
-                android:contentDescription="Next Episode"
+                android:contentDescription="Forward 10s"
                 android:scaleType="centerInside"
                 android:layout_marginStart="4dp" />
 
@@ -445,6 +445,20 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
+
+            <!-- Prev Episode -->
+            <TextView
+                android:id="@+id/btnPrevEpisode"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:background="@drawable/bg_chip"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:text="← Ep"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textAllCaps="false"
+                android:visibility="gone" />
 
             <!-- Server selector text -->
             <TextView
@@ -456,7 +470,23 @@
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
                 android:background="@drawable/bg_chip"
+                android:layout_marginStart="6dp"
                 tools:text="Server 1" />
+
+            <!-- Next Episode -->
+            <TextView
+                android:id="@+id/btnNextEpisode"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:background="@drawable/bg_chip_active"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:text="Ep →"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textAllCaps="false"
+                android:layout_marginStart="6dp"
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/btnFullscreen"

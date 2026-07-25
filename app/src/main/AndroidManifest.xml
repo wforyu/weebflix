@@ -43,6 +43,12 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ui.detail.CategoryGridActivity"
+            android:exported="false"
+            android:theme="@style/Theme.WeebFlix"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.player.PlayerActivity"
             android:exported="false"
             android:theme="@style/Theme.WeebFlix.Player"

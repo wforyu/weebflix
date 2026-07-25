@@ -1,0 +1,122 @@
+
+var _0x5895d5 = function(a) { return a; }; // stub - we don't need the real anti-debug
+var window = { location: { href: '' }, navigator: { userAgent: '' } };
+var document = { createElement: function() { return {}; }, cookie: '' };
+var location = { href: 'https://xdrakor33.nicewap.sbs/detail/the-husband-2026-v2e8/', pathname: '/detail/the-husband-2026-v2e8/', split: function(d) { return this.href.split(d); } };
+var navigator = { userAgent: 'Mozilla/5.0' };
+var console = { log: function(){} };
+var $ = function() { return { ready: function(){}, click: function(){} }; };
+var is_mob = '0';
+var is_uc = '0';
+var c_api_host = 'https://api.nonton.bid/c_api';
+var api_host = 'https://api.nonton.bid/api';
+var file_host = 'https://d.load.my.id';
+var c = 'bfb1';
+var t = '1784892473&ver=373iq';
+var GLOBAL_MOVIE_ID = 'yLpA1nCVmw';
+
+function _0x1c23(){var _0x5bacab=['z8kfWQHeFNumsW','WQ1QWPy','hIhcHmkXhSkfwepcJSkmm8kdW5TPW497W5uSaSknwmo5WOa','mwyMisVcLxxcJCoaW7ObW5mT','W5RdG2hdNXfSWR7dRW','WOBdMI7dIemxD1lcOJ/cMa','WQySWPbJoL/cPbRcG38iA8ktoG','WQVdG8oBvSoBcthcSG','WPldMIJdMGSUqw/cMG','A8oqWRxcIW','E8oGkmkaBG','W7VdQ17dTd9B','idPNFgNdJcxcKCovW4iLW6mSWQG','W7VdQ0ddSY52WO7dKqZdJc4','WP8zp8orWQJdK0OjWRb7oG','eSokWOfyWRFdM3C9ECkSW5W','grNcRCoWhWfHgslcVHe','W5CsoComW7hdV1KbW4fXkXhcLCk5jCoY','W7BdKSoSW7O','BCk1WP8lWRi','W6BdVXZdOZvhWPJdLshdKcLiDxddNa1upSoQjvycgCooWP08oH3cNL0WWPe','WPBcKdFdQg/cIN8','v8kBWQlcTIuBnIyWW6vJWORdIG','W6m6W58','WR41gq','vSozW7WmWQmqWPDOWODVluf4WQZdSSomjJJcVf/dLHvkomkUiW','rCoPkhC','W7tdH8oFv8ogbZJcSGWAzY3cMXSXwW','W58sW4NcVmoVC3VcRCohW4y','gCoDW6Cn','WQXLDmo5WR7cJXGzvSos','WQ7cUCoJWQ/cSG','W7jcWQtcVK/cO2XNdaKNsCo3','ySkwWQvFiG','bSo9sCkdW6BcMG','W4BdQmoxzmkjWRqhWP/cQX4aweNdVq','pmofWQRcKcPvDHC','BCk1WPCBWQO','jCkrWQbOC3aAsG','Emk5BmoSWPaOgrJcTG8PrsW','W4ZdMs7dH0mxza','WQ9/WPBcNG','WRpdOeBdRNDAWP3dKW','wdtcNCkRaSkowq','bh7dQSoiWQVdU3eo','rmkhWQNcOa','W6NcQ8oIWQFdUqq','qSkPECoQ','WR7dSL7dRZTnWO7dKW','y8oOWRtcTW','W6bVW4hdJSko','W63dHCoZW7NdICkZsW','WOdcHsZdRwxcNeu','ECoCWQJcMW','W5jyWOzJpmobpGO/WQW','W7FdImoNW7K','kmoSWRxcTcFdRmoqW6q','xCo+WR/dO8kGW4LwW6NdPSoMtSkt','W704fCoR','EXxcNM3cTSkCWOK','WRhdGSoKW6ldHmk2FSoE','WQDMW4hdGG','xIJcLCkRhG','W7hdImoIW7RdJmk8Eq','W5tcHCkdWPlcMa','r8oIjwm','Ba97WPXwWO8rccJcOrtdHCkw','vCoTnM3dJ8kdW5GHW5n7W44nW6C','uu1D','W6mWWPfokLldRq','ECkqimkK','fSkSW73cUSoWWPH1W5BdNCoUCSkc','tdhcLq','ESk2WQuCWQSGarO','yJv2Bq','tshcRf7cLmkTWQvS','W7hdJqZdIaOJW45uBCkhkmkBymou','W4yZW5fKgweErKqGja','bCkWAmo8WPHKnqNcVqKPcG','W5OqW4NcTmk0zuhcQ8oqW4tcGq','W4SFW5NcSmo/F0RcVmoc','WQhcNX/dSCo8WRnmB3xcJq','vSkZACo9WPDSbbJcOa','cmkMW67cT8oLWPj/W6S','EqxcI0JcSCkCWPvqumkHWRq','A8kPWP8BWRyTcG','bmooWPHwW6ZdJveJBSk6W50','WQOBjmosWQZdPueEW49+mqlcG8kplSo0W47dRCo4k8k0W5jUfuX0vvxcKSo2WOzVWPy','ve0ZD8kQWQtdRXSnW4tcLbhdKhTsxmkCESkrWQZcICkOdJG','W4fEWOjMk8ohbdOQWRNdLmop','W7mIaSo1WRVcLSoF','DmkbiSoNzb/dJW','W7bZy8o9WQ3cMdvAuSklFG','amo7FainFmogo8koWPRdSWm3WQC','qSkpWRpcPxe7nJGJW6nL','imk8WOysW7q','W5OtiSopWRpdUa','lSk2WR8vWO1yWOBdVCkNnG','WRbUzCoJWRlcNIW','v8kwh2S','ycPLz3/dJtxdLmoRW404W7KUWR4','W5pdR3S','zCopW6S6','nSoZtWvap8ktyaFdI8kTBZa','W5boWOb4l8okfq','W4yZW48','W7OLd8o9','WOSvimonWQRdQwWvWO5Hlq','W7RcRCo7WQhdUqrOW7ldLmoOW6u','WOrKz8o7WRRdKdqrumkvAW5o','kSo2lq','vSolW6CrW7PoWPe','ySkwW7K','W4zvWPLKjCotd0qTWRtdLCon','dNddGSoOpSk7BulcVmkJ','s8oJeW','W5C5W5j4agG4','W6NdP0RdTa','WQ9HWOpcLa','w8ozW78qWRzzWOj7','r8oRmhldNmkuW5GQW4TR','WRJdJCobtCobgINcTcCyEG','s8oKsWnxD8kswHZdMCo1','WQJcO1tcP8oUWRddI8o0','lCk8WOybWQOMcXJdTd1FaxVcL8kjkSkhWQNdIConbmk3WQW','WORdNJVdJq','i8ozW7i4EK5PoW','WOtdQCodtSkwWROqWOK','W7FdN13cUSoAWPbEjulcO8oYqmoAW54','z8kgWRjtmG','rSoEWPLwW7W','p8kojSo9ma','WR8PeCoWWQhcMSoqW7D3WOdcSN92nW','WONcL8kBWPxdGCoOWQVdRa','gZdcLCk/ua','B8o9WQ3cUMVdVmouW7e','fCoiW6CCWR8','W5eMW5v4aga4DuK6jmoXWQ8','W7xcOLZcVmo5WRZdPmk3W4pcH8oJ','WR5JCSoMWQ3cMa','WPhdNIJdNWSwtvJcVt4','fCo7umkfW6BcMSoLzGDMW5C','mM0HlsRdLWxcHCoDW5Cp','rCkBWRxcTJKMj2O0W6vJWOZdJSk4','yCkRWPm','nSkmmq','WP0vl8ox','FCk8WOqEWRW7mbtdJW','W4BcKCklWR7cMSo+WRpdQHyhvxRdSZ9zWR0','WQVcUmo6WQhdRGvoW6W','WPvkWODRDW','AmkSWPGlWQ0GabpcI3TQwI/dJSo1lq','W7pdNbRdUqmSW4Kh','jalcI2/dSSkBWOzA','W4DAWPu','b8kqcYK+hmozEq','tthcH8kWpSkExvlcTa','EGZcKgdcU8knWOi','qmkmoduZdCoB','W73dKCoktmodds7cIdOtnq','weeVCSk+','FCoSW7PiW4OlW63dSmkmbCotcmoq','b8kffY8Sf8oyBJajW6ZdMfuW','pSo6mmkw','BSoSWRdcQcNdRmoq','WOpdPmovFSko','W5xdLwFdQSkJ','BXdcLNlcSmkmWPu','WPdcLsZdQwxcGg7dMujCerH+ha','WRySWObolexcQvBcHW','WOhdRmotBmoxWQGgWOJcGHCBDexdP8oZ','W4/cHdFdRsdcJxBcMfbmwfnRcJ7cH8oBDmkymSo1W5fEqCouqvH0AL/cSmkiWQHMq3FdRCoNzmoOWPibw0VcKI/cGGH5c8ovzZe8AeNdMH7cQSkMWO/dTbBdSmkVCCkhvsxdHaxcJbHgumokW57dQ1KBlMGKWQNcJmoWWQZdNCoTx8kbWQGvW6rZumkNFg7cHhbuWRZdH8k8fmoAvmk1EComW68PqZPhqSk7W5qTys7cJK/dVmktlMRcTq','fSkJWRpcV8kaW6i','W6ldLbhdMWSOW4G','W7pdJuRcUG','oCkwjmo7laldJwKoEhntaSkB','mbJcOCoRceLhbsRcQt8','d0KHyG','AmkWWPGm','tIhcHSkUcmkyy1xcSW','bH3cTmo8aq','W4ZcP8oHWQddOW5kW7RcLq','WR1NWOVcJ2S','b8oVEHffzSotFa','W4tcMSkbWOJcMmoPWQJdVs4bva','rSo2mJ7dPmksWQzC','WRtcPqO','W7tcT13cUSo7','WOdcLcZdSM7cIq','eKKAW74','r0GWymoYWPJdPXyHW5BdHv/cNxHjqmomF8kAW6ZcHmkUawhcQ2JcQGRcOSo2hKPcDWFdNdmvvSkzW6hcRqfbWR3dHSoCWPdcUcfsWPBcGve4WPbKW5ZcGYBdSSoTW5hdRSoXD8oGrCkhWQb4W6JcMwS8zSk8k8kpW5hdHCoIngldTbrmWRddIrqThNS8W69HW7PeWQ8XhuBdIN7cHHyUBLBcImoaW6e+aSkKmmkwoWjshmoYEdRdMX9wWRxdTa','WOhdHgVdOSoOWQVcUd/dNGGG','ESofWRZdKG','WPvsWPy3','W5FcMCkaWPRcImo+WQ8','c148ymk3WPxdVZm3W4pcMqJcKN8','rSoYW77dRSodWRm9xCk/W7ldRJJcUW','W5tcKmkDWO3cICoPWOldTZ4','WOSvoCoxWQ7dOG9rWOLNmadcK8k1jmoOWPdcOCkQ','fSkKWQpcLCkAW6z6Fa','AWpcI2JcSmkg','WPdcGsO','f8oRDGq','rmo+pX7dOW','fmkHWRm','yCk3WR8sW5zoWQ/dUW','W7ZdTKBdSG','gmkedJb/g8oqAHWwWRJcIuiWWOKYWRTYnSk/WQtdNSkNhJRcR8oPWOjQo8kkC0ZdTIZdVwjyrWNcRufrW6lcR8oTgWldISouW6ddPfq9dKCZacTWWRXGWRVdJd1Wy8ozECk5W6XNW6OgWPidpXhcNCkbsXpdM1ufEeaMymkqF8oeWOullCkFW7tcHvPGWPpdVmoSWQWuW4rjymknWRNdHJOfnKWBzMS3W5OrW7hdUuTxW787W6v/','vSoPnMJdJW','laNcMZW','qmkUFG','W6FdMKpcOCol','WPldKxBdOCoN','u8kVySoSWP5XeW3cOq','W5W6W49OagO7q0i','D8obWQVcKW','bg7dUSo5','W7xdJKVcI8otWP9zDG','W6tcP8kCFSogq2NdSKpcVSkjFIecW7DJk8oFaCoOWQXCW7NdI8oqW51OAmk/WOhcI8k0ACoZWQK','bCoNFamCtCoxA8kWWPddOW','sSklWQNcOYGG','bmk0WQBcPmkcW7rEzSkoW6O','xcFcGmkXg8kp','WOGfkmoqWQxdN0OvWOPXkGZcLq','omoQBWqjp8oxA8kgWP3dMKzHWPNcKe88amk4mmkDxxC/WPBdQ8oIW7FcHSkxvCoSpsaPW7Lbx3HngCkvWR3cUmo0W7NdKSkbAKSBhG','jtWQ','B8k6WOibWQ8Smb7dIIu','Bc1+CNpdJq','j8kaWRzzEN8D','W7BdLWNdLamIW5Sq','W7ldG0hcRa','W7pdJaRdIa','WOFdIYdcHa','fSk0WRpcPa','WRtdM0m','kmoYlmkbjG','b8oVEHffD8ocCSkl','lmkbWQLh','WQDOW4tdUCoFWRBcTCk3','W6yXWPT1lvdcQbC','BmopW7iK','kmoVWRhcTdhdHmoCW7HAWOpdI1NcG8kX','ySkbW7K','tsJcM8k5cCkptG','lSk/WQOe','W5Sjnq','ASkxWRbfmMiFqq','WRtdJem','WQZcOSks','amkhWQpdUq','bKWb','sCo8sCkeWR3cJmoqCKH2W5hcHMq9WOS2','bCkQW7NcV8oNWP5pW6BdImo7','WPhdLY/dJG','o8oMlmkajNddRKZdSCoWWR9/W41Y','WQe4WPzWCKlcTuJcLhKoxCkDnMq','lCoUWRZcQhS','W67dP0ddTJ9BWRtdIdC','icDpWR1Y','W63cQfJcVq','WOfjW7q','s10jWQxcOcnqlCoDAeNcUmocqg3cQ8kHo8oOE37cK8oEACk0W44FWRFcSmk5gmoyWRnLW4u','jmolwG','zmo3n8key33dTG3dO8oGW7y0W5HKtSoAxL4mWOhcGgNdHwxdRL0cbwlcUCkFW5rxW4ddMSkUW7SmWQjshmkGW5HzWRmyWOrwWPJcKf1oWPfCz8kLW54pdNFdUwZcQ1lcNmkwjh8HjSoLncPBW4uGuJldLmkAWQZdG8ouWRdcUsqlW57cKmo9W6xdGSorE2RcKSokW6eEW7FdP2/cGCkdi8o6W7lcNX1sWOBdVSkEWRfvWP8flYyrWQKfWOKhW7/dJ8kIWPhdJa','zmoiW6JcNcrFybeRW4ddK8kRW6ldHmo3bCkiWQBcVMWwWQBdGKmBWPXwn3z2qmk+','WR88dCo2WRpcKCorW6a','m8knp8o9','h8k0WQRcUG','WRrPW43dLCofWRlcHCkOWQ1NW4O','weKPF8kHWPtdRXinW4NcKq7cING','WRm/bmoRWQtcKmogW41fWOpcUsjYlgy','a8oAWP5fWQtdKea','nmkbWR1BEG','WOelW4m8C8osbqqvWPVdLW','eJlcNCk8cmkfeLBcUCkqzCkzW5XfWOi6W5vL','WOtcHCkdWPtcJCo/WRJdRa','zIdcLCkSdmoht0pcO8kwp8kcW7i','WRtdKmogwCoCbG','W4VdR8oty8oxWQGvWOG','WQhcPaW','W4BcKCklWRJcGmo6WQ7dRq','WRldIu7cVmkc','emoSuquAFG','axVdUSoQW6RdQwCphmkOW50','tmoRFHKBFCowFSkWWPtdQaHVWRlcL1e','WQPPW47dNCohWR8','eCoAWO0','rN/dVSoIWRtdTwyynCkHW4y8W73dPq','WRVdSfFdS2C','WQ58gColWPVcPSohW5C','W7BdN8oLW6tdHmkNtCkcgCotqCkeWQ8','h8oYtXvy','sshcJmkS','WP/cHtddVhtcHG','msjzWO17WQmNwW','qSkpWRpcPxeRmJ4','vSkfcIKPhCo/zW4wW7y','W4dcMXZdUY8Pv2lcMWJcRL0aW79gd8oCarOBEWldSmorFhrOW5pcRMZdOLWdoIzmi8kzah8bW4lcV8kmfSoRWP3cPSkUW7uIBXxdSmoMbZ8jWPWixSo1s0qJ','WOddOmoxECkd','uJBcNCk/bmke','AXtcI3m','WQL+W4NdNCoAWRK','wmkKWQlcOSkxW65Lia','hCkLxI5szSkbCqddJG','W7tdKrddNG','gConW7C8WRTCWPr6','W7tcPepcVmoJWRxdS8k0','lCo1WQRcHdpdQ8ki','WRRdLSoBta','xuu9kW','WPhdQmoFEq','WRtdTWddQ8k6W6RcLSkwW4xcLCoHW4bB','WQbLW5ldICoh','W7RdH8o1W7FcImkRC8kw','jCkfWRrhzG','WP1EWOjWzW','WPehW5tcSCo8ExVcSCoFW4xcGCoHtSkdW5JcTCkGjCkBWP8RW5tcImorjW','BCo1WQVcQdldL8oqW6zUWQBdJG','s8o3obRdVmkB','W6mQWODJkvtcOMxcMNuypW','WRiUfCo3W7/cHSocW6O','fvaoWRC','WQmLeSogWR/cMSowWQ8','bmoIoHldQCkxWRbD','dX3cTmo+rbbdeG','aCkOW67cVG','icPsWQ9ZWQCM','W7jVWOVcMI7cNv0+mZ5zvSk4WRJcIbGxcaxdRwiZWRmEWRaiW5qRW7BdOSokCt/cKCkw','WRO4amo+W68','W617WO7cG2/cIKW1','ovtdIthcJmk5WQfgs8kd','WRe4WOb9oG','BqFcMNm','W7C+WPBcGSkdWQpcGSk1WPTTW7O','nI9tWQO','aCoYqbzvEG','tsxcHSkRcmkGB2NcNW','umk4ECokWPr0hXJcTW0euHanWRZdKa','q8oZiHZcPCkaWRbDW67cTmkM','lSolW6O5nLL6mq','rbPd','W4KqW4/cUW','W4/cGCkcWPC','FSk4WOqBWRWdpdldPq','WORdJZFdHq','WQORWOT2nL8','W7ZdQfpdUa','W6BdLY3dJH0KW5qt','pCkWWQytWO1yWPRdPCkNiSoT','gbNcSSoPdbz9eYRcOqCHW7SYWOS','g8kjfbKYf8oEnG','e8ohWOna','WPBdQmovE8kFWQK8WORdHGi','fL0eWPddRdfxjW','WOhcGCkoWPZdKq','nSkmnCoOpqxdLIC','W7FdRvVdRG','WRtcPSkBB8kswa','t8olWOLdWQddL1H+','h8k5zmoUW5fSdKddPGKGvGGmWQVcGapdGmkNWRZcJ8oNfq','lCk8WQuy','fM/dRmouWRtdRNSrdW','uSklWR/cSa','W7BcS8kAE8kshw3dQKJcVSkzmJKoW6DHmmocfCk9WQHkW7BcHSoJW70','W6W4gmoPWRC','q8okWPXEWRldKva0r8kZW4zYAmk/','rCo9AWiED8oarmkgWP3cUG','W7ZcRCoUWRRdJa5fW6RdKmo1W6i','o8kaiSoGpWNdPIOoBW','WOhdJIJdMWSkzGdcTtNcNNeKWQC','hmoIsWnyqCkfArddNSk8CH8','vmoTkxtdNmkuW4qLW4TSW48','W5CJW455cMOPcKqWi8oSWQRcLa','W63dO1xdPqvkWOpdGd3dGI8','lmkCWRDFCgmq','i8kWWQuBWO9v','amkOW7NcTW','WQdcIe/cJfy7W54zr8kNkW','fSoRxa','d8oQumkg','W6HIWPhcS3VcJrq','yJXJFgZdHH7cGmoRW4K','W7xdNLVcUG','emoDW74t','ic97ENVdHYtcHG','s8kpWRpcPZq','W7ldG13cU8ol','WOBdKwldRmoQWQVdGtFdKaW9ySk7W4jM','oMGLicVcKqFcMmofW4CeW6q','bCk+ma','WPddLhtdV8o7WQdcJ3pdNHGNz8kIW4y','tIhcHSkUcmkyyW','WOhdMI4','v8o9jG7dVmksWQfk','bCkEWQVcQZ0SnJG','ECkqpSoMpIddKcCe','EGRcJgxcTSkE','vCo8jw/dJ8k+W6uJW498W4G','WRVdOq8','W6FcPSo1WQldPGja','WOtdVCoo','W70VfCoWWQtcKa','c0a2D8k2WP7dUq','b1upWRldPdvw','r8k5W6hcUCoWWP91W7C','W6hdNqZdJaO/W6umzCka','nSkqWQLeAxqQvCo+WQJdOW','h8oYxH1aCCkf','W6hdNqZdJaO/W6uepSku','WPVcMtRdQwhcLKxcJfft','WPC1W5nMaha','v8o+orZdRmkwWQC','FSonW757','rMNdUmoZW6O','wf8Vzmo/','dmk9W6dcUG','kqxcJ2JcRmkhWPrhECkSWRfxtCoA','W40bW5hcVmoT','dCk/ECo2W5X2ha8','q3NdR8o/W7O','bCoNFamC','jtX2ysC','c00RzCk3WRhdMdGC','fSkSW7NcO8oJWPuWWQ3dJ8o6AmkegmoKW4dcSCkPWOyr','WRtdJb/dNvi','WPeeimoo','W68Gfmo+','W45dW43cISoSzeG','W5jyWOzJpmob','rMNdRmkM','W5tcMCkAWPW','lmk6WQupWPrrWRW','rSoIjHhdSq','W7RcRCoMWQldRGjo','yHtcKM0','zSkTWPSe','rSoMiG8','hJtdHSkOqa','qSkpWQPLWOddS3etv8knW6TetSoXWORcV8otW64PbSoPBKpcL8khDSkrWQ7cShVdVYK4cSkTCSoPWQldLshdIrfishNdRwVdOCkTqWyVgvFdHCovWQZdVtxcQ1tdKNPmFW','vCoLk3tdNSkz','ssxcKW','WOpcJdhdUMtcI2G','W73dLSoowCki','W77dRvZdSY5BWP7dGIFdIJG','mhGZWOZdIXvXgG','WRNcP8krs8kkuw7dUa','eSkYWRxcUCke','gLyeWRldRa','k8opWRS','W73dI8oCyCoac2e','W6yQWPrJCG','W6q5W4X4g2uPtWuKnSo3WRlcMmocl8kNCCkGWQVdGJuxW4nqbteboSoDWQTUWQVdIc1NWOysW5ZcTrLiWOZdL1pdPgZcLb7cHCkjkWa','WOtdRSotzmkmWR48WO7cLru','W6NcQ8oIWQFdUqr0W6RdLmo8','Aq/cIM/cQ8knWOi','umksdIS','qSk5ACoBWP1Kgq4','n8kciSoQiq','aSkncda2hCoJyGTy','W6yPWO5+pLxcTuG','W7JdSLVdSZvnWO4','ESouWQxcLW','W4bxWODT','WQVcRCoMWQFdVa5pW7VdQSo3W78ZW7nL','nSkgomoUpqq','W4hcNmkbWP8','W68Pe8oVWRFcH8oRW7Tm','g8kVWQtcT8kcW65Myq','rCo9nMNdJ8kFW7nPW4T8W4GfW6NdRa','bCoJqX0','WOhcLSkoWO/dKq','f3/dVSoNWQBdUwC','aSkGW7/cPCoL','v8oFW7OBWRjsWRH6WOiKCeD9W77dUCoAcYBdVv/cNW','W4BdPLpdTdSeWO7dKtRdGrCqoLNcM0ffn8o3m08XfCkAW5SLjKZdG1HGW5KeWRegWRVdMSoLW5bYhSoXW4/cR8oxjSk8sCoiWOVdQ24','W4ZdMs7dH0mxzfldUJNcN2OGWQCywW','W7BcOCkbzSolq2VdUq','WRRdIfVcPSksWO1CDW','rmoUuCkfW7hcM8odEa','yITJzW','rCkkbJ4','WRiUfCo3W7/cHSocW6a','nINcUvpcNSkLWRucDCksWPSzgW','WQFcRmo5WRNdOq1eW7/dKCk0','c8kffY8Sf8oyBKevW63dMW','WP1OW4hdJSosW7RcO8k0WQvWW6rExCkdWRtdRY7cMYHkeg4oW7CcAr7dLCoCrmkdW79OtL7cPSoJprhdPSk8WOmUoCouFSklW6dcPmoqWORdLG','W4BcLSkBWPlcMSo+','uCkPWRtcICkdW6q0','aCo4trbvE8kpAW','W7VdH8oIW74','b0WtWRVdKYrfimou','W7rOW5SLAatdPN3cS1OurSkW','W4yZW5bKdMa','aCk5W6tcPCo+WP91W5RdHCoMDCkthW','WRD5W4xdImokWOtcO8kOWQL3W40DdW','h2tcSSkklmkNEwtcNSkYhSk1W70NW591W6qBpSoVz8odWRSDtCkjrsBcTSk4W5znWQb8WRVdI8ktW4tcRNhcVMBcGtNdK0tdJZySW6OWuW4IWQdcL8o1g8ohoq98kCkmWQa','x3rlpJRcIwNdI8kWW7uTWR0IWPRdUYRdRSoAcCk8CwpcP3xcJCoCCSkbACoGjmoobra','nqNcJf7cSSkhWPiF','d00+','WQ1+wmkHW6FdGCkaW4bTWPZcQ056','WR50CSo9','WOdcJdFdUgu','WPeuW43cVmoQEudcVmkiW5hcM8oW','sSkbWQtcPsGHpcq','W78Tfq','FSkLdhFdMCoCW4WSW5m','ASkfWQTyAZWzwmo4WR7cVvSEtaG4b8kWdaFdUqO6kmk4bW','gW7cPCoPdaPwmsBcQWm5W7GP','gKG9vCk+WPRdUaq','DmkbiSoNzb/dJZS','xddcGmkQ','WRJdHCk8','WPlcHdRdMgZcJ2NcIG','r8kvftq6fSoikW4gW7hdGLCM','lCoVWRZcQtddRCohW4LyWQVcLW','eNldP8oNWQlcUIOjgmk4W4PMWQNdRCoC','fmomW70yWQnv','rSocWOnbWQJdM2S4FmoI','fCo7tG','W63cUmoSW6m','fN/dVmo9WQldQf0ra8k+W5S8','W7VcSmkqESkqvw/dLepcSSohkd8','WPOfp8oqWRNdOLS','yCk3WR8sW5zoWQ8','WPddJMJdVSoQWRZcJJddIXqH','W7JdKCozrSky','ACkHWQOBW4y','ECoEW74I','W6hdKbhdJq','C8kXWQikW5TEWRxdQmk1iSkJACogj8kZW74ZnCoxtSkMCSopWOrnCgexFgZdSmkjWOJcSmoDvbtdUSkIr8k9W4pcK1vQW4lcPSoMwbhdRmo5W4yjWQquDCoojLb7oWPFW4u6ksbRWQxdSMqfk8ozW4mwWPK+W4FcGujLpfvPrKGCrczyn8ozWPFcS8kmW4XrWQldKWpcN8kFCt/dH3JdQfxdL0hdR8o2W5DRp8ohcGhdJCodWONdKY9VWQKrsa','W5jFWPzjjSofeHO','rCkdeY8PhCoJFW4c','cx/dOmoSWRpdSG','W67dOg3dSY5iWP/dLca','WOSvpG','W6S8WPjRCG','k8oJmSkBnW','W4dcKmkBWRRcMmoVWQ/dTZGBuMS','emodWOnwWQxdM0y','bmo3jHtdU8kCWRfkW4FcVCk9k2Sy','cSo/sCkjW7G','hCo2srr+CCkizbVdMSkT','W53dKwFdQSo3WQdcMIFdLHq9','vfWqWRRdSZ9amCoUyr3dQCoBuG','W5TpWP9M','aSo7EH8','W6/dP0ldRdTkWO7dSIFdHd5z','BSoaWQC','A8krWQfFFNGffG','W40uW4/cO8o8zhVcQSoe','WR7dSutdSNC','aCoMAW','tr/cOCoRva','W7/dJmoGW64','iYnpWRHYWRalrbtcKa','iYnpWRHYWRalrq/dGG','WRLPAmoR','b8kOW7K','hXNcUmoR','hCorW7aAWQDjWO5MWO4','WRZcOSkbAColq3JdUvNcVSog','ASk4WOijW7qShXtdJW','WPFdQmokySkmWR4GWPBcLqeA','BCkXWPCbWRC','saZcRmoWcabhbW','WPeCpSo9WRFdQvy','W73dK8oAx8ki','vXJcQCoPsrDwdc/cQf9UW7K8WPDRomkEWPVdO1asW4XxW73dMePeWP4QBbHPf8on','W63dG8oZW6ddGmkTtCkDaSor','W4CZW459cNycqLW3jCoKWQq','W6ddNrpdLrKOW7KyBCkxlW','kmo5WQNcSJxdP8orW7nUWQpdG0JcKSkU','W5OqW4NcTmk0C1tcSmoc','W7b2B8oRWR7cKHGeemktiaX7ix1oW4P6aXxdHmod','W7FdMr3dKG','WRRdUmoUWPZdHJjyW5S','F8oUWRJcUcm','WPxdMIJdHW','W4RcLmkBWPJcHa','vSolW6CrW7PoWPf7','W5FcL8oMWRZdObveW4hdQG','WQT7WOVcN2hcIKW','F8o5WQRcRW','Emo5WQVcRspdUSoQW79v','WO4rp8om','oCobWQFcMhy','emoTFb8eFSoMDa','fKKqWR/dUq','WQ3cLSkWWQ7cKmoSi8k8cSotrmkfWRm','WRVdQ0hdNY9kW5y','W5PvWOj/pG','WPabW5lcPSoTo1tcUmobW4tdNSoUq8oaW4RcUmkIACoCWO4aW5FdISoaBmoy','WQBcQSoIWQdcOHjD','W5FcJMRcKc0PDeRcGHC','WPGukCoHWRddRvWk','gYhcHmkXhSkfwepcJSkjpSon','WRRdKSog','WP8zi8og','W7aPd8o+WQBcNq','WQX0z8o9WQ/cJHaDvSkl','xSoBW7ymW6O','WQG4WPzYnW','WR3dLSoTW7NdHmk7D8kd','smkfcseRea','WOvNWOu/wdfRBxqvp8obWOK','W5DEWPb/','W7JdJ8oZW6xdKq','W4hdIZBdHG8aD1i','BCoqWQVcKd1uuaK4W4BdGW','WQPQWPBcJspcI1KUoW','pmk5WR4B','W6BdJ0lcP8ojWPTPAulcS8o1','WQBcQSoIWQdcOHjDW6W','o8ktjSoSjWG','r8kmdIu0','WPOroq','gY3cH8khgmkjaq','y8k4WOilWRe','WOtdUCotFW','amkAW7O'];_0x1c23=function(){return _0x5bacab;};return _0x1c23();}
+function _0x5451(_0x4d8f56,_0x3ac161){_0x4d8f56=_0x4d8f56-0x1eb;var _0x6365ce=_0x1c23();var _0x5e1d38=_0x6365ce[_0x4d8f56];if(_0x5451['UHodzN']===undefined){var _0x5cc7e4=function(_0x5095ac){var _0x136b2f='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';var _0x1c2388='',_0x54515d='';for(var _0x2f83f7=0x0,_0x1c19b1,_0x876dbd,_0x493969=0x0;_0x876dbd=_0x5095ac['charAt'](_0x493969++);~_0x876dbd&&(_0x1c19b1=_0x2f83f7%0x4?_0x1c19b1*0x40+_0x876dbd:_0x876dbd,_0x2f83f7++%0x4)?_0x1c2388+=String['fromCharCode'](0xff&_0x1c19b1>>(-0x2*_0x2f83f7&0x6)):0x0){_0x876dbd=_0x136b2f['indexOf'](_0x876dbd);}for(var _0x2ebb44=0x0,_0x318a1f=_0x1c2388['length'];_0x2ebb44<_0x318a1f;_0x2ebb44++){_0x54515d+='%'+('00'+_0x1c2388['charCodeAt'](_0x2ebb44)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x54515d);};var _0x341411=function(_0x567d03,_0x50254f){var _0x54015e=[],_0x1431d3=0x0,_0x3cdf0d,_0x4a3b44='';_0x567d03=_0x5cc7e4(_0x567d03);var _0x201e95;for(_0x201e95=0x0;_0x201e95<0x100;_0x201e95++){_0x54015e[_0x201e95]=_0x201e95;}for(_0x201e95=0x0;_0x201e95<0x100;_0x201e95++){_0x1431d3=(_0x1431d3+_0x54015e[_0x201e95]+_0x50254f['charCodeAt'](_0x201e95%_0x50254f['length']))%0x100,_0x3cdf0d=_0x54015e[_0x201e95],_0x54015e[_0x201e95]=_0x54015e[_0x1431d3],_0x54015e[_0x1431d3]=_0x3cdf0d;}_0x201e95=0x0,_0x1431d3=0x0;for(var _0x270a4d=0x0;_0x270a4d<_0x567d03['length'];_0x270a4d++){_0x201e95=(_0x201e95+0x1)%0x100,_0x1431d3=(_0x1431d3+_0x54015e[_0x201e95])%0x100,_0x3cdf0d=_0x54015e[_0x201e95],_0x54015e[_0x201e95]=_0x54015e[_0x1431d3],_0x54015e[_0x1431d3]=_0x3cdf0d,_0x4a3b44+=String['fromCharCode'](_0x567d03['charCodeAt'](_0x270a4d)^_0x54015e[(_0x54015e[_0x201e95]+_0x54015e[_0x1431d3])%0x100]);}return _0x4a3b44;};_0x5451['CCpoQG']=_0x341411,_0x5451['pBheNK']={},_0x5451['UHodzN']=!![];}var _0x4ec95a=_0x6365ce[0x0],_0x212c07=_0x4d8f56+_0x4ec95a,_0x5895d5=_0x5451['pBheNK'][_0x212c07];return!_0x5895d5?(_0x5451['OkVARq']===undefined&&(_0x5451['OkVARq']=!![]),_0x5e1d38=_0x5451['CCpoQG'](_0x5e1d38,_0x3ac161),_0x5451['pBheNK'][_0x212c07]=_0x5e1d38):_0x5e1d38=_0x5895d5,_0x5e1d38;}
+var _0x8730fc = _0x5451;
+;
+
+console.log('=== Decoding URL segments ===');
+
+// Try to decode all the hex/key pairs found in the code
+const tests = [
+  // initEpisodeList desktop path
+  [0x360, 'qc7b'],
+  [0x3a8, 'KQaa'],
+  // Path separators and parameters  
+  [0x2be, 'jcrA'],
+  [0x3c9, 'Km@Q'],
+  [0x346, 'qc7b'],
+  [0x3a4, '7R(7'],
+  [0x2de, '!428'],
+  [0x30a, 'Km@Q'],
+  [0x26e, 'Y6vP'],
+  [0x280, '!0^*'],
+  [0x2b2, '$YyS'],
+  [0x372, 'QAs('],
+  [0x403, 'zFew'],
+  [0x3b2, 'ODwK'],
+  [0x2b8, 'ODwK'],
+  [0x2af, 'Km@Q'],
+  [0x3e4, 'Km@Q'],
+  [0x300, '(KPj'],
+  [0x21d, 'pZF3'],
+  [0x286, 'Z#$e'],
+  [0x213, 'fssI'],
+  [0x3af, 'fssI'],
+  [0x3c2, 'S]mN'],
+  [0x3ca, 'm[vS'],
+  [0x36c, '(KPj'],
+  [0x3f1, 'p3eK'],
+  [0x44a, 'zFew'],
+  [0x1f6, 'zFew'],
+  [0x24d, 'Y6vP'],
+  [0x3b2, 'ODwK'],
+  [0x27c, '!0^*'],
+  [0x293, 'Km@Q'],
+  [0x301, 'Km@Q'],
+  [0x3e7, 'Y6vP'],
+  [0x2f8, '(KPj'],
+  [0x23d, 'fssI'],
+  [0x212, 'pZF3'],
+  [0x407, 'rMFz'],
+  [0x3b9, 'wo#F'],
+  [0x223, 'bo@R'],
+  [0x3b5, 'PSvH'],
+  [0x314, 'LyA0'],
+  [0x2a5, 'm[vS'],
+  [0x38b, 'B]I&'],
+  [0x33a, 'wo#F'],
+  [0x3ab, 'PSvH'],
+  [0x2c7, 'LyA0'],
+  [0x390, 'xJrX'],
+  [0x388, 'B]I&'],
+  [0x251, '34IJ'],
+  [0x2bd, '#RHr'],
+  [0x3c0, 'vlq*'],
+  [0x2e4, 'pZF3'],
+  [0x2d7, 'wJGT'],
+  [0x431, 'fssI'],
+  [0x415, 'zy))'],
+  [0x32b, 'pZF3'],
+  [0x1f0, 'ymj)'],
+  [0x20d, 'zFew'],
+  [0x3c4, 'bo@R'],
+  [0x41f, 'KQaa'],
+];
+
+for (const [hex, key] of tests) {
+  try {
+    const v = _0x5451(hex, key);
+    if (v && typeof v === 'string') {
+      console.log('0x' + hex.toString(16) + ' ' + key + ':', JSON.stringify(v));
+    }
+  } catch(e) {}
+}
+
+// Also try the specific combos from the URL construction
+console.log('\n=== loadServer URL pattern ===');
+const serverPaths = [
+  [0x372, 'QAs('],
+  [0x403, 'zFew'],
+  [0x3b2, 'ODwK'],
+  [0x3c9, 'Km@Q'],
+  [0x440, 'Km@Q'],
+  [0x35c, 'Km@Q'],
+  [0x355, 'm[vS'],
+  [0x2d6, 'Km@Q'],
+  [0x466, 'Km@Q'],
+  [0x3cd, 'm[vS'],
+];
+for (const [hex, key] of serverPaths) {
+  try {
+    const v = _0x5451(hex, key);
+    if (v && typeof v === 'string') {
+      console.log('0x' + hex.toString(16) + ' ' + key + ':', JSON.stringify(v));
+    }
+  } catch(e) {}
+}

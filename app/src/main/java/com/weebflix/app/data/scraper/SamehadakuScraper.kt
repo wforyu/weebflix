@@ -7,6 +7,8 @@ import com.weebflix.app.data.model.AnimeDetail
 import com.weebflix.app.data.model.Episode
 import com.weebflix.app.data.model.EpisodeNavigation
 import com.weebflix.app.data.model.VideoServer
+import com.weebflix.app.data.provider.AnimeProvider
+import com.weebflix.app.data.provider.ProviderFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Cookie
@@ -20,10 +22,17 @@ import org.jsoup.nodes.Document
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-class SamehadakuScraper {
+class SamehadakuScraper : AnimeProvider {
 
-    private val baseUrl: String
-        get() = ProviderConfig.baseUrl
+    override val id: String = ProviderFactory.SAMEHADAKU_ID
+    override val name: String = "Samehadaku"
+    override val defaultBaseUrl: String = "https://v2.samehadaku.how"
+
+    override var baseUrl: String
+        get() = ProviderConfig.getBaseUrl(id)
+        set(value) {
+            ProviderConfig.setBaseUrl(id, value)
+        }
 
     private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
 
@@ -103,7 +112,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getLatestEpisodes(page: Int = 1): List<Episode> = withContext(Dispatchers.IO) {
+    override suspend fun getLatestEpisodes(page: Int): List<Episode> = withContext(Dispatchers.IO) {
         try {
             val url = if (page <= 1) baseUrl else "$baseUrl/anime-terbaru/page/$page/"
             val doc = fetchDocument(url)
@@ -142,7 +151,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getOngoingAnime(page: Int = 1): List<Anime> = withContext(Dispatchers.IO) {
+    override suspend fun getOngoingAnime(page: Int): List<Anime> = withContext(Dispatchers.IO) {
         try {
             val url = if (page <= 1) "$baseUrl/daftar-anime-2" else "$baseUrl/daftar-anime-2/page/$page/"
             val doc = fetchDocument(url)
@@ -228,7 +237,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getPopularAnime(page: Int = 1): List<Anime> = withContext(Dispatchers.IO) {
+    override suspend fun getPopularAnime(page: Int): List<Anime> = withContext(Dispatchers.IO) {
         try {
             val url = if (page <= 1) "$baseUrl/daftar-anime-2/?order=popular" else "$baseUrl/daftar-anime-2/page/$page/?order=popular"
             val doc = fetchDocument(url)
@@ -272,7 +281,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun searchAnime(query: String): List<Anime> = withContext(Dispatchers.IO) {
+    override suspend fun searchAnime(query: String): List<Anime> = withContext(Dispatchers.IO) {
         try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
             val doc = fetchDocument("$baseUrl/?s=$encodedQuery")
@@ -308,7 +317,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getAnimeDetail(url: String): AnimeDetail = withContext(Dispatchers.IO) {
+    override suspend fun getAnimeDetail(url: String): AnimeDetail = withContext(Dispatchers.IO) {
         try {
             val doc = fetchDocument(url)
 
@@ -383,7 +392,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getEpisodeServers(episodeUrl: String): List<VideoServer> = withContext(Dispatchers.IO) {
+    override suspend fun getEpisodeServers(episodeUrl: String): List<VideoServer> = withContext(Dispatchers.IO) {
         try {
             val doc = fetchDocument(episodeUrl)
             val servers = mutableListOf<VideoServer>()
@@ -427,7 +436,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
+    override suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
         try {
             val ajaxUrl = "$baseUrl/wp-admin/admin-ajax.php"
             var embedUrl = server.url
@@ -957,7 +966,7 @@ class SamehadakuScraper {
         }
     }
 
-    suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {
+    override suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {
         try {
             val doc = fetchDocument(episodeUrl)
             val prevUrl = doc.select(".epnav .prev a, .episodelist .prev a, a.prev").attr("href")

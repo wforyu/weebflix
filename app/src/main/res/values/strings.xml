@@ -63,4 +63,14 @@
     <string name="no_more_data">Tidak ada data lagi</string>
     <string name="ongoing_anime_list">Semua Anime</string>
     <string name="continue_watching">Lanjutkan Menonton</string>
+    <string name="eps_terbaru">Eps Terbaru</string>
+    <string name="movie_terbaru">Movie Terbaru</string>
+    <string name="serie_terbaru">Serie Terbaru</string>
+    <string name="provider_samehadaku">Samehadaku</string>
+    <string name="provider_drakorkita">DrakorKita</string>
+    <string name="trending_now">Trending Now</string>
+    <string name="new_releases">Rilis Terbaru</string>
+    <string name="all_movies">Semua Movie</string>
+    <string name="all_series">Semua Series</string>
+    <string name="episodes_count">%1$d Episodes</string>
 </resources>

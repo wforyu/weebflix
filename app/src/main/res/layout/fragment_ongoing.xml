@@ -12,6 +12,7 @@
         android:paddingTop="16dp">
 
         <TextView
+            android:id="@+id/tvOngoingTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ongoing_anime_list"

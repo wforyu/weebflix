@@ -159,7 +159,8 @@ class SearchFragment : Fragment() {
 
     private suspend fun performSearch(query: String) {
         try {
-            val results = WeebFlixApp.instance.scraper.searchAnime(query)
+            val provider = com.weebflix.app.WeebFlixApp.instance.getActiveProvider()
+            val results = provider.searchAnime(query)
             if (isAdded) {
                 hideHistory()
                 adapter.submitList(results)

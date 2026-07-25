@@ -27,4 +27,8 @@
     <color name="episode_card_bg">#1F1F1F</color>
     <color name="server_btn_bg">#2A2A2A</color>
     <color name="server_btn_active">#E50914</color>
+    <color name="drakorkita_blue">#48B6E5</color>
+    <color name="chip_inactive">#333333</color>
+    <color name="chip_text_inactive">#B3B3B3</color>
+    <color name="gold_rating">#FFD700</color>
 </resources>

@@ -14,8 +14,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.weebflix.app.R
-import com.weebflix.app.WeebFlixApp
+import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.Anime
+import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.ui.adapter.SearchGridAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 
 class OngoingFragment : Fragment() {
 
+    private lateinit var tvOngoingTitle: TextView
     private lateinit var rvOngoing: RecyclerView
     private lateinit var loadingLayout: LinearLayout
     private lateinit var footerLayout: LinearLayout
@@ -35,6 +37,7 @@ class OngoingFragment : Fragment() {
     private var currentPage = 1
     private var isLoading = false
     private var hasMore = true
+    private var lastProviderId: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,6 +50,7 @@ class OngoingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        tvOngoingTitle = view.findViewById(R.id.tvOngoingTitle)
         rvOngoing = view.findViewById(R.id.rvOngoing)
         loadingLayout = view.findViewById(R.id.loadingLayout)
         footerLayout = view.findViewById(R.id.footerLayout)
@@ -78,7 +82,28 @@ class OngoingFragment : Fragment() {
             }
         })
 
+        updateTitleForProvider()
         loadInitial()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden) {
+            val currentProvider = ProviderConfig.activeProviderId
+            if (currentProvider != lastProviderId) {
+                updateTitleForProvider()
+                loadInitial()
+            }
+        }
+    }
+
+    private fun updateTitleForProvider() {
+        val providerId = ProviderConfig.activeProviderId
+        lastProviderId = providerId
+        when (providerId) {
+            ProviderFactory.DRAKORKITA_ID -> tvOngoingTitle.text = getString(R.string.all_movies)
+            else -> tvOngoingTitle.text = getString(R.string.ongoing_anime_list)
+        }
     }
 
     private fun loadInitial() {
@@ -107,7 +132,7 @@ class OngoingFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val items = withContext(Dispatchers.IO) {
-                    WeebFlixApp.instance.scraper.getOngoingAnime(page)
+                    ProviderFactory.getActiveProvider().getOngoingAnime(page)
                 }
                 if (isAdded) {
                     if (items.isEmpty()) {

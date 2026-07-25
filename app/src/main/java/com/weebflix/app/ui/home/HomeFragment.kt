@@ -1,72 +1,23 @@
 package com.weebflix.app.ui.home
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.bumptech.glide.Glide
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.weebflix.app.R
-import com.weebflix.app.WeebFlixApp
-import com.weebflix.app.data.model.Anime
-import com.weebflix.app.data.model.Episode
-import com.weebflix.app.data.model.WatchHistoryManager
-import com.weebflix.app.ui.adapter.AnimeAdapter
-import com.weebflix.app.ui.adapter.ContinueWatchingAdapter
-import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
-import com.weebflix.app.ui.detail.AnimeDetailActivity
-import com.weebflix.app.ui.player.PlayerActivity
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.weebflix.app.data.config.ProviderConfig
+import com.weebflix.app.data.provider.ProviderFactory
 
 class HomeFragment : Fragment() {
 
-    private lateinit var swipeRefresh: SwipeRefreshLayout
-    private lateinit var loadingLayout: LinearLayout
-    private lateinit var scrollView: androidx.core.widget.NestedScrollView
-    private lateinit var rvLatestEpisodes: RecyclerView
-    private lateinit var rvOngoingAnime: RecyclerView
-    private lateinit var rvPopularAnime: RecyclerView
-    private lateinit var rvContinueWatching: RecyclerView
-    private lateinit var continueWatchingSection: View
-    private lateinit var ivHero: android.widget.ImageView
-    private lateinit var tvHeroTitle: TextView
-    private lateinit var tvHeroEpisode: TextView
-    private lateinit var btnHeroPlay: TextView
-
-    private lateinit var latestAdapter: LatestEpisodeAdapter
-    private lateinit var ongoingAdapter: AnimeAdapter
-    private lateinit var popularAdapter: AnimeAdapter
-    private lateinit var continueWatchingAdapter: ContinueWatchingAdapter
-
-    private var heroEpisode: Episode? = null
-
-    private val latestItems = mutableListOf<Episode>()
-    private val ongoingItems = mutableListOf<Anime>()
-    private val popularItems = mutableListOf<Anime>()
-
-    private var latestPage = 1
-    private var ongoingPage = 1
-    private var popularPage = 1
-
-    private var latestLoading = false
-    private var ongoingLoading = false
-    private var popularLoading = false
-
-    private var latestHasMore = true
-    private var ongoingHasMore = true
-    private var popularHasMore = true
+    private lateinit var chipGroupProviders: ChipGroup
+    private var currentContentFragment: Fragment? = null
+    private var currentProviderId: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -79,336 +30,95 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        swipeRefresh = view.findViewById(R.id.swipeRefresh)
-        loadingLayout = view.findViewById(R.id.loadingLayout)
-        scrollView = view.findViewById(R.id.scrollView)
-        rvLatestEpisodes = view.findViewById(R.id.rvLatestEpisodes)
-        rvOngoingAnime = view.findViewById(R.id.rvOngoingAnime)
-        rvPopularAnime = view.findViewById(R.id.rvPopularAnime)
-        rvContinueWatching = view.findViewById(R.id.rvContinueWatching)
-        continueWatchingSection = view.findViewById(R.id.continueWatchingSection)
-        ivHero = view.findViewById(R.id.ivHero)
-        tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
-        tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
-        btnHeroPlay = view.findViewById(R.id.btnHeroPlay)
+        chipGroupProviders = view.findViewById(R.id.chipGroupProviders)
 
-        swipeRefresh.setColorSchemeResources(R.color.netflix_red)
-        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
+        setupProviderChips()
 
-        setupRecyclerViews()
-
-        swipeRefresh.setOnRefreshListener {
-            resetAndLoad()
+        if (savedInstanceState == null) {
+            val savedProviderId = ProviderConfig.activeProviderId
+            selectProvider(savedProviderId)
         }
+    }
 
-        btnHeroPlay.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), PlayerActivity::class.java)
-                intent.putExtra("url", ep.url)
-                intent.putExtra("title", ep.title)
-                intent.putExtra("episodeNumber", ep.episodeNumber)
-                intent.putExtra("animeTitle", ep.title)
-                intent.putExtra("imageUrl", ep.imageUrl)
-                intent.putExtra("animeUrl", ep.url)
-                startActivity(intent)
+    private fun setupProviderChips() {
+        val providers = ProviderFactory.getAllProviders()
+        chipGroupProviders.removeAllViews()
+
+        providers.forEach { provider ->
+            val chip = Chip(requireContext()).apply {
+                text = provider.name
+                isCheckable = true
+                isChecked = provider.id == currentProviderId
+                isCheckedIconVisible = false
+                isCloseIconVisible = false
+                chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                    if (isChecked) 0xFFE50914.toInt() else 0xFF333333.toInt()
+                )
+                setTextColor(
+                    if (isChecked) 0xFFFFFFFF.toInt() else 0xFFB3B3B3.toInt()
+                )
+                chipStrokeWidth = 0f
+                setPadding(32, 0, 32, 0)
+                minHeight = 0
+                setOnClickListener {
+                    selectProvider(provider.id)
+                }
+            }
+            chipGroupProviders.addView(chip)
+        }
+    }
+
+    private fun selectProvider(providerId: String) {
+        currentProviderId = providerId
+        ProviderConfig.activeProviderId = providerId
+
+        for (i in 0 until chipGroupProviders.childCount) {
+            val chip = chipGroupProviders.getChildAt(i) as? Chip
+            val provider = ProviderFactory.getAllProviders().getOrNull(i)
+            if (chip != null && provider != null) {
+                chip.isChecked = provider.id == providerId
+                chip.chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                    if (provider.id == providerId) 0xFFE50914.toInt() else 0xFF333333.toInt()
+                )
+                chip.setTextColor(
+                    if (provider.id == providerId) 0xFFFFFFFF.toInt() else 0xFFB3B3B3.toInt()
+                )
             }
         }
 
-        view.findViewById<View>(R.id.btnHeroDetail)?.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
-                startActivity(intent)
-            }
+        val newFragment = when (providerId) {
+            ProviderFactory.DRAKORKITA_ID -> DrakorKitaHomeFragment()
+            else -> SamehadakuHomeFragment()
         }
 
-        loadData()
+        val transaction = parentFragmentManager.beginTransaction()
+
+        currentContentFragment?.let { transaction.remove(it) }
+
+        transaction.add(R.id.providerFragmentContainer, newFragment, "home_$providerId")
+        transaction.commit()
+
+        currentContentFragment = newFragment
+
+        scrollToSelectedChip()
     }
 
-    private fun resetAndLoad() {
-        latestItems.clear()
-        ongoingItems.clear()
-        popularItems.clear()
-        latestPage = 1
-        ongoingPage = 1
-        popularPage = 1
-        latestHasMore = true
-        ongoingHasMore = true
-        popularHasMore = true
-        loadData()
-    }
-
-    private fun setupRecyclerViews() {
-        latestAdapter = LatestEpisodeAdapter { episode ->
-            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-            intent.putExtra("url", episode.url)
-            startActivity(intent)
-        }
-        rvLatestEpisodes.apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            adapter = latestAdapter
-            isNestedScrollingEnabled = false
-            addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    super.onScrolled(recyclerView, dx, dy)
-                    if (dx > 0) {
-                        val lm = recyclerView.layoutManager as LinearLayoutManager
-                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
-                        val total = lm.itemCount
-                        if (lastVisible >= total - 3 && !latestLoading && latestHasMore) {
-                            loadMoreLatestEpisodes()
-                        }
-                    }
+    private fun scrollToSelectedChip() {
+        for (i in 0 until chipGroupProviders.childCount) {
+            val chip = chipGroupProviders.getChildAt(i) as? Chip
+            val provider = ProviderFactory.getAllProviders().getOrNull(i)
+            if (chip != null && provider != null && provider.id == currentProviderId) {
+                chip.post {
+                    val chipParent = chip.parent as? View
+                    chipParent?.scrollTo(chip.left - chipParent.width / 2 + chip.width / 2, 0)
                 }
-            })
-        }
-
-        ongoingAdapter = AnimeAdapter { anime ->
-            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-            intent.putExtra("url", anime.url)
-            startActivity(intent)
-        }
-        rvOngoingAnime.apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            adapter = ongoingAdapter
-            isNestedScrollingEnabled = false
-            addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    super.onScrolled(recyclerView, dx, dy)
-                    if (dx > 0) {
-                        val lm = recyclerView.layoutManager as LinearLayoutManager
-                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
-                        val total = lm.itemCount
-                        if (lastVisible >= total - 3 && !ongoingLoading && ongoingHasMore) {
-                            loadMoreOngoingAnime()
-                        }
-                    }
-                }
-            })
-        }
-
-        popularAdapter = AnimeAdapter { anime ->
-            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-            intent.putExtra("url", anime.url)
-            startActivity(intent)
-        }
-        rvPopularAnime.apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            adapter = popularAdapter
-            isNestedScrollingEnabled = false
-            addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    super.onScrolled(recyclerView, dx, dy)
-                    if (dx > 0) {
-                        val lm = recyclerView.layoutManager as LinearLayoutManager
-                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
-                        val total = lm.itemCount
-                        if (lastVisible >= total - 3 && !popularLoading && popularHasMore) {
-                            loadMorePopularAnime()
-                        }
-                    }
-                }
-            })
-        }
-
-        continueWatchingAdapter = ContinueWatchingAdapter { entry ->
-            val intent = Intent(requireContext(), PlayerActivity::class.java)
-            intent.putExtra("url", entry.episodeUrl)
-            intent.putExtra("title", entry.episodeTitle.ifEmpty { entry.episodeNumber })
-            intent.putExtra("episodeNumber", entry.episodeNumber)
-            intent.putExtra("animeTitle", entry.animeTitle)
-            intent.putExtra("imageUrl", entry.imageUrl)
-            intent.putExtra("animeUrl", entry.animeUrl)
-            startActivity(intent)
-        }
-        rvContinueWatching.apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            adapter = continueWatchingAdapter
-            isNestedScrollingEnabled = false
-        }
-    }
-
-    private fun loadData() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val scraper = WeebFlixApp.instance.scraper
-
-                val latestDeferred = async(Dispatchers.IO) { scraper.getLatestEpisodes(1) }
-                val ongoingDeferred = async(Dispatchers.IO) { scraper.getOngoingAnime(1) }
-                val popularDeferred = async(Dispatchers.IO) { scraper.getPopularAnime(1) }
-
-                val latest = latestDeferred.await()
-                val ongoing = ongoingDeferred.await()
-                val popular = popularDeferred.await()
-
-                if (isAdded) {
-                    loadingLayout.visibility = View.GONE
-                    swipeRefresh.isRefreshing = false
-
-                    latestItems.clear()
-                    ongoingItems.clear()
-                    popularItems.clear()
-
-                    latestItems.addAll(latest)
-                    ongoingItems.addAll(ongoing)
-                    popularItems.addAll(popular)
-
-                    latestHasMore = latest.isNotEmpty()
-                    ongoingHasMore = ongoing.isNotEmpty()
-                    popularHasMore = popular.isNotEmpty()
-                    latestPage = 1
-                    ongoingPage = 1
-                    popularPage = 1
-
-                    if (latestItems.isNotEmpty()) {
-                        heroEpisode = latestItems.first()
-                        tvHeroTitle.text = heroEpisode?.title
-                        val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
-                        val epDate = heroEpisode?.uploadDate?.takeIf { it.isNotEmpty() }
-                        tvHeroEpisode.text = when {
-                            epNum != null && epDate != null -> "Episode $epNum - $epDate"
-                            epNum != null -> "Episode $epNum"
-                            else -> ""
-                        }
-
-                        if (heroEpisode?.imageUrl?.isNotEmpty() == true) {
-                            Glide.with(requireContext())
-                                .load(heroEpisode?.imageUrl)
-                                .centerCrop()
-                                .into(ivHero)
-                        }
-                    }
-
-                    latestAdapter.submitList(latestItems.toList())
-                    ongoingAdapter.submitList(ongoingItems.toList())
-                    popularAdapter.submitList(popularItems.toList())
-
-                    loadContinueWatching()
-                }
-            } catch (e: Exception) {
-                if (isAdded) {
-                    loadingLayout.visibility = View.GONE
-                    swipeRefresh.isRefreshing = false
-                    Toast.makeText(requireContext(), getString(R.string.error_loading, e.message ?: ""), Toast.LENGTH_SHORT).show()
-                }
+                break
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (::continueWatchingAdapter.isInitialized) {
-            loadContinueWatching()
-        }
-    }
-
-    private fun loadContinueWatching() {
-        if (!isAdded) return
-        val entries = WatchHistoryManager.getAll(requireContext())
-        if (entries.isNotEmpty()) {
-            continueWatchingSection.visibility = View.VISIBLE
-            continueWatchingAdapter.submitList(entries)
-        } else {
-            continueWatchingSection.visibility = View.GONE
-        }
-    }
-
-    private fun loadMoreLatestEpisodes() {
-        if (latestLoading || !latestHasMore) return
-        latestLoading = true
-        val nextPage = latestPage + 1
-        android.util.Log.d("HomeFragment", "Loading more latest episodes, page $nextPage (current: ${latestItems.size} items)")
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val newItems = withContext(Dispatchers.IO) {
-                    WeebFlixApp.instance.scraper.getLatestEpisodes(nextPage)
-                }
-                if (isAdded) {
-                    if (newItems.isEmpty()) {
-                        latestHasMore = false
-                        android.util.Log.d("HomeFragment", "No more latest episodes at page $nextPage")
-                    } else {
-                        latestItems.addAll(newItems)
-                        latestPage = nextPage
-                        latestAdapter.submitList(latestItems.toList())
-                        android.util.Log.d("HomeFragment", "Loaded ${newItems.size} latest episodes, total: ${latestItems.size}, page: $nextPage")
-                    }
-                    latestLoading = false
-                }
-            } catch (e: Exception) {
-                if (isAdded) {
-                    latestHasMore = false
-                    latestLoading = false
-                    android.util.Log.e("HomeFragment", "Failed to load latest episodes page $nextPage: ${e.message}")
-                }
-            }
-        }
-    }
-
-    private fun loadMoreOngoingAnime() {
-        if (ongoingLoading || !ongoingHasMore) return
-        ongoingLoading = true
-        val nextPage = ongoingPage + 1
-        android.util.Log.d("HomeFragment", "Loading more ongoing anime, page $nextPage (current: ${ongoingItems.size} items)")
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val newItems = withContext(Dispatchers.IO) {
-                    WeebFlixApp.instance.scraper.getOngoingAnime(nextPage)
-                }
-                if (isAdded) {
-                    if (newItems.isEmpty()) {
-                        ongoingHasMore = false
-                        android.util.Log.d("HomeFragment", "No more ongoing anime at page $nextPage")
-                    } else {
-                        ongoingItems.addAll(newItems)
-                        ongoingPage = nextPage
-                        ongoingAdapter.submitList(ongoingItems.toList())
-                        android.util.Log.d("HomeFragment", "Loaded ${newItems.size} ongoing anime, total: ${ongoingItems.size}, page: $nextPage")
-                    }
-                    ongoingLoading = false
-                }
-            } catch (e: Exception) {
-                if (isAdded) {
-                    ongoingHasMore = false
-                    ongoingLoading = false
-                    android.util.Log.e("HomeFragment", "Failed to load ongoing anime page $nextPage: ${e.message}")
-                }
-            }
-        }
-    }
-
-    private fun loadMorePopularAnime() {
-        if (popularLoading || !popularHasMore) return
-        popularLoading = true
-        val nextPage = popularPage + 1
-        android.util.Log.d("HomeFragment", "Loading more popular anime, page $nextPage (current: ${popularItems.size} items)")
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val newItems = withContext(Dispatchers.IO) {
-                    WeebFlixApp.instance.scraper.getPopularAnime(nextPage)
-                }
-                if (isAdded) {
-                    if (newItems.isEmpty()) {
-                        popularHasMore = false
-                        android.util.Log.d("HomeFragment", "No more popular anime at page $nextPage")
-                    } else {
-                        popularItems.addAll(newItems)
-                        popularPage = nextPage
-                        popularAdapter.submitList(popularItems.toList())
-                        android.util.Log.d("HomeFragment", "Loaded ${newItems.size} popular anime, total: ${popularItems.size}, page: $nextPage")
-                    }
-                    popularLoading = false
-                }
-            } catch (e: Exception) {
-                if (isAdded) {
-                    popularHasMore = false
-                    popularLoading = false
-                    android.util.Log.e("HomeFragment", "Failed to load popular anime page $nextPage: ${e.message}")
-                }
-            }
-        }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        currentContentFragment = null
     }
 }

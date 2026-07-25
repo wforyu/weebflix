@@ -53,6 +53,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
@@ -107,6 +109,9 @@ class PlayerActivity : AppCompatActivity() {
                                         request.addHeader("Cookie", cookies)
                                     }
                                 } catch (_: Exception) {}
+                            } else if (chain.request().url.host.contains("abysscdn.com") || chain.request().url.host.contains("hydrax") || chain.request().url.host.contains("drakor.bid")) {
+                                request.addHeader("Referer", "https://drakor.kita.mobi/")
+                                    .addHeader("Origin", "https://drakor.kita.mobi")
                             }
                             chain.proceed(request.build())
                         }
@@ -140,8 +145,10 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var centerControls: FrameLayout
     private lateinit var btnCenterPlayPause: ImageView
     private lateinit var btnPlayPause: ImageView
-    private lateinit var btnPrevServer: ImageView
-    private lateinit var btnNextServer: ImageView
+    private lateinit var btnRewind: ImageView
+    private lateinit var btnForward: ImageView
+    private lateinit var btnPrevEpisodeNav: TextView
+    private lateinit var btnNextEpisodeNav: TextView
     private lateinit var btnBack: ImageView
     private lateinit var btnPip: ImageView
     private lateinit var btnFullscreen: ImageView
@@ -173,6 +180,7 @@ class PlayerActivity : AppCompatActivity() {
     private var animeTitle: String = ""
     private var imageUrl: String = ""
     private var animeUrl: String = ""
+    private var activeProviderId: String = ""
     private var servers: List<VideoServer> = emptyList()
     private var currentServerIndex: Int = 0
     private var isPlaying: Boolean = true
@@ -187,7 +195,7 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingResolveServerIndex: Int = -1
     private var pendingAutoFailRunnable: Runnable? = null
 
-    private enum class ResolveMode { NONE, SERVER_CLICK, EMBED_FETCH }
+    private enum class ResolveMode { NONE, SERVER_CLICK, EMBED_FETCH, DRAKOR_KITA }
 
     private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
     private val maxVolume by lazy { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
@@ -267,6 +275,7 @@ class PlayerActivity : AppCompatActivity() {
         animeTitle = intent.getStringExtra("animeTitle") ?: ""
         imageUrl = intent.getStringExtra("imageUrl") ?: ""
         animeUrl = intent.getStringExtra("animeUrl") ?: ""
+        activeProviderId = intent.getStringExtra("providerId") ?: com.weebflix.app.data.provider.ProviderFactory.getActiveProvider().id
         skipOpeningStart = intent.getIntExtra("skipOpeningStart", 90)
         skipOpeningEnd = intent.getIntExtra("skipOpeningEnd", 120)
         nextEpisodeUrl = intent.getStringExtra("nextEpisodeUrl") ?: ""
@@ -319,8 +328,10 @@ class PlayerActivity : AppCompatActivity() {
         centerControls = findViewById(R.id.centerControls)
         btnCenterPlayPause = findViewById(R.id.btnCenterPlayPause)
         btnPlayPause = findViewById(R.id.btnPlayPause)
-        btnPrevServer = findViewById(R.id.btnPrevEp)
-        btnNextServer = findViewById(R.id.btnNextEp)
+        btnRewind = findViewById(R.id.btnPrevEp)
+        btnForward = findViewById(R.id.btnNextEp)
+        btnPrevEpisodeNav = findViewById(R.id.btnPrevEpisode)
+        btnNextEpisodeNav = findViewById(R.id.btnNextEpisode)
         btnBack = findViewById(R.id.btnBack)
         btnPip = findViewById(R.id.btnPip)
         btnFullscreen = findViewById(R.id.btnFullscreen)
@@ -364,6 +375,7 @@ class PlayerActivity : AppCompatActivity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowContentAccess = true
+            settings.allowUniversalAccessFromFileURLs = true
             settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
             settings.mediaPlaybackRequiresUserGesture = false
             settings.blockNetworkImage = false
@@ -419,6 +431,9 @@ class PlayerActivity : AppCompatActivity() {
                                 """.trimIndent(), null
                             )
                         }
+                        ResolveMode.DRAKOR_KITA -> {
+                            Log.d(TAG, "DrakorKita page loaded: $url")
+                        }
                         ResolveMode.NONE -> {}
                     }
                 }
@@ -443,7 +458,9 @@ class PlayerActivity : AppCompatActivity() {
                         reqUrl.contains(".mp4") ||
                         reqUrl.contains(".mpd") ||
                         reqUrl.contains("blogspot.com/v/") ||
-                        reqUrl.contains("bp.blogspot.com")
+                        reqUrl.contains("bp.blogspot.com") ||
+                        reqUrl.contains("abysscdn.com") ||
+                        reqUrl.contains("hydrax")
 
                     if (isBloggerVideoG) {
                         Log.d(TAG, ">>> Intercepting video.g HTML to inject XHR interception: $reqUrl")
@@ -451,16 +468,21 @@ class PlayerActivity : AppCompatActivity() {
                     }
 
                     if (isVideoUrl && webViewResolving) {
-                        Log.d(TAG, "Intercepted video URL: $reqUrl")
-                        val gen = resolveGeneration
-                        runOnUiThread {
-                            if (gen == resolveGeneration) {
-                                webViewResolving = false
-                                webViewResolveMode = ResolveMode.NONE
-                                val callback = webViewResolveCallback
-                                webViewResolveCallback = null
-                                pendingResolveServer = null
-                                callback?.invoke(reqUrl)
+                        val isAbyssUrl = reqUrl.contains("abysscdn.com") || reqUrl.contains("hydrax")
+                        if (webViewResolveMode == ResolveMode.DRAKOR_KITA && !isAbyssUrl) {
+                            Log.e(TAG, "DrakorKita: ignoring non-Abyss URL in shouldIntercept: $reqUrl")
+                        } else {
+                            Log.e(TAG, "Intercepted video URL: $reqUrl")
+                            val gen = resolveGeneration
+                            runOnUiThread {
+                                if (gen == resolveGeneration) {
+                                    webViewResolving = false
+                                    webViewResolveMode = ResolveMode.NONE
+                                    val callback = webViewResolveCallback
+                                    webViewResolveCallback = null
+                                    pendingResolveServer = null
+                                    callback?.invoke(reqUrl)
+                                }
                             }
                         }
                         return null
@@ -470,6 +492,18 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
             webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                    val msg = consoleMessage?.message() ?: return false
+                    val source = consoleMessage.sourceId() ?: ""
+                    val line = consoleMessage.lineNumber()
+                    if (msg.contains("[DrakorKita]") || msg.contains("DrakorKita")) {
+                        Log.e(TAG, "JS: $msg (from $source:$line)")
+                    } else {
+                        Log.d(TAG, "JS: $msg")
+                    }
+                    return true
+                }
+
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                     if (newProgress >= 60 && webViewResolving && webViewResolveMode == ResolveMode.EMBED_FETCH) {
                         val currentUrl = view?.url ?: ""
@@ -700,6 +734,399 @@ class PlayerActivity : AppCompatActivity() {
         view?.evaluateJavascript(extractJs, null)
     }
 
+    private fun isDrakorKitaServer(server: VideoServer): Boolean {
+        return activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID
+    }
+
+    private fun parseDrakorKitaUrl(url: String): Map<String, String> {
+        val params = mutableMapOf<String, String>()
+        val queryString = url.substringAfter("?", "")
+        if (queryString.isNotEmpty()) {
+            queryString.split("&").forEach { param ->
+                val kv = param.split("=", limit = 2)
+                if (kv.size == 2) params[kv[0]] = kv[1]
+            }
+        }
+        return params
+    }
+
+    private suspend fun resolveAbyssUrl(abyssUrl: String): String = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Resolving Abyss URL: $abyssUrl")
+            val client = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            val request = okhttp3.Request.Builder()
+                .url(abyssUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .build()
+            val response = client.newCall(request).execute()
+            val html = response.use { it.body?.string() ?: "" }
+            Log.d(TAG, "Abyss page HTML length: ${html.length}")
+
+            val atobPattern = Regex("""atob\(["']([^"']+)["']\)""")
+            val atobMatch = atobPattern.find(html)
+            if (atobMatch != null) {
+                val encoded = atobMatch.groupValues[1]
+                Log.d(TAG, "Found atob content, length: ${encoded.length}")
+                val decoded = String(android.util.Base64.decode(encoded, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                Log.d(TAG, "Decoded Abyss payload: ${decoded.take(500)}")
+
+                val domainMatch = Regex(""""domain"\s*:\s*"([^"]+)"""").find(decoded)
+                val idMatch = Regex(""""id"\s*:\s*"([^"]+)"""").find(decoded)
+                if (domainMatch != null && idMatch != null) {
+                    val domain = domainMatch.groupValues[1]
+                    val id = idMatch.groupValues[1]
+                    val directUrl = "https://$domain/$id"
+                    Log.d(TAG, "Abyss resolved: $directUrl")
+                    return@withContext directUrl
+                }
+            }
+
+            val patterns = listOf(
+                Regex("""https?://[^\s"']+\.mp4[^\s"']*"""),
+                Regex("""https?://[^\s"']+\.m3u8[^\s"']*"""),
+                Regex("""https?://[^\s"']+\.mpd[^\s"']*"""),
+                Regex("""https?://[^\s"']+googlevideo\.com[^\s"']*""")
+            )
+            for (pattern in patterns) {
+                val match = pattern.find(html)
+                if (match != null) {
+                    val url = match.value.trim()
+                    Log.d(TAG, "Abyss fallback pattern match: $url")
+                    return@withContext url
+                }
+            }
+
+            Log.d(TAG, "Could not resolve Abyss URL, returning embed URL for WebView")
+            return@withContext abyssUrl
+        } catch (e: Exception) {
+            Log.e(TAG, "Abyss resolution failed: ${e.message}")
+            return@withContext abyssUrl
+        }
+    }
+
+    private fun resolveDrakorKitaWithWebView(server: VideoServer, serverIndex: Int) {
+        Log.e(TAG, "DrakorKita server: loading episode page for direct API resolution...")
+        ensureWebView()
+        webViewResolving = true
+        webViewResolveMode = ResolveMode.DRAKOR_KITA
+        pendingResolveServer = server
+        pendingResolveServerIndex = serverIndex
+        resolveGeneration++
+        val gen = resolveGeneration
+
+        val epParams = parseDrakorKitaUrl(episodeUrl)
+        val targetEid = epParams["eid"] ?: ""
+        val targetMid = epParams["mid"] ?: server.dataPost
+        pendingDrakorKitaEid = targetEid
+        Log.e(TAG, "DrakorKita parsed: eid=$targetEid, mid=$targetMid, serverType=${server.dataNume}, lang=${server.dataType}")
+
+        webViewResolveCallback = { finalUrl ->
+            runOnUiThread {
+                if (gen != resolveGeneration) return@runOnUiThread
+                webViewResolving = false
+                webViewResolveMode = ResolveMode.NONE
+
+                if (!isFinishing && finalUrl.isNotEmpty()) {
+                    val isAbyss = finalUrl.contains("abysscdn.com") || finalUrl.contains("hydrax")
+                    val isDrakorCdn = finalUrl.contains("drakor.bid") && (finalUrl.contains("init.mp4") || finalUrl.contains("m0v0") || finalUrl.contains("m1v0"))
+                    if (isAbyss) {
+                        Log.e(TAG, "DrakorKita found Abyss embed, resolving via OkHttp...")
+                        lifecycleScope.launch {
+                            val resolvedUrl = resolveAbyssUrl(finalUrl)
+                            if (!isFinishing && gen == resolveGeneration) {
+                                if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mpd") || resolvedUrl.contains("googlevideo.com")) {
+                                    Log.e(TAG, "Abyss resolved to direct URL: $resolvedUrl")
+                                    resolvedUrlCache[serverIndex] = resolvedUrl
+                                    loadingPlayer.visibility = View.GONE
+                                    initExoPlayer(resolvedUrl)
+                                } else {
+                                    Log.e(TAG, "Abyss resolved to embed URL, loading in WebView: $resolvedUrl")
+                                    loadingPlayer.visibility = View.GONE
+                                    resolveEmbedUrlViaWebView(resolvedUrl, server, serverIndex)
+                                }
+                            }
+                        }
+                    } else if (isDrakorCdn) {
+                        Log.e(TAG, "DrakorKita CDN fragment URL detected (not playable): $finalUrl")
+                        scheduleAutoFail(server.name)
+                    } else if (finalUrl.contains("embed") || finalUrl.contains("player")) {
+                        Log.e(TAG, "DrakorKita found embed page, loading in WebView: $finalUrl")
+                        loadingPlayer.visibility = View.GONE
+                        resolveEmbedUrlViaWebView(finalUrl, server, serverIndex)
+                    } else {
+                        resolvedUrlCache[serverIndex] = finalUrl
+                        loadingPlayer.visibility = View.GONE
+                        initExoPlayer(finalUrl)
+                    }
+                } else if (!isFinishing) {
+                    scheduleAutoFail(server.name)
+                }
+            }
+        }
+
+        webView?.stopLoading()
+        webView?.loadUrl(episodeUrl)
+
+        webView?.postDelayed({
+            if (webViewResolving && resolveGeneration == gen) {
+                Log.e(TAG, "DrakorKita: page loaded, injecting direct API fetch JS...")
+                val movieId = server.dataPost.replace("\\", "\\\\").replace("'", "\\'")
+                val serverType = server.dataNume.replace("\\", "\\\\").replace("'", "\\'")
+                val lang = server.dataType.replace("\\", "\\\\").replace("'", "\\'")
+                val eid = targetEid.replace("\\", "\\\\").replace("'", "\\'")
+
+                val js = """
+                    (function() {
+                        var cVal = '';
+                        var tVal = '';
+                        try { cVal = (typeof c !== 'undefined') ? c : ''; } catch(e) {}
+                        try { tVal = (typeof t !== 'undefined') ? t : ''; } catch(e) {}
+                        var apiHost = '';
+                        try { apiHost = (typeof c_api_host !== 'undefined') ? c_api_host : 'https://api.nonton.bid/c_api'; } catch(e) { apiHost = 'https://api.nonton.bid/c_api'; }
+
+                        if (!cVal || !tVal) {
+                            try {
+                                var pageScripts = document.querySelectorAll('script');
+                                for (var si = 0; si < pageScripts.length; si++) {
+                                    var stxt = pageScripts[si].textContent || '';
+                                    var cm = stxt.match(/var\s+c\s*=\s*['"]([^'"]+)['"]/);
+                                    var tm = stxt.match(/var\s+t\s*=\s*['"]([^'"]+)['"]/);
+                                    if (cm) cVal = cm[1];
+                                    if (tm) tVal = tm[1];
+                                }
+                            } catch(e) {}
+                        }
+
+                        if (!cVal || !tVal) {
+                            var html = document.documentElement.innerHTML;
+                            try {
+                                var cm2 = html.match(/var\s+c\s*=\s*['"]([^'"]+)['"]/);
+                                var tm2 = html.match(/var\s+t\s*=\s*['"]([^'"]+)['"]/);
+                                if (cm2) cVal = cm2[1];
+                                if (tm2) tVal = tm2[1];
+                            } catch(e) {}
+                        }
+
+                        window.AndroidBridge.onTokensFound(cVal, tVal, apiHost);
+                    })();
+                """.trimIndent()
+
+                webView?.evaluateJavascript(js) { result ->
+                    Log.e(TAG, "DrakorKita JS eval result: $result")
+                }
+            }
+        }, 6000)
+    }
+
+    private suspend fun resolveDrakorKitaApi(
+        server: VideoServer,
+        gen: Long,
+        cVal: String,
+        tVal: String,
+        apiHost: String
+    ) = withContext(Dispatchers.IO) {
+        Log.e(TAG, "DrakorKita API: starting OkHttp chain with c=$cVal, t=$tVal")
+
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
+        val movieId = server.dataPost
+        val serverType = server.dataNume
+        val lang = server.dataType
+        val eid = pendingDrakorKitaEid
+
+        try {
+            // Step 1: episode.php (GET)
+            val epUrl = "$apiHost/episode.php?is_mob=0&is_uc=0&movie_id=$movieId&tag=$serverType&cat=$lang"
+            Log.e(TAG, "DrakorKita API Step 1: $epUrl")
+
+            val epReq = okhttp3.Request.Builder()
+                .url(epUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .addHeader("Origin", "https://drakor.kita.mobi")
+                .build()
+            val epResp = client.newCall(epReq).execute()
+            val epBody = epResp.body?.string() ?: ""
+            Log.e(TAG, "DrakorKita API Step 1 response (${epResp.code}): ${epBody.take(300)}")
+
+            if (epResp.code != 200 || epBody.isEmpty()) {
+                Log.e(TAG, "DrakorKita API: episode.php failed")
+                return@withContext
+            }
+
+            var serverXid = ""
+            var firstEpId = eid
+            try {
+                val epJson = org.json.JSONObject(epBody)
+                serverXid = epJson.optString("server_xid", "")
+                firstEpId = epJson.optString("first_ep_id", eid)
+            } catch (e: Exception) {
+                val sxMatch = Regex(""""server_xid"\s*:\s*"([^"]+)"""").find(epBody)
+                if (sxMatch != null) serverXid = sxMatch.groupValues[1]
+                val feMatch = Regex(""""first_ep_id"\s*:\s*"([^"]+)"""").find(epBody)
+                if (feMatch != null) firstEpId = feMatch.groupValues[1]
+            }
+            val targetEp = if (eid.isNotEmpty()) eid else firstEpId
+            Log.e(TAG, "DrakorKita API: serverXid=$serverXid, targetEp=$targetEp")
+
+            // Step 2: server.php (POST)
+            val serverBody = "is_mob=0&is_uc=0" +
+                "&episode_id=${java.net.URLEncoder.encode(targetEp, "UTF-8")}" +
+                "&cat=${java.net.URLEncoder.encode(serverType, "UTF-8")}" +
+                "&tag=${java.net.URLEncoder.encode(lang, "UTF-8")}" +
+                "&server_xid=${java.net.URLEncoder.encode(serverXid, "UTF-8")}" +
+                "&c=${java.net.URLEncoder.encode(cVal, "UTF-8")}" +
+                "&t=${java.net.URLEncoder.encode(tVal, "UTF-8")}"
+            Log.e(TAG, "DrakorKita API Step 2 POST body: $serverBody")
+
+            val srvReq = okhttp3.Request.Builder()
+                .url("$apiHost/server.php")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .addHeader("Origin", "https://drakor.kita.mobi")
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(serverBody.toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+                .build()
+            val srvResp = client.newCall(srvReq).execute()
+            val srvBody = srvResp.body?.string() ?: ""
+            Log.e(TAG, "DrakorKita API Step 2 response (${srvResp.code}): length=${srvBody.length}")
+            if (srvBody.isNotEmpty()) Log.e(TAG, "DrakorKita API Step 2 body: ${srvBody.take(500)}")
+
+            if (srvResp.code != 200 || srvBody.isEmpty()) {
+                Log.e(TAG, "DrakorKita API: server.php failed (${srvResp.code})")
+                // Try video_hydrax.php directly
+            } else {
+                // Try to extract video URL from server.php response
+                try {
+                    val srvJson = org.json.JSONObject(srvBody)
+                    val hydraxId = srvJson.optString("server_url", "")
+                        .ifEmpty { srvJson.optString("url", "") }
+                        .ifEmpty { srvJson.optString("embed_url", "") }
+                        .ifEmpty { srvJson.optString("id", "") }
+                        .ifEmpty { srvJson.optString("hydrax_id", "") }
+                        .ifEmpty { srvJson.optString("file", "") }
+                        .ifEmpty { srvJson.optString("video_url", "") }
+                    Log.e(TAG, "DrakorKita API: hydraxId=$hydraxId")
+
+                    if (hydraxId.startsWith("http")) {
+                        if (hydraxId.contains("abysscdn.com") || hydraxId.contains("hydrax")) {
+                            Log.e(TAG, "DrakorKita API: found Abyss URL: $hydraxId")
+                            withContext(Dispatchers.Main) {
+                                if (gen == resolveGeneration) {
+                                    webViewResolving = false
+                                    webViewResolveMode = ResolveMode.NONE
+                                    webViewResolveCallback?.invoke(hydraxId)
+                                    webViewResolveCallback = null
+                                    pendingResolveServer = null
+                                }
+                            }
+                            return@withContext
+                        }
+                    }
+
+                    if (hydraxId.isNotEmpty() && !hydraxId.startsWith("http") && hydraxId.length > 3) {
+                        val abyssUrl = "https://abysscdn.com/?v=$hydraxId"
+                        Log.e(TAG, "DrakorKita API: resolved Abyss: $abyssUrl")
+                        withContext(Dispatchers.Main) {
+                            if (gen == resolveGeneration) {
+                                webViewResolving = false
+                                webViewResolveMode = ResolveMode.NONE
+                                webViewResolveCallback?.invoke(abyssUrl)
+                                webViewResolveCallback = null
+                                pendingResolveServer = null
+                            }
+                        }
+                        return@withContext
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "DrakorKita API: server.php parse error: ${e.message}")
+                }
+            }
+
+            // Step 3: video_hydrax.php (POST)
+            val hydBody = "is_uc=0" +
+                "&id=${java.net.URLEncoder.encode(targetEp, "UTF-8")}" +
+                "&qua=hd&res=800x480" +
+                "&server_id=${java.net.URLEncoder.encode(serverXid, "UTF-8")}" +
+                "&cat=${java.net.URLEncoder.encode(serverType, "UTF-8")}" +
+                "&tag=${java.net.URLEncoder.encode(lang, "UTF-8")}" +
+                "&c=${java.net.URLEncoder.encode(cVal, "UTF-8")}" +
+                "&t=${java.net.URLEncoder.encode(tVal, "UTF-8")}"
+            Log.e(TAG, "DrakorKita API Step 3 POST body: $hydBody")
+
+            val hydReq = okhttp3.Request.Builder()
+                .url("$apiHost/video_hydrax.php")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .addHeader("Origin", "https://drakor.kita.mobi")
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(hydBody.toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+                .build()
+            val hydResp = client.newCall(hydReq).execute()
+            val hydBodyResp = hydResp.body?.string() ?: ""
+            Log.e(TAG, "DrakorKita API Step 3 response (${hydResp.code}): length=${hydBodyResp.length}")
+            Log.e(TAG, "DrakorKita API Step 3 first 500: ${hydBodyResp.take(500)}")
+            Log.e(TAG, "DrakorKita API Step 3 last 500: ${hydBodyResp.takeLast(500)}")
+
+            if (hydResp.code == 200 && hydBodyResp.isNotEmpty()) {
+                try {
+                    val hdJson = org.json.JSONObject(hydBodyResp)
+                    val videoUrl = hdJson.optString("url", "")
+                        .ifEmpty { hdJson.optString("file", "") }
+                        .ifEmpty { hdJson.optString("video_url", "") }
+                        .ifEmpty { hdJson.optString("link", "") }
+                        .ifEmpty { hdJson.optString("playbackUrl", "") }
+                    Log.e(TAG, "DrakorKita API: videoUrl=$videoUrl")
+
+                    if (videoUrl.startsWith("http")) {
+                        withContext(Dispatchers.Main) {
+                            if (gen == resolveGeneration) {
+                                webViewResolving = false
+                                webViewResolveMode = ResolveMode.NONE
+                                webViewResolveCallback?.invoke(videoUrl)
+                                webViewResolveCallback = null
+                                pendingResolveServer = null
+                            }
+                        }
+                        return@withContext
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "DrakorKita API: hydrax parse error: ${e.message}")
+                }
+
+                // Try regex fallback
+                val mp4Match = Regex("https?://[^\\s\"']+\\.mp4[^\\s\"']*").find(hydBodyResp)
+                if (mp4Match != null) {
+                    val url = mp4Match.value
+                    Log.e(TAG, "DrakorKita API: found mp4 URL: $url")
+                    withContext(Dispatchers.Main) {
+                        if (gen == resolveGeneration) {
+                            webViewResolving = false
+                            webViewResolveMode = ResolveMode.NONE
+                            webViewResolveCallback?.invoke(url)
+                            webViewResolveCallback = null
+                            pendingResolveServer = null
+                        }
+                    }
+                    return@withContext
+                }
+            }
+
+            Log.e(TAG, "DrakorKita API: all steps exhausted, no video URL found")
+        } catch (e: Exception) {
+            Log.e(TAG, "DrakorKita API error: ${e.message}")
+        }
+    }
+
     private fun resolveWithWebView(server: VideoServer, callback: (String) -> Unit) {
         if (webViewResolving) {
             callback("")
@@ -730,6 +1157,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private var pendingResolveServer: VideoServer? = null
+    private var pendingDrakorKitaEid: String = ""
 
     private fun injectServerClick() {
         val server = pendingResolveServer ?: return
@@ -830,6 +1258,26 @@ class PlayerActivity : AppCompatActivity() {
 
     inner class WebViewBridge {
         @JavascriptInterface
+        fun onDebug(msg: String?) {
+            Log.e(TAG, "DrakorKita JS: $msg")
+        }
+
+        @JavascriptInterface
+        fun onTokensFound(c: String?, t: String?, apiHost: String?) {
+            Log.e(TAG, "DrakorKita tokens: c=$c, t=$t, apiHost=$apiHost")
+            val cVal = c ?: ""
+            val tVal = t ?: ""
+            val host = apiHost ?: "https://api.nonton.bid/c_api"
+            if (cVal.isNotEmpty() && tVal.isNotEmpty()) {
+                val server = pendingResolveServer ?: return
+                val gen = resolveGeneration
+                lifecycleScope.launch {
+                    resolveDrakorKitaApi(server, gen, cVal, tVal, host)
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun onUrlFound(url: String?) {
             val resolvedUrl = url ?: ""
             if (resolvedUrl.isEmpty() || !resolvedUrl.startsWith("http")) {
@@ -857,7 +1305,10 @@ class PlayerActivity : AppCompatActivity() {
             Log.d(TAG, "WebView iframe found (gen=$gen): $url")
             lifecycleScope.launch {
                 val videoUrl = try {
-                    WeebFlixApp.instance.scraper.resolveBloggerVideoG(url)
+                    val provider = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId)
+                    if (provider is com.weebflix.app.data.scraper.SamehadakuScraper) {
+                        provider.resolveBloggerVideoG(url)
+                    } else { "" }
                 } catch (e: Exception) {
                     Log.e(TAG, "resolveBloggerVideoG from iframe error: ${e.message}")
                     ""
@@ -891,6 +1342,11 @@ class PlayerActivity : AppCompatActivity() {
                 setDefaultRequestProperties(mapOf(
                     "Referer" to "https://www.blogger.com/",
                     "Origin" to "https://www.blogger.com"
+                ))
+            } else if (videoUrl.contains("abysscdn.com") || videoUrl.contains("hydrax") || videoUrl.contains("drakor.bid")) {
+                setDefaultRequestProperties(mapOf(
+                    "Referer" to "https://drakor.kita.mobi/",
+                    "Origin" to "https://drakor.kita.mobi"
                 ))
             }
         }
@@ -961,6 +1417,7 @@ class PlayerActivity : AppCompatActivity() {
                                     btnPlayPause.setImageResource(R.drawable.ic_player_play)
                                     btnCenterPlayPause.setImageResource(R.drawable.ic_player_play)
                                     showControls()
+                                    checkAutoPlay()
                                 }
                                 Player.STATE_IDLE -> {}
                             }
@@ -1069,20 +1526,30 @@ class PlayerActivity : AppCompatActivity() {
         btnPlayPause.setOnClickListener { togglePlayPause() }
         btnCenterPlayPause.setOnClickListener { togglePlayPause() }
 
-        btnPrevServer.setOnClickListener {
-            if (currentServerIndex > 0) {
-                currentServerIndex--
-                loadServer(currentServerIndex)
-                updateServerUI()
+        btnRewind.setOnClickListener {
+            seekBy(-10f)
+            showSeekIndicator(false, "-10s")
+            scheduleAutoHide()
+        }
+
+        btnForward.setOnClickListener {
+            seekBy(10f)
+            showSeekIndicator(true, "+10s")
+            scheduleAutoHide()
+        }
+
+        btnPrevEpisodeNav.setOnClickListener {
+            if (animeUrl.isNotEmpty()) {
+                val intent = Intent(this, com.weebflix.app.ui.detail.AnimeDetailActivity::class.java).apply {
+                    putExtra("url", animeUrl)
+                }
+                startActivity(intent)
+                finish()
             }
         }
 
-        btnNextServer.setOnClickListener {
-            if (currentServerIndex < servers.size - 1) {
-                currentServerIndex++
-                loadServer(currentServerIndex)
-                updateServerUI()
-            }
+        btnNextEpisodeNav.setOnClickListener {
+            navigateToNextEpisode()
         }
 
         btnPip.setOnClickListener { enterPipMode() }
@@ -1268,9 +1735,17 @@ class PlayerActivity : AppCompatActivity() {
         val totalSec = duration / 1000f
         val currentSec = currentMs / 1000f
 
-        btnSkipOpening.visibility = if (currentSec in skipOpeningStart.toFloat()..skipOpeningEnd.toFloat() && controlsVisible) View.VISIBLE else View.GONE
+        val smartOpeningStart: Int
+        val smartOpeningEnd: Int
+        when {
+            totalSec < 600f -> { smartOpeningStart = 60; smartOpeningEnd = 90 }
+            totalSec < 1800f -> { smartOpeningStart = 90; smartOpeningEnd = 120 }
+            else -> { smartOpeningStart = 120; smartOpeningEnd = 150 }
+        }
+        btnSkipOpening.visibility = if (currentSec in smartOpeningStart.toFloat()..smartOpeningEnd.toFloat() && controlsVisible) View.VISIBLE else View.GONE
 
-        val dynamicOutroStart = ((totalSec - 90f).coerceAtLeast(skipOpeningEnd.toFloat() + 30f))
+        val outroWindow = (totalSec * 0.08f).coerceIn(60f, 120f)
+        val dynamicOutroStart = (totalSec - outroWindow).coerceAtLeast(smartOpeningEnd.toFloat() + 30f)
         btnSkipOutro.visibility = if (currentSec >= dynamicOutroStart && currentSec < totalSec && controlsVisible && nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
@@ -1281,7 +1756,7 @@ class PlayerActivity : AppCompatActivity() {
         val duration = player.duration
         if (duration <= 0) return
         val timeRemaining = (duration - player.currentPosition) / 1000f
-        if (timeRemaining in 0f..10f && nextEpisodeUrl.isNotEmpty() && !autoPlayActive) {
+        if (timeRemaining <= 10f && nextEpisodeUrl.isNotEmpty() && !autoPlayActive) {
             startAutoPlayCountdown()
         }
     }
@@ -1315,6 +1790,7 @@ class PlayerActivity : AppCompatActivity() {
                 putExtra("animeTitle", animeTitle)
                 putExtra("imageUrl", imageUrl)
                 putExtra("animeUrl", animeUrl)
+                putExtra("providerId", activeProviderId)
                 putExtra("nextEpisodeUrl", "")
             }
             startActivity(intent)
@@ -1329,12 +1805,13 @@ class PlayerActivity : AppCompatActivity() {
         val url = nextEpisodeUrl
         lifecycleScope.launch {
             try {
-                val nextNav = WeebFlixApp.instance.scraper.getEpisodeNavigation(url)
+                val nextNav = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).getEpisodeNavigation(url)
                 if (!isFinishing && nextNav.nextEpisodeUrl.isNotEmpty()) {
                     withContext(Dispatchers.Main) {
                         if (!isFinishing) {
                             nextEpisodeUrl = nextNav.nextEpisodeUrl
                             nextEpisodeTitle = nextNav.nextEpisodeTitle
+                            updateEpisodeNavButtons()
                         }
                     }
                 }
@@ -1347,7 +1824,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun fetchEpisodeNavigation() {
         lifecycleScope.launch {
             try {
-                val nav = WeebFlixApp.instance.scraper.getEpisodeNavigation(episodeUrl)
+                val nav = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).getEpisodeNavigation(episodeUrl)
                 if (!isFinishing && nav.nextEpisodeUrl.isNotEmpty() && nextEpisodeUrl.isEmpty()) {
                     nextEpisodeUrl = nav.nextEpisodeUrl
                     nextEpisodeTitle = nav.nextEpisodeTitle
@@ -1355,8 +1832,18 @@ class PlayerActivity : AppCompatActivity() {
                 if (nextEpisodeUrl.isNotEmpty()) {
                     fetchNextEpisodeNavForChain()
                 }
+                withContext(Dispatchers.Main) {
+                    if (!isFinishing) {
+                        updateEpisodeNavButtons()
+                    }
+                }
             } catch (_: Exception) { }
         }
+    }
+
+    private fun updateEpisodeNavButtons() {
+        btnPrevEpisodeNav.visibility = if (animeUrl.isNotEmpty()) View.VISIBLE else View.GONE
+        btnNextEpisodeNav.visibility = if (nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     // ===== Time Tracking =====
@@ -1394,7 +1881,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun loadServers() {
         lifecycleScope.launch {
             try {
-                servers = WeebFlixApp.instance.scraper.getEpisodeServers(episodeUrl)
+                servers = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).getEpisodeServers(episodeUrl)
                 if (!isFinishing) {
                     if (servers.isNotEmpty()) {
                         updateServerUI()
@@ -1560,10 +2047,19 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
+        if (isDrakorKitaServer(server)) {
+            Log.d(TAG, "DrakorKita server detected: ${server.name} (movieId=${server.dataPost}, type=${server.dataNume}, lang=${server.dataType})")
+            runOnUiThread {
+                loadingPlayer.visibility = View.GONE
+                resolveDrakorKitaWithWebView(server, serverIndex)
+            }
+            return
+        }
+
         if (server.name.contains("Blogspot", ignoreCase = true) || server.url.contains("blogger.com") || server.url.contains("blogspot") || server.url.contains("bp.blogspot.com")) {
             Log.d(TAG, "Blogger server detected, using fast AJAX + XHR path...")
             lifecycleScope.launch {
-                val ajaxUrl = WeebFlixApp.instance.scraper.resolveServerVideoUrl(server, episodeUrl)
+                val ajaxUrl = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).resolveServerVideoUrl(server, episodeUrl)
                 if (!isFinishing && ajaxUrl.isNotEmpty() && ajaxUrl.contains("blogger.com")) {
                     Log.d(TAG, "AJAX returned blogger embed URL: $ajaxUrl, loading in WebView with XHR interception")
                     runOnUiThread {
@@ -1608,8 +2104,8 @@ class PlayerActivity : AppCompatActivity() {
 
         Log.d(TAG, "Trying scraper OkHttp resolution for: ${server.name}")
         lifecycleScope.launch {
-            val scraperUrl = try {
-                WeebFlixApp.instance.scraper.resolveServerVideoUrl(server, episodeUrl)
+                val scraperUrl = try {
+                    com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).resolveServerVideoUrl(server, episodeUrl)
             } catch (e: Exception) {
                 Log.e(TAG, "Scraper resolution error: ${e.message}")
                 ""

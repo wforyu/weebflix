@@ -109,6 +109,7 @@
                         android:tint="@color/white" />
 
                     <TextView
+                        android:id="@+id/tvPlayButtonText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/play_latest_episode"
@@ -282,8 +283,19 @@
 
             </LinearLayout>
 
+            <!-- Genre Chips -->
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupGenres"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+
             <!-- Episodes Section -->
             <LinearLayout
+                android:id="@+id/llEpisodesSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -314,6 +326,44 @@
                         android:background="@drawable/bg_chip"
                         android:paddingHorizontal="12dp"
                         android:visibility="gone" />
+
+                </LinearLayout>
+
+                <!-- Episode Navigation -->
+                <LinearLayout
+                    android:id="@+id/llEpisodeNav"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/btnPrevEpisode"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip"
+                        android:gravity="center"
+                        android:text="← Prev"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:textAllCaps="false" />
+
+                    <TextView
+                        android:id="@+id/btnNextEpisode"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip"
+                        android:gravity="center"
+                        android:text="Next →"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:layout_marginStart="8dp"
+                        android:textAllCaps="false" />
 
                 </LinearLayout>
 
