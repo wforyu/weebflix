@@ -115,10 +115,15 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("turboviplay.com")) {
                                 request.addHeader("Referer", "https://turbovidhls.com/")
                                     .addHeader("Origin", "https://turbovidhls.com")
+                                request.addHeader("Cache-Control", "no-cache")
                             }
                             chain.proceed(request.build())
                         }
                         .addInterceptor { chain ->
+                            val reqUrl = chain.request().url.toString()
+                            if (reqUrl.contains("turboviplay.com") && (reqUrl.contains(".ts") || reqUrl.contains("data3/"))) {
+                                java.lang.Thread.sleep(80L)
+                            }
                             var response = chain.proceed(chain.request())
                             var retries = 0
                             val maxRetries = if (response.code == 429) 4 else 2
@@ -130,7 +135,7 @@ class PlayerActivity : AppCompatActivity() {
                                 val backoff = if (code == 429 && retryAfter != null) {
                                     retryAfter * 1000L
                                 } else if (code == 429) {
-                                    retries * 3000L
+                                    retries * 5000L
                                 } else {
                                     retries * 1000L
                                 }
@@ -521,11 +526,14 @@ class PlayerActivity : AppCompatActivity() {
                         val currentUrl = view?.url ?: ""
                         val isBlogger = currentUrl.contains("blogger.com") || currentUrl.contains("bp.blogspot.com")
                         val isFiledon = currentUrl.contains("filedon.co")
+                        val isFileLions = currentUrl.contains("minochinos.com") || currentUrl.contains("filelions")
 
                         if (isBlogger) {
                             view?.evaluateJavascript(extractBloggerVideoJs(), null)
                         } else if (isFiledon) {
                             view?.evaluateJavascript(extractFiledonVideoJs(), null)
+                        } else if (isFileLions) {
+                            view?.evaluateJavascript(extractFileLionsVideoJs(), null)
                         } else {
                             view?.evaluateJavascript(
                                 """
@@ -1372,11 +1380,21 @@ class PlayerActivity : AppCompatActivity() {
             .setCache(cache)
             .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .setCacheKeyFactory(object : androidx.media3.datasource.cache.CacheKeyFactory {
+                override fun buildCacheKey(dataSpec: androidx.media3.datasource.DataSpec): String {
+                    val uri = dataSpec.uri.toString()
+                    return if (uri.contains("turboviplay.com")) {
+                        "turboviplay_no_cache_${uri.hashCode()}"
+                    } else {
+                        uri.hashCode().toString()
+                    }
+                }
+            })
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                15_000,    // minBufferMs (15s — smaller buffer to reduce CDN request bursts)
-                60_000,    // maxBufferMs (60s — cap at 1 min to avoid 429 rate limiting)
+                10_000,    // minBufferMs (10s — minimal buffer to reduce CDN request bursts)
+                45_000,    // maxBufferMs (45s — tight cap to avoid 429 rate limiting)
                 3_000,     // bufferForPlaybackMs (3s initial buffer before play)
                 2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
             )
@@ -1445,8 +1463,30 @@ class PlayerActivity : AppCompatActivity() {
                         runOnUiThread {
                             loadingPlayer.visibility = View.GONE
                             Log.e(TAG, "Player error: ${error.message}", error)
-                            val serverName = if (currentServerIndex in servers.indices) servers[currentServerIndex].name else "Unknown"
-                            scheduleAutoFail(serverName)
+                            val errMsg = error.message ?: ""
+                            val isSyncByteError = errMsg.contains("Cannot find sync byte") || errMsg.contains("Transport Stream")
+                            val isRateLimit = errMsg.contains("429") || isSyncByteError
+                            if (isRateLimit && currentServerIndex in servers.indices) {
+                                val cachedUrl = resolvedUrlCache[currentServerIndex] ?: ""
+                                if (cachedUrl.isNotEmpty()) {
+                                    Log.w(TAG, "Rate limit / sync byte error, retrying same URL in 3s...")
+                                    pendingAutoFailRunnable?.let { autoHideHandler.removeCallbacks(it) }
+                                    pendingAutoFailRunnable = Runnable {
+                                        if (!isFinishing && cachedUrl.isNotEmpty()) {
+                                            Log.d(TAG, "Retrying ExoPlayer with cached URL after rate limit")
+                                            loadingPlayer.visibility = View.VISIBLE
+                                            initExoPlayer(cachedUrl)
+                                        }
+                                    }
+                                    autoHideHandler.postDelayed(pendingAutoFailRunnable!!, 3000)
+                                } else {
+                                    val serverName = servers[currentServerIndex].name
+                                    scheduleAutoFail(serverName)
+                                }
+                            } else {
+                                val serverName = if (currentServerIndex in servers.indices) servers[currentServerIndex].name else "Unknown"
+                                scheduleAutoFail(serverName)
+                            }
                         }
                     }
                 })
@@ -2349,7 +2389,7 @@ class PlayerActivity : AppCompatActivity() {
         val timeoutMs = when {
             isBlogger -> 20000L
             isFiledon -> 15000L
-            isFileLions -> 15000L
+            isFileLions -> 20000L
             else -> 10000L
         }
 
@@ -2385,13 +2425,24 @@ class PlayerActivity : AppCompatActivity() {
                     webView?.evaluateJavascript(extractFileLionsVideoJs(), null)
                     webView?.postDelayed({
                         if (webViewResolving && resolveGeneration == gen) {
+                            Log.d(TAG, "FileLions extraction failed after timeout, trying OkHttp fallback...")
                             webViewResolving = false
                             webViewResolveMode = ResolveMode.NONE
                             webViewResolveCallback?.invoke("")
                             webViewResolveCallback = null
                             pendingResolveServer = null
+                            lifecycleScope.launch {
+                                val fallbackUrl = extractFileLionsViaOkHttp(embedUrl)
+                                if (!isFinishing && fallbackUrl.isNotEmpty()) {
+                                    withContext(Dispatchers.Main) {
+                                        resolvedUrlCache[serverIndex] = fallbackUrl
+                                        loadingPlayer.visibility = View.GONE
+                                        initExoPlayer(fallbackUrl)
+                                    }
+                                }
+                            }
                         }
-                    }, 5000)
+                    }, 8000)
                 } else {
                     webViewResolving = false
                     webViewResolveMode = ResolveMode.NONE
@@ -2728,7 +2779,15 @@ class PlayerActivity : AppCompatActivity() {
                     return s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('.mpd') !== -1 ||
                            s.indexOf('googlevideo.com') !== -1 || s.indexOf('videoplayback') !== -1 ||
                            s.indexOf('wibufile') !== -1 || s.indexOf('streamtape') !== -1 || s.indexOf('doodstream') !== -1 ||
-                           s.indexOf('fcdn') !== -1 || s.indexOf('filelions') !== -1 || s.indexOf('minochinos') !== -1;
+                           s.indexOf('fcdn') !== -1 || s.indexOf('filelions') !== -1 || s.indexOf('minochinos') !== -1 ||
+                           s.indexOf('turboviplay') !== -1 || s.indexOf('turbovid') !== -1;
+                }
+                function isVideoHostIframe(s) {
+                    if (!s || s.indexOf('http') !== 0) return false;
+                    return s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('.mpd') !== -1 ||
+                           s.indexOf('googlevideo.com') !== -1 || s.indexOf('videoplayback') !== -1 ||
+                           s.indexOf('wibufile') !== -1 || s.indexOf('streamtape') !== -1 || s.indexOf('doodstream') !== -1 ||
+                           s.indexOf('fcdn') !== -1;
                 }
                 var origOpen = XMLHttpRequest.prototype.open;
                 XMLHttpRequest.prototype.open = function(method, url) {
@@ -2740,6 +2799,13 @@ class PlayerActivity : AppCompatActivity() {
                     if (!found && typeof url === 'string' && isVideoUrl(url)) notifyUrl(url);
                     return origFetch.apply(this, arguments);
                 };
+                var origSetAttribute = Element.prototype.setAttribute;
+                Element.prototype.setAttribute = function(name, value) {
+                    if (!found && name === 'src' && typeof value === 'string' && isVideoUrl(value)) {
+                        notifyUrl(value);
+                    }
+                    return origSetAttribute.apply(this, arguments);
+                };
                 function scanDom() {
                     var vids = document.querySelectorAll('video, video source, source');
                     for (var i = 0; i < vids.length; i++) {
@@ -2749,10 +2815,15 @@ class PlayerActivity : AppCompatActivity() {
                     var iframes = document.querySelectorAll('iframe');
                     for (var j = 0; j < iframes.length; j++) {
                         var isrc = iframes[j].src || iframes[j].getAttribute('src') || '';
-                        if (isrc && isrc.indexOf('http') === 0 && isVideoUrl(isrc)) { notifyUrl(isrc); return true; }
-                        if (isrc && isrc.indexOf('http') === 0) {
-                            notifyUrl(isrc);
-                        }
+                        if (isrc && isVideoHostIframe(isrc)) { notifyUrl(isrc); return true; }
+                    }
+                    return false;
+                }
+                function scanObjectEmbed() {
+                    var objs = document.querySelectorAll('object[data], embed[src]');
+                    for (var i = 0; i < objs.length; i++) {
+                        var s = objs[i].getAttribute('data') || objs[i].getAttribute('src') || '';
+                        if (s && isVideoUrl(s)) { notifyUrl(s); return true; }
                     }
                     return false;
                 }
@@ -2775,7 +2846,8 @@ class PlayerActivity : AppCompatActivity() {
                             /https?:\/\/[^\s"']+wibufile[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i,
                             /https?:\/\/[^\s"']+streamtape[^\s"']+/i,
                             /https?:\/\/[^\s"']+doodstream[^\s"']+/i,
-                            /https?:\/\/[^\s"']+fcdn[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i
+                            /https?:\/\/[^\s"']+fcdn[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i,
+                            /https?:\/\/[^\s"']+turboviplay[^\s"']+\.m3u8[^\s"']*/i
                         ];
                         for (var p = 0; p < patterns.length; p++) {
                             var match = txt.match(patterns[p]);
@@ -2826,10 +2898,11 @@ class PlayerActivity : AppCompatActivity() {
                 function tryExtract(attempt) {
                     if (found) return;
                     if (scanDom()) return;
+                    if (scanObjectEmbed()) return;
                     if (scanScripts()) return;
                     if (scanGlobals()) return;
                     if (scanPerformance()) return;
-                    if (attempt < 8) {
+                    if (attempt < 12) {
                         setTimeout(function() { tryExtract(attempt + 1); }, 1500);
                     } else {
                         notifyUrl('');
@@ -2838,6 +2911,62 @@ class PlayerActivity : AppCompatActivity() {
                 tryExtract(0);
             })();
         """.trimIndent()
+    }
+
+    private suspend fun extractFileLionsViaOkHttp(embedUrl: String): String {
+        return try {
+            val client = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .followRedirects(true)
+                .build()
+            val req = okhttp3.Request.Builder().url(embedUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Referer", "https://minochinos.com/")
+                .build()
+            val response = client.newCall(req).execute()
+            val body = response.body?.string() ?: return ""
+            response.close()
+            Log.d(TAG, "FileLions OkHttp: fetched ${body.length} bytes from $embedUrl")
+            val patterns = listOf(
+                Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""["']src["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""["']url["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""["']video_url["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""["']videoUrl["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
+                Regex("""https?://[^\s"']+\.m3u8[^\s"']*"""),
+                Regex("""https?://[^\s"']+\.mp4[^\s"']*"""),
+                Regex("""https?://[^\s"']+googlevideo\.com[^\s"']*"""),
+                Regex("""https?://[^\s"']+turboviplay[^\s"']+\.m3u8[^\s"']*"""),
+                Regex("""https?://[^\s"']+wibufile[^\s"']+\.(?:mp4|m3u8)[^\s"']*""")
+            )
+            for (pattern in patterns) {
+                val match = pattern.find(body)
+                if (match != null) {
+                    val url = match.groupValues.getOrElse(1) { match.value }
+                    if (url.startsWith("http")) {
+                        Log.d(TAG, "FileLions OkHttp: found video URL: $url")
+                        return url
+                    }
+                }
+            }
+            val iframePattern = Regex("""<iframe[^>]+src=["'](https?://[^"']+)["']""", RegexOption.IGNORE_CASE)
+            val videoHosts = listOf("wibufile", "streamtape", "doodstream", "fcdn", "turboviplay", "turbovid")
+            for (match in iframePattern.findAll(body)) {
+                val iframeUrl = match.groupValues[1]
+                if (videoHosts.any { iframeUrl.contains(it, ignoreCase = true) }) {
+                    Log.d(TAG, "FileLions OkHttp: found video iframe: $iframeUrl")
+                    return iframeUrl
+                }
+            }
+            Log.d(TAG, "FileLions OkHttp: no video URL found in page")
+            ""
+        } catch (e: Exception) {
+            Log.e(TAG, "FileLions OkHttp extraction failed: ${e.message}")
+            ""
+        }
     }
 
     // ===== PiP =====
