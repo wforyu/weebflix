@@ -1,9 +1,10 @@
 # Agents.md
 
 ## Build & Run
-- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat installDebug`
-- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease`
+- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat installDebug`
+- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat assembleRelease`
 - **Gradle:** 9.5.0, AGP 9.3.0, KSP 2.2.10-2.0.2 (for Glide)
+- **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
 - **Language:** Kotlin
@@ -25,7 +26,7 @@ WeebFlix/app/src/main/
 │   │   │   └── ProviderFactory.kt     # Singleton registry, getActiveProvider(), refreshBaseUrls()
 │   │   └── scraper/
 │   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
-│   │       └── DrakorKitaScraper.kt   # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       └── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt      # Splash with animated N logo
 │       ├── main/MainActivity.kt          # Bottom nav host (Home/Search/Ongoing/Settings)
@@ -138,10 +139,12 @@ WeebFlix/app/src/main/
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
 
 ## ExoPlayer Configuration
-- Buffer: `minBufferMs=15s`, `maxBufferMs=60s`, `bufferForPlaybackMs=3s`, `bufferForPlaybackAfterRebufferMs=2s` (reduced buffer to avoid 429 rate limiting on turboviplay CDN)
-- Cache: `SimpleCache` with 250MB limit
+- Buffer: `minBufferMs=10s`, `maxBufferMs=45s`, `bufferForPlaybackMs=3s`, `bufferForPlaybackAfterRebufferMs=2s` (aggressive low buffer to avoid 429 rate limiting on turboviplay CDN)
+- Cache: `SimpleCache` with 250MB limit, turboviplay URLs bypass cache (unique cache key) to prevent stale re-fetches
 - OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com`, `abysscdn.com`/`hydrax`/`drakor.bid`, and `turboviplay.com` URLs (Referer = `turbovidhls.com`)
-- Retry: 429-specific retry with `Retry-After` header support (4 retries, 3s backoff)
+- TurboVI segment rate limiting: 80ms delay per `.ts`/`data3/` segment request to throttle CDN requests
+- Retry: 429-specific retry with `Retry-After` header support (4 retries, 5s backoff for 429)
+- Auto-retry on "Cannot find sync byte": Detects sync byte / Transport Stream errors (indicates 429 HTML response), retries same URL after 3s delay instead of auto-failing to next server
 - Track selector: Max 1920x1080, preferred audio `id` (Indonesian)
 - Episode navigation: `EpisodeNavigation` data class with prev/next URLs, auto-play chain pre-fetches next-next episode
 
@@ -202,26 +205,28 @@ WeebFlix/app/src/main/
 - **Attempted fixes:**
   - v1: Added Referer/Origin `https://emturbovid.com/` → 429 after ~80s
   - v2: Changed Referer/Origin to `https://turbovidhls.com/` → 429 after 30s-2min (rate limit is the issue, not Referer)
-  - v3: Reduced buffer 120s→60s + added 429-specific retry with Retry-After header support (4 retries, 3s backoff) → **TESTING**
-- **Code locations:** `PlayerActivity.kt` OkHttp interceptor (L115-117), retry interceptor (L121-134), `initExoPlayer` upstream factory (L1354-1358), loadControl (L1376-1384)
-- **Possible next steps:**
-  - If still 429: Try adding per-request delay in OkHttp interceptor for turboviplay segment requests (e.g., 100ms sleep before each segment)
-  - Try disabling ExoPlayer cache for turboviplay URLs (stale cache re-fetching may trigger extra requests)
-  - CDN may have a fixed rate limit per IP per minute — need to measure how many segments/min it allows
+  - v3: Reduced buffer 120s→60s + added 429-specific retry with Retry-After header support (4 retries, 3s backoff) → 429 persists
+  - v4: Reduced buffer 60s→45s min + 10s minBufferMs + 80ms per-segment delay + cache bypass for turboviplay + `Cache-Control: no-cache` header + auto-retry same URL on sync byte error → **TESTING** (commit `e408bb6`)
+- **Code locations:** `PlayerActivity.kt` OkHttp interceptor (L115-120), retry interceptor with rate-limit delay (L121-145), `initExoPlayer` upstream factory (L1352-1369), loadControl (L1376-1384), cache key factory (L1387-1396), onPlayerError sync byte retry (L1462-1483)
+- **Possible next steps if v4 still fails:**
   - Try fetching m3u8 manually via OkHttp to check if rate limit is per-session or per-IP
+  - Try completely bypassing ExoPlayer cache + using a dedicated non-shared OkHttpClient for turboviplay
+  - CDN may have a fixed rate limit per IP per minute — need to measure how many segments/min it allows
+  - Try switching to a different CDN or proxy approach
 
 ### 2. OppaDrama FileLions (minochinos.com) — WebView loads embed, no video URL intercepted
 - **Server:** FileLions → `https://minochinos.com/v/5k9cuh96zb25`
 - **Symptom:** WebView loads embed page but no video URL intercepted — embed page JS doesn't expose video URL in a way our JS extraction can find it
 - **Attempted fixes:**
   - v1: Added `minochinos.com`/`filelions` to `shouldInterceptRequest` isVideoUrl → BROKE IT (page URL itself intercepted, ExoPlayer got HTML not video → `UnrecognizedInputFormatException`)
-  - v2: Removed `minochinos.com`/`filelions` from isVideoUrl + added `extractFileLionsVideoJs()` + increased timeout to 15s → **TESTING**
-- **Code locations:** `PlayerActivity.kt` `resolveEmbedUrlViaWebView()` (L2337-2343 timeout), `shouldInterceptRequest()` (L458-466 isVideoUrl — must NOT contain minochinos.com), `extractFileLionsVideoJs()` (L2713+)
-- **Possible next steps:**
-  - Check if minochinos.com loads a sub-iframe (another domain) that contains the actual player
-  - Use OkHttp to fetch the minochinos.com page HTML directly and parse with regex/Jsoup
-  - Try increasing timeout to 20s for FileLions
+  - v2: Removed `minochinos.com`/`filelions` from isVideoUrl + added `extractFileLionsVideoJs()` + increased timeout to 15s → no video found
+  - v3: Fixed iframe bug (only send video URLs), timeout 15s→20s, grace period 5s→8s, added `scanObjectEmbed()`, `setAttribute` interception, `onProgressChanged` handles FileLions directly, added OkHttp HTML fallback (`extractFileLionsViaOkHttp()`) → **TESTING** (commit `e408bb6`)
+- **Code locations:** `PlayerActivity.kt` `resolveEmbedUrlViaWebView()` (L2348-2354 timeout), `shouldInterceptRequest()` (L467-475 isVideoUrl — must NOT contain minochinos.com), `extractFileLionsVideoJs()` (L2714+), `extractFileLionsViaOkHttp()` (L2914+), `onProgressChanged` (L524+ FileLions branch)
+- **Possible next steps if v3 still fails:**
+  - Use Chrome DevTools Protocol (CDP) via WebView to inspect network requests after page load
+  - Check if minochinos.com loads a sub-iframe (another domain) that contains the actual player — navigate WebView into iframe
   - FileLions may use blob URLs or WebM players that can't be intercepted via XHR
+  - Try using a headless HTTP client to follow all redirects and parse the final page
 
 ### 3. OppaDrama Hydrax server — Same turboviplay CDN failure
 - **Server:** Hydrax → loads episode page → WebView intercepts same `cdn2.turboviplay.com` URL
@@ -229,8 +234,8 @@ WeebFlix/app/src/main/
 - **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
 
 ## TODO / Next Session
+- **Test turboviplay v4 fix** (commit `e408bb6`) — 80ms segment delay + 10s/45s buffer + cache bypass + sync byte retry
+- **Test FileLions v3 fix** (commit `e408bb6`) — fixed JS extraction + OkHttp fallback
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
-- **Fix turboviplay CDN "Cannot find sync byte"** (see Open Bug #1) — test with `turbovidhls.com` Referer, if still fails try other approaches
-- **Fix FileLions/minochinos.com WebView timeout** (see Open Bug #2) — test JS extraction, if fails try OkHttp HTML fetch or sub-iframe detection
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
