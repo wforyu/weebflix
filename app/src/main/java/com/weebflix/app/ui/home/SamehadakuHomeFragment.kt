@@ -229,58 +229,46 @@ class SamehadakuHomeFragment : Fragment() {
             try {
                 val provider = ProviderFactory.getProvider(ProviderFactory.SAMEHADAKU_ID)
 
-                val latestDeferred = async(Dispatchers.IO) { provider.getLatestEpisodes(1) }
-                val ongoingDeferred = async(Dispatchers.IO) { provider.getOngoingAnime(1) }
-                val popularDeferred = async(Dispatchers.IO) { provider.getPopularAnime(1) }
-
-                val latest = latestDeferred.await()
-                val ongoing = ongoingDeferred.await()
-                val popular = popularDeferred.await()
-
-                if (isAdded) {
-                    loadingLayout.visibility = View.GONE
-                    swipeRefresh.isRefreshing = false
-
-                    latestItems.clear()
-                    ongoingItems.clear()
-                    popularItems.clear()
-
-                    latestItems.addAll(latest)
-                    ongoingItems.addAll(ongoing)
-                    popularItems.addAll(popular)
-
-                    latestHasMore = latest.isNotEmpty()
-                    ongoingHasMore = ongoing.isNotEmpty()
-                    popularHasMore = popular.isNotEmpty()
-                    latestPage = 1
-                    ongoingPage = 1
-                    popularPage = 1
-
-                    if (latestItems.isNotEmpty()) {
-                        heroEpisode = latestItems.first()
-                        tvHeroTitle.text = heroEpisode?.title
-                        val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
-                        val epDate = heroEpisode?.uploadDate?.takeIf { it.isNotEmpty() }
-                        tvHeroEpisode.text = when {
-                            epNum != null && epDate != null -> "Episode $epNum - $epDate"
-                            epNum != null -> "Episode $epNum"
-                            else -> ""
-                        }
-
-                        if (heroEpisode?.imageUrl?.isNotEmpty() == true) {
-                            Glide.with(requireContext())
-                                .load(heroEpisode?.imageUrl)
-                                .centerCrop()
-                                .into(ivHero)
-                        }
-                    }
-
-                    latestAdapter.submitList(latestItems.toList())
-                    ongoingAdapter.submitList(ongoingItems.toList())
-                    popularAdapter.submitList(popularItems.toList())
-
-                    loadContinueWatching()
+                val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.SAMEHADAKU_ID)
+                if (cached != null && isAdded) {
+                    applySamehadakuData(cached.latestEpisodes.map {
+                        com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
+                    }, cached.category1.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, cached.category2.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    })
+                    launch(Dispatchers.IO) { refreshSamehadakuData(provider) }
+                    return@launch
                 }
+
+                val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.SAMEHADAKU_ID)
+                if (diskCached != null && isAdded) {
+                    applySamehadakuData(diskCached.latestEpisodes.map {
+                        com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
+                    }, diskCached.category1.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, diskCached.category2.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    })
+                    launch(Dispatchers.IO) { refreshSamehadakuData(provider) }
+                    return@launch
+                }
+
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.SAMEHADAKU_ID) }
+                if (ghData != null && isAdded) {
+                    applySamehadakuData(ghData.latestEpisodes.map {
+                        com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
+                    }, ghData.category1.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, ghData.category2.map {
+                        com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    })
+                    launch(Dispatchers.IO) { refreshSamehadakuData(provider) }
+                    return@launch
+                }
+
+                refreshSamehadakuData(provider)
             } catch (e: Exception) {
                 if (isAdded) {
                     loadingLayout.visibility = View.GONE
@@ -289,6 +277,42 @@ class SamehadakuHomeFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun applySamehadakuData(latest: List<com.weebflix.app.data.model.Episode>, ongoing: List<com.weebflix.app.data.model.Anime>, popular: List<com.weebflix.app.data.model.Anime>) {
+        if (!isAdded) return
+        loadingLayout.visibility = View.GONE
+        swipeRefresh.isRefreshing = false
+        latestItems.clear(); latestItems.addAll(latest)
+        ongoingItems.clear(); ongoingItems.addAll(ongoing)
+        popularItems.clear(); popularItems.addAll(popular)
+        latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty()
+        latestPage = 1; ongoingPage = 1; popularPage = 1
+        if (latestItems.isNotEmpty()) {
+            heroEpisode = latestItems.first()
+            tvHeroTitle.text = heroEpisode?.title
+            val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
+            val epDate = heroEpisode?.uploadDate?.takeIf { it.isNotEmpty() }
+            tvHeroEpisode.text = when { epNum != null && epDate != null -> "Episode $epNum - $epDate"; epNum != null -> "Episode $epNum"; else -> "" }
+            if (heroEpisode?.imageUrl?.isNotEmpty() == true) { Glide.with(requireContext()).load(heroEpisode?.imageUrl).centerCrop().into(ivHero) }
+        }
+        latestAdapter.submitList(latestItems.toList()); ongoingAdapter.submitList(ongoingItems.toList()); popularAdapter.submitList(popularItems.toList())
+        loadContinueWatching()
+    }
+
+    private suspend fun refreshSamehadakuData(provider: com.weebflix.app.data.provider.AnimeProvider) {
+        val latest = withContext(Dispatchers.IO) { provider.getLatestEpisodes(1) }
+        val ongoing = withContext(Dispatchers.IO) { provider.getOngoingAnime(1) }
+        val popular = withContext(Dispatchers.IO) { provider.getPopularAnime(1) }
+        if (!isAdded) return
+        applySamehadakuData(latest, ongoing, popular)
+        val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+            hero = latest.take(10).map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) },
+            latestEpisodes = latest.map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },
+            category1 = ongoing, category2 = popular, category3 = emptyList(), category4 = emptyList()
+        )
+        com.weebflix.app.data.model.ProviderDataCache.cacheData(ProviderFactory.SAMEHADAKU_ID, cacheData)
+        com.weebflix.app.data.model.ProviderDataCache.saveToDisk(requireContext(), ProviderFactory.SAMEHADAKU_ID, cacheData)
     }
 
     private fun loadContinueWatching() {

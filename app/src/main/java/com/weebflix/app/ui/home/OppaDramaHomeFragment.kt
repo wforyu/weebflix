@@ -217,72 +217,28 @@ class OppaDramaHomeFragment : Fragment() {
             try {
                 val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
 
-                val home = withContext(Dispatchers.IO) { provider.getHomeContent() }
-
-                if (!isAdded) return@launch
-
-                heroItems.clear()
-                heroItems.addAll(home.featured)
-
-                episodeItems.clear()
-                episodeItems.addAll(home.latestEpisodes)
-
-                val dramaKorea = withContext(Dispatchers.IO) { provider.getDramaKorea() }
-                dramaKoreaItems.clear()
-                dramaKoreaItems.addAll(dramaKorea)
-
-                val dramaChina = withContext(Dispatchers.IO) { provider.getDramaChina() }
-                dramaChinaItems.clear()
-                dramaChinaItems.addAll(dramaChina)
-
-                val filmKorea = withContext(Dispatchers.IO) { provider.getFilmKorea() }
-                filmKoreaItems.clear()
-                filmKoreaItems.addAll(filmKorea)
-
-                val netflix = withContext(Dispatchers.IO) { provider.getNetflix() }
-                netflixItems.clear()
-                netflixItems.addAll(netflix)
-
-                loadingLayout.visibility = View.GONE
-                swipeRefresh.isRefreshing = false
-
-                vpHero.adapter = HeroPagerAdapter(heroItems,
-                    onClick = { anime ->
-                        startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                        })
-                    },
-                    onPlay = { anime ->
-                        startActivity(Intent(requireContext(), PlayerActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                            putExtra("title", anime.title)
-                            putExtra("episodeNumber", anime.episode)
-                            putExtra("animeTitle", anime.title)
-                            putExtra("imageUrl", anime.imageUrl)
-                            putExtra("animeUrl", anime.url)
-                            putExtra("providerId", ProviderFactory.OPPADRAMA_ID)
-                        })
-                    },
-                    onInfo = { anime ->
-                        startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                        })
-                    }
-                )
-
-                if (heroItems.size > 1) {
-                    vpHero.setCurrentItem(1, false)
-                    heroHandler.removeCallbacks(heroRunnable)
-                    heroHandler.postDelayed(heroRunnable, 4000L)
+                val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.OPPADRAMA_ID)
+                if (cached != null && isAdded) {
+                    applyOppaData(cached)
+                    launch(Dispatchers.IO) { refreshOppaData(provider) }
+                    return@launch
                 }
 
-                episodesAdapter.submitList(episodeItems.toList())
-                dramaKoreaAdapter.submitList(dramaKoreaItems.toList())
-                dramaChinaAdapter.submitList(dramaChinaItems.toList())
-                filmKoreaAdapter.submitList(filmKoreaItems.toList())
-                netflixAdapter.submitList(netflixItems.toList())
+                val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.OPPADRAMA_ID)
+                if (diskCached != null && isAdded) {
+                    applyOppaData(diskCached)
+                    launch(Dispatchers.IO) { refreshOppaData(provider) }
+                    return@launch
+                }
 
-                loadContinueWatching()
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.OPPADRAMA_ID) }
+                if (ghData != null && isAdded) {
+                    applyOppaData(ghData)
+                    launch(Dispatchers.IO) { refreshOppaData(provider) }
+                    return@launch
+                }
+
+                refreshOppaData(provider)
             } catch (e: Exception) {
                 if (isAdded) {
                     loadingLayout.visibility = View.GONE
@@ -291,6 +247,51 @@ class OppaDramaHomeFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun applyOppaData(cached: com.weebflix.app.data.model.ProviderDataCache.CachedHomeData) {
+        if (!isAdded) return
+        loadingLayout.visibility = View.GONE
+        swipeRefresh.isRefreshing = false
+        heroItems.clear(); heroItems.addAll(cached.hero)
+        episodeItems.clear(); episodeItems.addAll(cached.latestEpisodes)
+        dramaKoreaItems.clear(); dramaKoreaItems.addAll(cached.category1)
+        dramaChinaItems.clear(); dramaChinaItems.addAll(cached.category2)
+        filmKoreaItems.clear(); filmKoreaItems.addAll(cached.category3)
+        netflixItems.clear(); netflixItems.addAll(cached.category4)
+        vpHero.adapter = HeroPagerAdapter(heroItems,
+            onClick = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) },
+            onPlay = { anime -> startActivity(Intent(requireContext(), PlayerActivity::class.java).apply {
+                putExtra("url", anime.url); putExtra("title", anime.title); putExtra("episodeNumber", anime.episode)
+                putExtra("animeTitle", anime.title); putExtra("imageUrl", anime.imageUrl); putExtra("animeUrl", anime.url)
+                putExtra("providerId", ProviderFactory.OPPADRAMA_ID)
+            }) },
+            onInfo = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) }
+        )
+        if (heroItems.size > 1) { vpHero.setCurrentItem(1, false); heroHandler.removeCallbacks(heroRunnable); heroHandler.postDelayed(heroRunnable, 4000L) }
+        episodesAdapter.submitList(episodeItems.toList()); dramaKoreaAdapter.submitList(dramaKoreaItems.toList())
+        dramaChinaAdapter.submitList(dramaChinaItems.toList()); filmKoreaAdapter.submitList(filmKoreaItems.toList())
+        netflixAdapter.submitList(netflixItems.toList())
+        loadContinueWatching()
+    }
+
+    private suspend fun refreshOppaData(provider: OppaDramaScraper) {
+        val home = withContext(Dispatchers.IO) { provider.getHomeContent() }
+        val dramaKorea = withContext(Dispatchers.IO) { provider.getDramaKorea() }
+        val dramaChina = withContext(Dispatchers.IO) { provider.getDramaChina() }
+        val filmKorea = withContext(Dispatchers.IO) { provider.getFilmKorea() }
+        val netflix = withContext(Dispatchers.IO) { provider.getNetflix() }
+        if (!isAdded) return
+        applyOppaData(com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+            hero = home.featured, latestEpisodes = home.latestEpisodes,
+            category1 = dramaKorea, category2 = dramaChina, category3 = filmKorea, category4 = netflix
+        ))
+        val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+            hero = home.featured, latestEpisodes = home.latestEpisodes,
+            category1 = dramaKorea, category2 = dramaChina, category3 = filmKorea, category4 = netflix
+        )
+        com.weebflix.app.data.model.ProviderDataCache.cacheData(ProviderFactory.OPPADRAMA_ID, cacheData)
+        com.weebflix.app.data.model.ProviderDataCache.saveToDisk(requireContext(), ProviderFactory.OPPADRAMA_ID, cacheData)
     }
 
     private fun loadContinueWatching() {

@@ -70,7 +70,7 @@ class PlayerActivity : AppCompatActivity() {
             return simpleCache ?: synchronized(this) {
                 simpleCache ?:                     androidx.media3.datasource.cache.SimpleCache(
                     java.io.File(context.applicationContext.cacheDir, "exo_player_cache"),
-                    androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor(250L * 1024 * 1024),
+                    androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor(500L * 1024 * 1024),
                     androidx.media3.database.StandaloneDatabaseProvider(context.applicationContext)
                 ).also { simpleCache = it }
             }
@@ -1358,10 +1358,10 @@ class PlayerActivity : AppCompatActivity() {
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                15_000,    // minBufferMs
-                60_000,    // maxBufferMs
-                2_500,     // bufferForPlaybackMs - ~2.5s before play
-                1_500      // bufferForPlaybackAfterRebufferMs - ~1.5s after rebuffer
+                30_000,    // minBufferMs (30s — bigger buffer before playback stalls)
+                120_000,   // maxBufferMs (120s — 2 min ahead for smooth streaming)
+                3_000,     // bufferForPlaybackMs (3s initial buffer before play)
+                2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()

@@ -234,67 +234,29 @@ class DrakorKitaHomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val provider = ProviderFactory.getProvider(ProviderFactory.DRAKORKITA_ID) as DrakorKitaScraper
-                val home = withContext(Dispatchers.IO) { provider.getHomeContent() }
 
-                if (!isAdded) return@launch
-
-                loadingLayout.visibility = View.GONE
-                swipeRefresh.isRefreshing = false
-
-                moviesPage = 1
-                seriesPage = 1
-                moviesHasMore = true
-                seriesHasMore = true
-
-                heroItems.clear()
-                heroItems.addAll(home.featured)
-
-                episodeItems.clear()
-                episodeItems.addAll(home.latestEpisodes.map { ep ->
-                    Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
-                })
-
-                movieItems.clear()
-                movieItems.addAll(home.movies)
-
-                seriesItems.clear()
-                seriesItems.addAll(home.series)
-
-                vpHero.adapter = HeroPagerAdapter(heroItems,
-                    onClick = { anime ->
-                        startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                        })
-                    },
-                    onPlay = { anime ->
-                        startActivity(Intent(requireContext(), PlayerActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                            putExtra("title", anime.title)
-                            putExtra("episodeNumber", anime.episode)
-                            putExtra("animeTitle", anime.title)
-                            putExtra("imageUrl", anime.imageUrl)
-                            putExtra("animeUrl", anime.url)
-                            putExtra("providerId", ProviderFactory.DRAKORKITA_ID)
-                        })
-                    },
-                    onInfo = { anime ->
-                        startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply {
-                            putExtra("url", anime.url)
-                        })
-                    }
-                )
-
-                if (heroItems.size > 1) {
-                    vpHero.setCurrentItem(1, false)
-                    heroHandler.removeCallbacks(heroRunnable)
-                    heroHandler.postDelayed(heroRunnable, 4000L)
+                val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.DRAKORKITA_ID)
+                if (cached != null && isAdded) {
+                    applyDrakorKitaData(cached)
+                    launch(Dispatchers.IO) { refreshDrakorKitaData(provider) }
+                    return@launch
                 }
 
-                episodesAdapter.submitList(episodeItems.toList())
-                moviesAdapter.submitList(movieItems.toList())
-                seriesAdapter.submitList(seriesItems.toList())
+                val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.DRAKORKITA_ID)
+                if (diskCached != null && isAdded) {
+                    applyDrakorKitaData(diskCached)
+                    launch(Dispatchers.IO) { refreshDrakorKitaData(provider) }
+                    return@launch
+                }
 
-                loadContinueWatching()
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.DRAKORKITA_ID) }
+                if (ghData != null && isAdded) {
+                    applyDrakorKitaData(ghData)
+                    launch(Dispatchers.IO) { refreshDrakorKitaData(provider) }
+                    return@launch
+                }
+
+                refreshDrakorKitaData(provider)
             } catch (e: Exception) {
                 if (isAdded) {
                     loadingLayout.visibility = View.GONE
@@ -303,6 +265,46 @@ class DrakorKitaHomeFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun applyDrakorKitaData(cached: com.weebflix.app.data.model.ProviderDataCache.CachedHomeData) {
+        if (!isAdded) return
+        loadingLayout.visibility = View.GONE
+        swipeRefresh.isRefreshing = false
+        moviesPage = 1; seriesPage = 1; moviesHasMore = true; seriesHasMore = true
+        heroItems.clear(); heroItems.addAll(cached.hero)
+        episodeItems.clear(); episodeItems.addAll(cached.latestEpisodes)
+        movieItems.clear(); movieItems.addAll(cached.category1)
+        seriesItems.clear(); seriesItems.addAll(cached.category2)
+        vpHero.adapter = HeroPagerAdapter(heroItems,
+            onClick = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) },
+            onPlay = { anime -> startActivity(Intent(requireContext(), PlayerActivity::class.java).apply {
+                putExtra("url", anime.url); putExtra("title", anime.title); putExtra("episodeNumber", anime.episode)
+                putExtra("animeTitle", anime.title); putExtra("imageUrl", anime.imageUrl); putExtra("animeUrl", anime.url)
+                putExtra("providerId", ProviderFactory.DRAKORKITA_ID)
+            }) },
+            onInfo = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) }
+        )
+        if (heroItems.size > 1) { vpHero.setCurrentItem(1, false); heroHandler.removeCallbacks(heroRunnable); heroHandler.postDelayed(heroRunnable, 4000L) }
+        episodesAdapter.submitList(episodeItems.toList()); moviesAdapter.submitList(movieItems.toList()); seriesAdapter.submitList(seriesItems.toList())
+        loadContinueWatching()
+    }
+
+    private suspend fun refreshDrakorKitaData(provider: DrakorKitaScraper) {
+        val home = withContext(Dispatchers.IO) { provider.getHomeContent() }
+        if (!isAdded) return
+        applyDrakorKitaData(com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+            hero = home.featured,
+            latestEpisodes = home.latestEpisodes.map { ep -> com.weebflix.app.data.model.Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate) },
+            category1 = home.movies, category2 = home.series, category3 = emptyList(), category4 = emptyList()
+        ))
+        val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+            hero = home.featured,
+            latestEpisodes = home.latestEpisodes.map { ep -> com.weebflix.app.data.model.Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate) },
+            category1 = home.movies, category2 = home.series, category3 = emptyList(), category4 = emptyList()
+        )
+        com.weebflix.app.data.model.ProviderDataCache.cacheData(ProviderFactory.DRAKORKITA_ID, cacheData)
+        com.weebflix.app.data.model.ProviderDataCache.saveToDisk(requireContext(), ProviderFactory.DRAKORKITA_ID, cacheData)
     }
 
     private fun loadContinueWatching() {
