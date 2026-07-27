@@ -12,3 +12,4 @@ local.properties
 *.apk
 *.jks
 gradle/wrapper/gradle-wrapper.jar
+cookies.txt
