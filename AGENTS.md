@@ -89,6 +89,14 @@ WeebFlix/app/src/main/
 - Features: Auto-rewrites dead domain URLs to current domain, trust-all SSL certs, Base64 token decoding for API access
 - Key methods: `getHomeContent()` (returns episodes + movies + series + featured), `getAllAnime(page)`, `getEpisodeServers()`, `getEpisodeNavigation()`
 
+### OppaDrama
+- Website: `http://45.11.57.192` (default)
+- Content: Korean Drama (Latest Episodes, Movies, Series)
+- Scraper: `OppaDramaScraper.kt` — Jsoup + JSON API endpoints + token-based server resolution
+- Features: Cookie-based auth, token extraction from episode page (Base64 encoded), server resolution via `oppadrama/api/v2` endpoints, turboviplay CDN support with Referer validation
+- Key methods: `getHomeContent()`, `getAllAnime(page)`, `getAnimeDetail()`, `getEpisodeServers()`, `getEpisodeNavigation()`
+- Server resolution: Extracts `oppaDramaData` JSON from episode page, resolves Hydrax token via `api/v2/getToken.php`, resolves server via `api/v2/server.php`, final video URL via `api/v2/video_hydrax.php` or turboviplay CDN
+
 ## Features
 - **Home:** Provider chip switcher, each provider has its own home fragment:
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll)
@@ -125,11 +133,12 @@ WeebFlix/app/src/main/
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
 - **filedon.co (VIP STREAMING)**: Embed loads via `https://filedon.co/embed/...` — needs further extraction (TODO)
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
+- **OppaDrama / turboviplay CDN**: After Hydrax token resolves to `cdn2.turboviplay.com/data3/.../....m3u8`, CDN requires `Referer: https://emturbovid.com/` and `Origin: https://emturbovid.com/` headers; without them TS segments fail with `Cannot find sync byte` after a few seconds
 
 ## ExoPlayer Configuration
 - Buffer: `minBufferMs=15s`, `maxBufferMs=60s`, `bufferForPlaybackMs=2.5s`, `bufferForPlaybackAfterRebufferMs=1.5s`
 - Cache: `SimpleCache` with 250MB limit
-- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com` and `abysscdn.com`/`hydrax`/`drakor.bid` URLs
+- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com`, `abysscdn.com`/`hydrax`/`drakor.bid`, and `turboviplay.com` URLs
 - Track selector: Max 1920x1080, preferred audio `id` (Indonesian)
 - Episode navigation: `EpisodeNavigation` data class with prev/next URLs, auto-play chain pre-fetches next-next episode
 
@@ -176,6 +185,9 @@ WeebFlix/app/src/main/
 | DrakorKita SSL errors | Trust-all SSL certificates on OkHttpClient |
 | DrakorKita dead domains | Auto-rewrite old domain URLs to current domain in scraper |
 | Stale WebView callbacks | `resolveGeneration` counter prevents old callbacks from being processed |
+| Video plays few seconds then disconnects (turboviplay CDN) | Added Referer/Origin headers for `turboviplay.com` domain in OkHttp interceptor and ExoPlayer `defaultRequestProperties` |
+| HTML embed page played directly as video URL | Generic `server.videoUrl` check now requires `isDirectVideo` (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
+| OppaDrama servers fail to resolve | Token-based pipeline: extract `oppaDramaData` JSON → resolve Hydrax token → resolve server via API v2 |
 
 ## TODO / Next Session
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages

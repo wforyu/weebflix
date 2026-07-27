@@ -112,6 +112,9 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("abysscdn.com") || chain.request().url.host.contains("hydrax") || chain.request().url.host.contains("drakor.bid")) {
                                 request.addHeader("Referer", "https://drakor.kita.mobi/")
                                     .addHeader("Origin", "https://drakor.kita.mobi")
+                            } else if (chain.request().url.host.contains("turboviplay.com")) {
+                                request.addHeader("Referer", "https://emturbovid.com/")
+                                    .addHeader("Origin", "https://emturbovid.com")
                             }
                             chain.proceed(request.build())
                         }
@@ -1348,6 +1351,11 @@ class PlayerActivity : AppCompatActivity() {
                     "Referer" to "https://drakor.kita.mobi/",
                     "Origin" to "https://drakor.kita.mobi"
                 ))
+            } else if (videoUrl.contains("turboviplay.com")) {
+                setDefaultRequestProperties(mapOf(
+                    "Referer" to "https://emturbovid.com/",
+                    "Origin" to "https://emturbovid.com"
+                ))
             }
         }
 
@@ -2031,11 +2039,15 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (server.videoUrl.isNotEmpty()) {
-            Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
-            resolvedUrlCache[serverIndex] = server.videoUrl
-            loadingPlayer.visibility = View.GONE
-            initExoPlayer(server.videoUrl)
-            return
+            val isDirectVideo = server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") ||
+                server.videoUrl.contains(".mpd") || server.videoUrl.contains("googlevideo.com")
+            if (isDirectVideo) {
+                Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
+                resolvedUrlCache[serverIndex] = server.videoUrl
+                loadingPlayer.visibility = View.GONE
+                initExoPlayer(server.videoUrl)
+                return
+            }
         }
 
         val url = server.url

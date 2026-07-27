@@ -8,6 +8,7 @@ Aplikasi Android untuk nonton streaming anime dan drakor dari berbagai provider,
 |----------|-----|--------|
 | **Samehadaku** | `v2.samehadaku.how` | Anime (Latest, Ongoing, Popular) |
 | **DrakorKita** | `drakor.kita.mobi` | Drakor (Episode, Movie, Serie) |
+| **OppaDrama** | `45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
 
 Bisa switch provider langsung dari tab Home, dan setiap provider punya domain yang bisa dikonfigurasi di Settings.
 
@@ -150,6 +151,7 @@ WeebFlix/app/src/main/
 6. **Player** resolve server URL berdasarkan provider:
    - **Blogspot**: AJAX + XHR interception → ExoPlayer
    - **DrakorKita**: 3-step API (episode.php → server.php → video_hydrax.php) → Abyss CDN / direct MP4
+   - **OppaDrama**: Token-based server resolution via `oppadrama/api/v2` endpoints, WebView-based token extraction, turboviplay CDN with Referer validation
    - **Wibufile**: Direct MP4 URL
 7. **Watch History** simpan progress per provider ke SharedPreferences, tampilkan di Home
 
@@ -171,6 +173,8 @@ WeebFlix/app/src/main/
 | Search crash (suspend) | Wrap `performSearch` di `lifecycleScope.launch` |
 | DrakorKita SSL errors | Trust-all SSL certificates on OkHttpClient |
 | DrakorKita dead domains | Auto-rewrite old domain URLs to current domain |
+| Video plays few seconds then disconnects (turboviplay CDN) | Added Referer/Origin headers for `turboviplay.com` domain in OkHttp interceptor and ExoPlayer defaultRequestProperties |
+| HTML embed page played as video URL | Generic `videoUrl` check now validates direct video URL (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
 
 ## Konfigurasi
 
