@@ -32,6 +32,10 @@ class CategoryGridActivity : AppCompatActivity() {
         const val CATEGORY_MOVIES = "movies"
         const val CATEGORY_SERIES = "series"
         const val CATEGORY_ALL = "all"
+        const val CATEGORY_DRAMA_KOREA = "drama_korea"
+        const val CATEGORY_DRAMA_CHINA = "drama_china"
+        const val CATEGORY_FILM_KOREA = "film_korea"
+        const val CATEGORY_NETFLIX = "netflix"
     }
 
     private lateinit var rvGrid: RecyclerView
@@ -158,6 +162,10 @@ class CategoryGridActivity : AppCompatActivity() {
                             }
                             CATEGORY_MOVIES -> provider.getFilmKorea(currentPage)
                             CATEGORY_SERIES -> provider.getDramaKorea(currentPage)
+                            CATEGORY_DRAMA_KOREA -> provider.getDramaKorea(currentPage)
+                            CATEGORY_DRAMA_CHINA -> provider.getDramaChina(currentPage)
+                            CATEGORY_FILM_KOREA -> provider.getFilmKorea(currentPage)
+                            CATEGORY_NETFLIX -> provider.getNetflix(currentPage)
                             else -> provider.getOngoingAnime(currentPage)
                         }
                     } else if (isDrakorKita) {

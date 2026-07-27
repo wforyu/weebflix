@@ -113,18 +113,27 @@ class PlayerActivity : AppCompatActivity() {
                                 request.addHeader("Referer", "https://drakor.kita.mobi/")
                                     .addHeader("Origin", "https://drakor.kita.mobi")
                             } else if (chain.request().url.host.contains("turboviplay.com")) {
-                                request.addHeader("Referer", "https://emturbovid.com/")
-                                    .addHeader("Origin", "https://emturbovid.com")
+                                request.addHeader("Referer", "https://turbovidhls.com/")
+                                    .addHeader("Origin", "https://turbovidhls.com")
                             }
                             chain.proceed(request.build())
                         }
                         .addInterceptor { chain ->
                             var response = chain.proceed(chain.request())
                             var retries = 0
-                            while (!response.isSuccessful && retries < 2) {
+                            val maxRetries = if (response.code == 429) 4 else 2
+                            while (!response.isSuccessful && retries < maxRetries) {
                                 retries++
+                                val retryAfter = response.header("Retry-After")?.toLongOrNull()
+                                val code = response.code
                                 response.close()
-                                val backoff = retries * 1000L
+                                val backoff = if (code == 429 && retryAfter != null) {
+                                    retryAfter * 1000L
+                                } else if (code == 429) {
+                                    retries * 3000L
+                                } else {
+                                    retries * 1000L
+                                }
                                 java.lang.Thread.sleep(backoff)
                                 response = chain.proceed(chain.request())
                             }
@@ -1353,8 +1362,8 @@ class PlayerActivity : AppCompatActivity() {
                 ))
             } else if (videoUrl.contains("turboviplay.com")) {
                 setDefaultRequestProperties(mapOf(
-                    "Referer" to "https://emturbovid.com/",
-                    "Origin" to "https://emturbovid.com"
+                    "Referer" to "https://turbovidhls.com/",
+                    "Origin" to "https://turbovidhls.com"
                 ))
             }
         }
@@ -1366,8 +1375,8 @@ class PlayerActivity : AppCompatActivity() {
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                30_000,    // minBufferMs (30s — bigger buffer before playback stalls)
-                120_000,   // maxBufferMs (120s — 2 min ahead for smooth streaming)
+                15_000,    // minBufferMs (15s — smaller buffer to reduce CDN request bursts)
+                60_000,    // maxBufferMs (60s — cap at 1 min to avoid 429 rate limiting)
                 3_000,     // bufferForPlaybackMs (3s initial buffer before play)
                 2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
             )
@@ -2336,9 +2345,11 @@ class PlayerActivity : AppCompatActivity() {
 
         val isBlogger = embedUrl.contains("blogger.com") || embedUrl.contains("bp.blogspot.com") || embedUrl.contains("blogspot.com")
         val isFiledon = embedUrl.contains("filedon.co")
+        val isFileLions = embedUrl.contains("minochinos.com") || embedUrl.contains("filelions")
         val timeoutMs = when {
             isBlogger -> 20000L
             isFiledon -> 15000L
+            isFileLions -> 15000L
             else -> 10000L
         }
 
@@ -2360,6 +2371,18 @@ class PlayerActivity : AppCompatActivity() {
                 } else if (isFiledon) {
                     Log.d(TAG, "Trying filedon.co-specific JS extraction before timeout...")
                     webView?.evaluateJavascript(extractFiledonVideoJs(), null)
+                    webView?.postDelayed({
+                        if (webViewResolving && resolveGeneration == gen) {
+                            webViewResolving = false
+                            webViewResolveMode = ResolveMode.NONE
+                            webViewResolveCallback?.invoke("")
+                            webViewResolveCallback = null
+                            pendingResolveServer = null
+                        }
+                    }, 5000)
+                } else if (isFileLions) {
+                    Log.d(TAG, "Trying FileLions-specific JS extraction before timeout...")
+                    webView?.evaluateJavascript(extractFileLionsVideoJs(), null)
                     webView?.postDelayed({
                         if (webViewResolving && resolveGeneration == gen) {
                             webViewResolving = false
@@ -2635,6 +2658,135 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 function scanGlobals() {
                     var keys = ['videoUrl', 'video_url', 'streamUrl', 'stream_url', 'file', 'source', 'src', 'mediaUrl', 'playbackUrl'];
+                    for (var g = 0; g < keys.length; g++) {
+                        try {
+                            var val = window[keys[g]];
+                            if (val && typeof val === 'string' && val.indexOf('http') === 0 && isVideoUrl(val)) {
+                                notifyUrl(val); return true;
+                            }
+                        } catch(e) {}
+                    }
+                    try {
+                        if (window.jwplayer) {
+                            var item = window.jwplayer().getPlaylistItem ? window.jwplayer().getPlaylistItem() : null;
+                            if (item && item.file) { notifyUrl(item.file); return true; }
+                        }
+                    } catch(e) {}
+                    try {
+                        var vc = window.VIDEO_CONFIG;
+                        if (vc && vc.streams) {
+                            for (var i = 0; i < vc.streams.length; i++) {
+                                var s = vc.streams[i];
+                                if (s && s.play_url) { notifyUrl(s.play_url); return true; }
+                                if (s && s.url) { notifyUrl(s.url); return true; }
+                            }
+                        }
+                    } catch(e) {}
+                    return false;
+                }
+                function scanPerformance() {
+                    try {
+                        var entries = performance.getEntriesByType('resource');
+                        for (var i = 0; i < entries.length; i++) {
+                            var name = entries[i].name || '';
+                            if (isVideoUrl(name)) { notifyUrl(name); return true; }
+                        }
+                    } catch(e) {}
+                    return false;
+                }
+                function tryExtract(attempt) {
+                    if (found) return;
+                    if (scanDom()) return;
+                    if (scanScripts()) return;
+                    if (scanGlobals()) return;
+                    if (scanPerformance()) return;
+                    if (attempt < 8) {
+                        setTimeout(function() { tryExtract(attempt + 1); }, 1500);
+                    } else {
+                        notifyUrl('');
+                    }
+                }
+                tryExtract(0);
+            })();
+        """.trimIndent()
+    }
+
+    private fun extractFileLionsVideoJs(): String {
+        return """
+            (function() {
+                var found = false;
+                function notifyUrl(url) {
+                    if (found) return;
+                    if (url && url.indexOf('http') === 0 && url.indexOf('about:blank') === -1) {
+                        found = true;
+                        window.AndroidBridge.onUrlFound(url);
+                    }
+                }
+                function isVideoUrl(s) {
+                    if (!s || s.indexOf('about:blank') !== -1 || s.indexOf('blob:') !== -1 || s.indexOf('data:') !== -1 || s.indexOf('javascript:') !== -1) return false;
+                    if (s.indexOf('.css') !== -1 || s.indexOf('.js') !== -1 || s.indexOf('.png') !== -1 || s.indexOf('.jpg') !== -1 || s.indexOf('.gif') !== -1 || s.indexOf('.svg') !== -1 || s.indexOf('.ico') !== -1 || s.indexOf('.woff') !== -1) return false;
+                    return s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('.mpd') !== -1 ||
+                           s.indexOf('googlevideo.com') !== -1 || s.indexOf('videoplayback') !== -1 ||
+                           s.indexOf('wibufile') !== -1 || s.indexOf('streamtape') !== -1 || s.indexOf('doodstream') !== -1 ||
+                           s.indexOf('fcdn') !== -1 || s.indexOf('filelions') !== -1 || s.indexOf('minochinos') !== -1;
+                }
+                var origOpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function(method, url) {
+                    if (!found && typeof url === 'string' && isVideoUrl(url)) notifyUrl(url);
+                    return origOpen.apply(this, arguments);
+                };
+                var origFetch = window.fetch;
+                window.fetch = function(url) {
+                    if (!found && typeof url === 'string' && isVideoUrl(url)) notifyUrl(url);
+                    return origFetch.apply(this, arguments);
+                };
+                function scanDom() {
+                    var vids = document.querySelectorAll('video, video source, source');
+                    for (var i = 0; i < vids.length; i++) {
+                        var s = vids[i].src || vids[i].getAttribute('src') || vids[i].currentSrc || '';
+                        if (s && s.indexOf('http') === 0 && isVideoUrl(s)) { notifyUrl(s); return true; }
+                    }
+                    var iframes = document.querySelectorAll('iframe');
+                    for (var j = 0; j < iframes.length; j++) {
+                        var isrc = iframes[j].src || iframes[j].getAttribute('src') || '';
+                        if (isrc && isrc.indexOf('http') === 0 && isVideoUrl(isrc)) { notifyUrl(isrc); return true; }
+                        if (isrc && isrc.indexOf('http') === 0) {
+                            notifyUrl(isrc);
+                        }
+                    }
+                    return false;
+                }
+                function scanScripts() {
+                    var scripts = document.querySelectorAll('script');
+                    for (var k = 0; k < scripts.length; k++) {
+                        var txt = scripts[k].textContent || '';
+                        var patterns = [
+                            /["']file["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']source["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']src["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']video_url["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']videoUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']playbackUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /["']mediaUrl["']\s*:\s*["'](https?:\/\/[^"']+\.(?:mp4|m3u8|mpd)[^"']*)/i,
+                            /https?:\/\/[^\s"']+\.mp4[^\s"']*/i,
+                            /https?:\/\/[^\s"']+\.m3u8[^\s"']*/i,
+                            /https?:\/\/[^\s"']+googlevideo\.com[^\s"']*/i,
+                            /https?:\/\/[^\s"']+wibufile[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i,
+                            /https?:\/\/[^\s"']+streamtape[^\s"']+/i,
+                            /https?:\/\/[^\s"']+doodstream[^\s"']+/i,
+                            /https?:\/\/[^\s"']+fcdn[^\s"']+\.(?:mp4|m3u8)[^\s"']*/i
+                        ];
+                        for (var p = 0; p < patterns.length; p++) {
+                            var match = txt.match(patterns[p]);
+                            if (match && match[1]) { notifyUrl(match[1]); return true; }
+                            if (match && match[0] && match[0].indexOf('http') === 0) { notifyUrl(match[0]); return true; }
+                        }
+                    }
+                    return false;
+                }
+                function scanGlobals() {
+                    var keys = ['videoUrl', 'video_url', 'streamUrl', 'stream_url', 'file', 'source', 'src', 'mediaUrl', 'playbackUrl', 'jwSource', 'hlsUrl', 'dashUrl'];
                     for (var g = 0; g < keys.length; g++) {
                         try {
                             var val = window[keys[g]];

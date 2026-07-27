@@ -26,6 +26,7 @@ import com.weebflix.app.ui.adapter.HeroPagerAdapter
 import com.weebflix.app.ui.adapter.NetflixCardAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
 import com.weebflix.app.ui.player.PlayerActivity
+import com.weebflix.app.ui.detail.CategoryGridActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,6 +65,22 @@ class OppaDramaHomeFragment : Fragment() {
     private val filmKoreaItems = mutableListOf<Anime>()
     private val netflixItems = mutableListOf<Anime>()
 
+    private var epsPage = 1
+    private var dramaKoreaPage = 1
+    private var dramaChinaPage = 1
+    private var filmKoreaPage = 1
+    private var netflixPage = 1
+    private var epsLoading = false
+    private var dramaKoreaLoading = false
+    private var dramaChinaLoading = false
+    private var filmKoreaLoading = false
+    private var netflixLoading = false
+    private var epsHasMore = true
+    private var dramaKoreaHasMore = true
+    private var dramaChinaHasMore = true
+    private var filmKoreaHasMore = true
+    private var netflixHasMore = true
+
     private val heroHandler = Handler(Looper.getMainLooper())
     private val heroRunnable = object : Runnable {
         override fun run() {
@@ -99,6 +116,18 @@ class OppaDramaHomeFragment : Fragment() {
         headerDramaChina = view.findViewById(R.id.headerDramaChina)
         headerFilmKorea = view.findViewById(R.id.headerFilmKorea)
         headerNetflix = view.findViewById(R.id.headerNetflix)
+
+        val openCategory = { cat: String, title: String ->
+            startActivity(Intent(requireContext(), CategoryGridActivity::class.java).apply {
+                putExtra(CategoryGridActivity.EXTRA_CATEGORY, cat)
+                putExtra(CategoryGridActivity.EXTRA_TITLE, title)
+            })
+        }
+        headerEpsTerbaru.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_EPISODES, "Eps Terbaru") }
+        headerDramaKorea.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_DRAMA_KOREA, "Drama Korea") }
+        headerDramaChina.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_DRAMA_CHINA, "Drama China") }
+        headerFilmKorea.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_FILM_KOREA, "Film Korea") }
+        headerNetflix.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_NETFLIX, "Netflix") }
 
         swipeRefresh.setColorSchemeResources(R.color.netflix_red)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
@@ -164,6 +193,17 @@ class OppaDramaHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = episodesAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        if (lm.findLastCompletelyVisibleItemPosition() >= lm.itemCount - 3 && !epsLoading && epsHasMore) {
+                            loadMoreEps()
+                        }
+                    }
+                }
+            })
         }
 
         dramaKoreaAdapter = NetflixCardAdapter(openDetail)
@@ -171,6 +211,17 @@ class OppaDramaHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = dramaKoreaAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        if (lm.findLastCompletelyVisibleItemPosition() >= lm.itemCount - 3 && !dramaKoreaLoading && dramaKoreaHasMore) {
+                            loadMoreDramaKorea()
+                        }
+                    }
+                }
+            })
         }
 
         dramaChinaAdapter = NetflixCardAdapter(openDetail)
@@ -178,6 +229,17 @@ class OppaDramaHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = dramaChinaAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        if (lm.findLastCompletelyVisibleItemPosition() >= lm.itemCount - 3 && !dramaChinaLoading && dramaChinaHasMore) {
+                            loadMoreDramaChina()
+                        }
+                    }
+                }
+            })
         }
 
         filmKoreaAdapter = NetflixCardAdapter(openDetail)
@@ -185,6 +247,17 @@ class OppaDramaHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = filmKoreaAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        if (lm.findLastCompletelyVisibleItemPosition() >= lm.itemCount - 3 && !filmKoreaLoading && filmKoreaHasMore) {
+                            loadMoreFilmKorea()
+                        }
+                    }
+                }
+            })
         }
 
         netflixAdapter = NetflixCardAdapter(openDetail)
@@ -192,6 +265,17 @@ class OppaDramaHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = netflixAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        if (lm.findLastCompletelyVisibleItemPosition() >= lm.itemCount - 3 && !netflixLoading && netflixHasMore) {
+                            loadMoreNetflix()
+                        }
+                    }
+                }
+            })
         }
 
         continueWatchingAdapter = ContinueWatchingAdapter { entry ->
@@ -253,6 +337,8 @@ class OppaDramaHomeFragment : Fragment() {
         if (!isAdded) return
         loadingLayout.visibility = View.GONE
         swipeRefresh.isRefreshing = false
+        epsPage = 1; dramaKoreaPage = 1; dramaChinaPage = 1; filmKoreaPage = 1; netflixPage = 1
+        epsHasMore = true; dramaKoreaHasMore = true; dramaChinaHasMore = true; filmKoreaHasMore = true; netflixHasMore = true
         heroItems.clear(); heroItems.addAll(cached.hero)
         episodeItems.clear(); episodeItems.addAll(cached.latestEpisodes)
         dramaKoreaItems.clear(); dramaKoreaItems.addAll(cached.category1)
@@ -304,6 +390,91 @@ class OppaDramaHomeFragment : Fragment() {
             continueWatchingAdapter.submitList(entries)
         } else {
             continueWatchingSection.visibility = View.GONE
+        }
+    }
+
+    private fun loadMoreEps() {
+        if (epsLoading || !epsHasMore) return
+        epsLoading = true
+        val nextPage = epsPage + 1
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
+                val newItems = withContext(Dispatchers.IO) { provider.getLatestEpisodes(nextPage).map { ep -> Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate) } }
+                if (isAdded) {
+                    if (newItems.isEmpty()) epsHasMore = false
+                    else { episodeItems.addAll(newItems); epsPage = nextPage; episodesAdapter.submitList(episodeItems.toList()) }
+                    epsLoading = false
+                }
+            } catch (e: Exception) { if (isAdded) { epsHasMore = false; epsLoading = false } }
+        }
+    }
+
+    private fun loadMoreDramaKorea() {
+        if (dramaKoreaLoading || !dramaKoreaHasMore) return
+        dramaKoreaLoading = true
+        val nextPage = dramaKoreaPage + 1
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
+                val newItems = withContext(Dispatchers.IO) { provider.getDramaKorea(nextPage) }
+                if (isAdded) {
+                    if (newItems.isEmpty()) dramaKoreaHasMore = false
+                    else { dramaKoreaItems.addAll(newItems); dramaKoreaPage = nextPage; dramaKoreaAdapter.submitList(dramaKoreaItems.toList()) }
+                    dramaKoreaLoading = false
+                }
+            } catch (e: Exception) { if (isAdded) { dramaKoreaHasMore = false; dramaKoreaLoading = false } }
+        }
+    }
+
+    private fun loadMoreDramaChina() {
+        if (dramaChinaLoading || !dramaChinaHasMore) return
+        dramaChinaLoading = true
+        val nextPage = dramaChinaPage + 1
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
+                val newItems = withContext(Dispatchers.IO) { provider.getDramaChina(nextPage) }
+                if (isAdded) {
+                    if (newItems.isEmpty()) dramaChinaHasMore = false
+                    else { dramaChinaItems.addAll(newItems); dramaChinaPage = nextPage; dramaChinaAdapter.submitList(dramaChinaItems.toList()) }
+                    dramaChinaLoading = false
+                }
+            } catch (e: Exception) { if (isAdded) { dramaChinaHasMore = false; dramaChinaLoading = false } }
+        }
+    }
+
+    private fun loadMoreFilmKorea() {
+        if (filmKoreaLoading || !filmKoreaHasMore) return
+        filmKoreaLoading = true
+        val nextPage = filmKoreaPage + 1
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
+                val newItems = withContext(Dispatchers.IO) { provider.getFilmKorea(nextPage) }
+                if (isAdded) {
+                    if (newItems.isEmpty()) filmKoreaHasMore = false
+                    else { filmKoreaItems.addAll(newItems); filmKoreaPage = nextPage; filmKoreaAdapter.submitList(filmKoreaItems.toList()) }
+                    filmKoreaLoading = false
+                }
+            } catch (e: Exception) { if (isAdded) { filmKoreaHasMore = false; filmKoreaLoading = false } }
+        }
+    }
+
+    private fun loadMoreNetflix() {
+        if (netflixLoading || !netflixHasMore) return
+        netflixLoading = true
+        val nextPage = netflixPage + 1
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.OPPADRAMA_ID) as OppaDramaScraper
+                val newItems = withContext(Dispatchers.IO) { provider.getNetflix(nextPage) }
+                if (isAdded) {
+                    if (newItems.isEmpty()) netflixHasMore = false
+                    else { netflixItems.addAll(newItems); netflixPage = nextPage; netflixAdapter.submitList(netflixItems.toList()) }
+                    netflixLoading = false
+                }
+            } catch (e: Exception) { if (isAdded) { netflixHasMore = false; netflixLoading = false } }
         }
     }
 }

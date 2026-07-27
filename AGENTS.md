@@ -32,7 +32,8 @@ WeebFlix/app/src/main/
 │       ├── home/
 │       │   ├── HomeFragment.kt           # Provider chip switcher + fragment container
 │       │   ├── SamehadakuHomeFragment.kt # Samehadaku home (static hero + 3 rows)
-│       │   └── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
+│       │   ├── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
+│       │   └── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
 │       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
@@ -96,14 +97,17 @@ WeebFlix/app/src/main/
 - Features: Cookie-based auth, token extraction from episode page (Base64 encoded), server resolution via `oppadrama/api/v2` endpoints, turboviplay CDN support with Referer validation
 - Key methods: `getHomeContent()`, `getAllAnime(page)`, `getAnimeDetail()`, `getEpisodeServers()`, `getEpisodeNavigation()`
 - Server resolution: Extracts `oppaDramaData` JSON from episode page, resolves Hydrax token via `api/v2/getToken.php`, resolves server via `api/v2/server.php`, final video URL via `api/v2/video_hydrax.php` or turboviplay CDN
+- **OppaDrama Home:** Provider-specific home fragment (`OppaDramaHomeFragment.kt`) with 5 clickable sections: Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix. Each section has horizontal infinite scroll and "Lihat Semua" opens `CategoryGridActivity`
+- **CategoryGridActivity:** Supports OppaDrama categories (`CATEGORY_DRAMA_KOREA`, `CATEGORY_DRAMA_CHINA`, `CATEGORY_FILM_KOREA`, `CATEGORY_NETFLIX`) with infinite scroll
 
 ## Features
 - **Home:** Provider chip switcher, each provider has its own home fragment:
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll)
   - DrakorKita: Auto-scrolling ViewPager2 hero carousel (4s interval) + Continue Watching + Episodes + Movies + Series (infinite scroll)
+  - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
-- **Category Grid:** Full-screen 3-column grid for DrakorKita categories (Episodes/Movies/Series/All) with infinite scroll
+- **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
 - **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), skip opening/outro, auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation
 - **Settings:** Per-provider domain configuration with chip selector, validation, and reset
@@ -131,14 +135,13 @@ WeebFlix/app/src/main/
 
 ### Other Servers
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
-- **filedon.co (VIP STREAMING)**: Embed loads via `https://filedon.co/embed/...` — needs further extraction (TODO)
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
-- **OppaDrama / turboviplay CDN**: After Hydrax token resolves to `cdn2.turboviplay.com/data3/.../....m3u8`, CDN requires `Referer: https://emturbovid.com/` and `Origin: https://emturbovid.com/` headers; without them TS segments fail with `Cannot find sync byte` after a few seconds
 
 ## ExoPlayer Configuration
-- Buffer: `minBufferMs=15s`, `maxBufferMs=60s`, `bufferForPlaybackMs=2.5s`, `bufferForPlaybackAfterRebufferMs=1.5s`
+- Buffer: `minBufferMs=15s`, `maxBufferMs=60s`, `bufferForPlaybackMs=3s`, `bufferForPlaybackAfterRebufferMs=2s` (reduced buffer to avoid 429 rate limiting on turboviplay CDN)
 - Cache: `SimpleCache` with 250MB limit
-- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com`, `abysscdn.com`/`hydrax`/`drakor.bid`, and `turboviplay.com` URLs
+- OkHttp: Adds `Referer`/`Origin` headers for `googlevideo.com`, `abysscdn.com`/`hydrax`/`drakor.bid`, and `turboviplay.com` URLs (Referer = `turbovidhls.com`)
+- Retry: 429-specific retry with `Retry-After` header support (4 retries, 3s backoff)
 - Track selector: Max 1920x1080, preferred audio `id` (Indonesian)
 - Episode navigation: `EpisodeNavigation` data class with prev/next URLs, auto-play chain pre-fetches next-next episode
 
@@ -189,7 +192,45 @@ WeebFlix/app/src/main/
 | HTML embed page played directly as video URL | Generic `server.videoUrl` check now requires `isDirectVideo` (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
 | OppaDrama servers fail to resolve | Token-based pipeline: extract `oppaDramaData` JSON → resolve Hydrax token → resolve server via API v2 |
 
+## Open Bugs (Still Buggy — Needs Further Investigation)
+
+### 1. OppaDrama turboviplay CDN — HTTP 429 rate limiting after ~30s-2min
+- **Server:** TurboVIP → `emturbovid.com/t/6a6636b94a2fb` → WebView resolves to `https://cdn2.turboviplay.com/data3/6a6636b94a2fb/6a6636b94a2fb.m3u8`
+- **Symptom:** Video plays for 30s-2min then ExoPlayer throws `HttpDataSource$InvalidResponseCodeException: Response code: 429`. NOT a "Cannot find sync byte" — it's a rate limit.
+- **CORS origin in embed page:** `https://turbovidhls.com` (NOT `emturbovid.com`)
+- **Root cause:** CDN rate-limits too many segment requests. ExoPlayer's aggressive buffering (120s ahead) triggers 429.
+- **Attempted fixes:**
+  - v1: Added Referer/Origin `https://emturbovid.com/` → 429 after ~80s
+  - v2: Changed Referer/Origin to `https://turbovidhls.com/` → 429 after 30s-2min (rate limit is the issue, not Referer)
+  - v3: Reduced buffer 120s→60s + added 429-specific retry with Retry-After header support (4 retries, 3s backoff) → **TESTING**
+- **Code locations:** `PlayerActivity.kt` OkHttp interceptor (L115-117), retry interceptor (L121-134), `initExoPlayer` upstream factory (L1354-1358), loadControl (L1376-1384)
+- **Possible next steps:**
+  - If still 429: Try adding per-request delay in OkHttp interceptor for turboviplay segment requests (e.g., 100ms sleep before each segment)
+  - Try disabling ExoPlayer cache for turboviplay URLs (stale cache re-fetching may trigger extra requests)
+  - CDN may have a fixed rate limit per IP per minute — need to measure how many segments/min it allows
+  - Try fetching m3u8 manually via OkHttp to check if rate limit is per-session or per-IP
+
+### 2. OppaDrama FileLions (minochinos.com) — WebView loads embed, no video URL intercepted
+- **Server:** FileLions → `https://minochinos.com/v/5k9cuh96zb25`
+- **Symptom:** WebView loads embed page but no video URL intercepted — embed page JS doesn't expose video URL in a way our JS extraction can find it
+- **Attempted fixes:**
+  - v1: Added `minochinos.com`/`filelions` to `shouldInterceptRequest` isVideoUrl → BROKE IT (page URL itself intercepted, ExoPlayer got HTML not video → `UnrecognizedInputFormatException`)
+  - v2: Removed `minochinos.com`/`filelions` from isVideoUrl + added `extractFileLionsVideoJs()` + increased timeout to 15s → **TESTING**
+- **Code locations:** `PlayerActivity.kt` `resolveEmbedUrlViaWebView()` (L2337-2343 timeout), `shouldInterceptRequest()` (L458-466 isVideoUrl — must NOT contain minochinos.com), `extractFileLionsVideoJs()` (L2713+)
+- **Possible next steps:**
+  - Check if minochinos.com loads a sub-iframe (another domain) that contains the actual player
+  - Use OkHttp to fetch the minochinos.com page HTML directly and parse with regex/Jsoup
+  - Try increasing timeout to 20s for FileLions
+  - FileLions may use blob URLs or WebM players that can't be intercepted via XHR
+
+### 3. OppaDrama Hydrax server — Same turboviplay CDN failure
+- **Server:** Hydrax → loads episode page → WebView intercepts same `cdn2.turboviplay.com` URL
+- **Symptom:** Same HTTP 429 rate limiting after ~30s-2min (uses same CDN as bug #1)
+- **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
+
 ## TODO / Next Session
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
+- **Fix turboviplay CDN "Cannot find sync byte"** (see Open Bug #1) — test with `turbovidhls.com` Referer, if still fails try other approaches
+- **Fix FileLions/minochinos.com WebView timeout** (see Open Bug #2) — test JS extraction, if fails try OkHttp HTML fetch or sub-iframe detection
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
