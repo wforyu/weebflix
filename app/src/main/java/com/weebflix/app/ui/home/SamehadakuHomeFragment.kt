@@ -305,7 +305,7 @@ class SamehadakuHomeFragment : Fragment() {
         val ongoing = withContext(Dispatchers.IO) { provider.getOngoingAnime(1) }
         val popular = withContext(Dispatchers.IO) { provider.getPopularAnime(1) }
         if (!isAdded) return
-        applySamehadakuData(latest, ongoing, popular)
+        withContext(Dispatchers.Main) { applySamehadakuData(latest, ongoing, popular) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = latest.take(10).map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) },
             latestEpisodes = latest.map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },

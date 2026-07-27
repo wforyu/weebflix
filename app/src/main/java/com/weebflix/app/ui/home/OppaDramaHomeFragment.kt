@@ -282,10 +282,12 @@ class OppaDramaHomeFragment : Fragment() {
         val filmKorea = withContext(Dispatchers.IO) { provider.getFilmKorea() }
         val netflix = withContext(Dispatchers.IO) { provider.getNetflix() }
         if (!isAdded) return
-        applyOppaData(com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
-            hero = home.featured, latestEpisodes = home.latestEpisodes,
-            category1 = dramaKorea, category2 = dramaChina, category3 = filmKorea, category4 = netflix
-        ))
+        withContext(Dispatchers.Main) {
+            applyOppaData(com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+                hero = home.featured, latestEpisodes = home.latestEpisodes,
+                category1 = dramaKorea, category2 = dramaChina, category3 = filmKorea, category4 = netflix
+            ))
+        }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = home.featured, latestEpisodes = home.latestEpisodes,
             category1 = dramaKorea, category2 = dramaChina, category3 = filmKorea, category4 = netflix

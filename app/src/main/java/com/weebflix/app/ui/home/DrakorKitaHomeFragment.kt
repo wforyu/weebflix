@@ -293,11 +293,12 @@ class DrakorKitaHomeFragment : Fragment() {
     private suspend fun refreshDrakorKitaData(provider: DrakorKitaScraper) {
         val home = withContext(Dispatchers.IO) { provider.getHomeContent() }
         if (!isAdded) return
-        applyDrakorKitaData(com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
+        val cachedData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = home.featured,
             latestEpisodes = home.latestEpisodes.map { ep -> com.weebflix.app.data.model.Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate) },
             category1 = home.movies, category2 = home.series, category3 = emptyList(), category4 = emptyList()
-        ))
+        )
+        withContext(Dispatchers.Main) { applyDrakorKitaData(cachedData) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = home.featured,
             latestEpisodes = home.latestEpisodes.map { ep -> com.weebflix.app.data.model.Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate) },
