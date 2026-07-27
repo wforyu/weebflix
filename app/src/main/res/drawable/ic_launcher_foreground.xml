@@ -5,19 +5,20 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Main N shape: left bar + diagonal (bright red) -->
+    <!-- Netflix N — scaled to fit adaptive icon safe zone (centered, ~65%) -->
+    <!-- Path 1: left bar + diagonal body (bright red) -->
     <path
         android:fillColor="#E50914"
-        android:pathData="M24.291,0 L61.857,106.209 C72.414,106.475 83.709,107.991 83.709,107.991 L45.509,0 Z" />
+        android:pathData="M34.7,18.9 L59.1,87.9 C66,88.1 73.3,89.1 73.3,89.1 L48.5,18.9 Z" />
 
-    <!-- Right bar (bright red) -->
+    <!-- Path 2: right vertical bar (bright red) -->
     <path
         android:fillColor="#E50914"
-        android:pathData="M62.492,0 L62.492,41.274 L83.71,101.259 L83.71,0 Z" />
+        android:pathData="M59.5,18.9 L59.5,45.7 L73.3,84.7 L73.3,18.9 Z" />
 
-    <!-- Fold shadow at bottom-left (dark red) -->
+    <!-- Path 3: fold shadow at bottom-left (dark red) -->
     <path
         android:fillColor="#B20710"
-        android:pathData="M24.291,6.75 L24.291,108 C32.72,106.987 36.936,106.596 45.509,106.209 L45.509,66.735 Z" />
+        android:pathData="M34.7,23.3 L34.7,89.1 C40.2,88.4 42.9,88.2 48.5,87.9 L48.5,62.3 Z" />
 
 </vector>

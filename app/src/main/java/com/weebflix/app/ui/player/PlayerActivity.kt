@@ -2056,6 +2056,39 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
+            Log.d(TAG, "OppaDrama server detected: ${server.name}, videoUrl=${server.videoUrl}")
+            if (server.videoUrl.isNotEmpty()) {
+                val isDirect = server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") || server.videoUrl.contains(".mpd")
+                if (isDirect) {
+                    resolvedUrlCache[serverIndex] = server.videoUrl
+                    loadingPlayer.visibility = View.GONE
+                    initExoPlayer(server.videoUrl)
+                } else {
+                    resolveEmbedUrlViaWebView(server.videoUrl, server, serverIndex)
+                }
+            } else {
+                resolveWithWebView(server) { resolvedUrl ->
+                    runOnUiThread {
+                        if (!isFinishing) {
+                            if (resolvedUrl.isNotEmpty()) {
+                                loadingPlayer.visibility = View.GONE
+                                if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mpd") || resolvedUrl.contains("googlevideo.com")) {
+                                    resolvedUrlCache[serverIndex] = resolvedUrl
+                                    initExoPlayer(resolvedUrl)
+                                } else {
+                                    resolveEmbedUrl(resolvedUrl, server, serverIndex)
+                                }
+                            } else {
+                                scheduleAutoFail(server.name)
+                            }
+                        }
+                    }
+                }
+            }
+            return
+        }
+
         if (server.name.contains("Blogspot", ignoreCase = true) || server.url.contains("blogger.com") || server.url.contains("blogspot") || server.url.contains("bp.blogspot.com")) {
             Log.d(TAG, "Blogger server detected, using fast AJAX + XHR path...")
             lifecycleScope.launch {

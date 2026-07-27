@@ -18,6 +18,7 @@ import com.weebflix.app.R
 import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.DrakorKitaScraper
+import com.weebflix.app.data.scraper.OppaDramaScraper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -144,21 +145,39 @@ class CategoryGridActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val provider = ProviderFactory.getProvider(ProviderFactory.DRAKORKITA_ID) as DrakorKitaScraper
+                val activeProvider = ProviderFactory.getActiveProvider()
+                val isOppaDrama = activeProvider.id == ProviderFactory.OPPADRAMA_ID
+                val isDrakorKita = activeProvider.id == ProviderFactory.DRAKORKITA_ID
+
                 val newItems = withContext(Dispatchers.IO) {
-                    when (category) {
-                        CATEGORY_EPISODES -> provider.getHomeContent().latestEpisodes.map { ep ->
-                            Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
+                    if (isOppaDrama) {
+                        val provider = activeProvider as OppaDramaScraper
+                        when (category) {
+                            CATEGORY_EPISODES -> provider.getLatestEpisodes(currentPage).map { ep ->
+                                Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
+                            }
+                            CATEGORY_MOVIES -> provider.getFilmKorea(currentPage)
+                            CATEGORY_SERIES -> provider.getDramaKorea(currentPage)
+                            else -> provider.getOngoingAnime(currentPage)
                         }
-                        CATEGORY_MOVIES -> {
-                            if (currentPage <= 1) provider.getHomeContent().movies
-                            else provider.getOngoingAnime(currentPage)
+                    } else if (isDrakorKita) {
+                        val provider = activeProvider as DrakorKitaScraper
+                        when (category) {
+                            CATEGORY_EPISODES -> provider.getHomeContent().latestEpisodes.map { ep ->
+                                Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
+                            }
+                            CATEGORY_MOVIES -> {
+                                if (currentPage <= 1) provider.getHomeContent().movies
+                                else provider.getOngoingAnime(currentPage)
+                            }
+                            CATEGORY_SERIES -> {
+                                if (currentPage <= 1) provider.getHomeContent().series
+                                else provider.getPopularAnime(currentPage)
+                            }
+                            else -> provider.getAllAnime(currentPage)
                         }
-                        CATEGORY_SERIES -> {
-                            if (currentPage <= 1) provider.getHomeContent().series
-                            else provider.getPopularAnime(currentPage)
-                        }
-                        else -> provider.getAllAnime(currentPage)
+                    } else {
+                        activeProvider.getOngoingAnime(currentPage)
                     }
                 }
 

@@ -102,6 +102,7 @@ class OngoingFragment : Fragment() {
         lastProviderId = providerId
         when (providerId) {
             ProviderFactory.DRAKORKITA_ID -> tvOngoingTitle.text = getString(R.string.all_movies)
+            ProviderFactory.OPPADRAMA_ID -> tvOngoingTitle.text = getString(R.string.all_series)
             else -> tvOngoingTitle.text = getString(R.string.ongoing_anime_list)
         }
     }

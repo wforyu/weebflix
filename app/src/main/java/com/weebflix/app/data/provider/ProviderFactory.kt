@@ -2,12 +2,14 @@ package com.weebflix.app.data.provider
 
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.scraper.DrakorKitaScraper
+import com.weebflix.app.data.scraper.OppaDramaScraper
 import com.weebflix.app.data.scraper.SamehadakuScraper
 
 object ProviderFactory {
 
     const val SAMEHADAKU_ID = "samehadaku"
     const val DRAKORKITA_ID = "drakorkita"
+    const val OPPADRAMA_ID = "oppadrama"
 
     private val providers = mutableMapOf<String, AnimeProvider>()
 
@@ -18,6 +20,9 @@ object ProviderFactory {
             }
             providers[DRAKORKITA_ID] = DrakorKitaScraper().also {
                 it.baseUrl = ProviderConfig.getBaseUrl(DRAKORKITA_ID)
+            }
+            providers[OPPADRAMA_ID] = OppaDramaScraper().also {
+                it.baseUrl = ProviderConfig.getBaseUrl(OPPADRAMA_ID)
             }
         }
         return providers.values.toList()

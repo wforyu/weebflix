@@ -15,6 +15,9 @@ object ProviderConfig {
     private const val KEY_BASE_URL_DRAKORKITA = "base_url_drakorkita"
     private const val DEFAULT_BASE_URL_DRAKORKITA = "https://drakor.kita.mobi"
 
+    private const val KEY_BASE_URL_OPPADRAMA = "base_url_oppadrama"
+    private const val DEFAULT_BASE_URL_OPPADRAMA = "http://45.11.57.192"
+
     private const val KEY_BASE_URL_LEGACY = "base_url"
 
     private lateinit var prefs: SharedPreferences
@@ -49,6 +52,7 @@ object ProviderConfig {
         return when (providerId) {
             "samehadaku" -> prefs.getString(KEY_BASE_URL_SAMEHADAKU, DEFAULT_BASE_URL_SAMEHADAKU) ?: DEFAULT_BASE_URL_SAMEHADAKU
             "drakorkita" -> prefs.getString(KEY_BASE_URL_DRAKORKITA, DEFAULT_BASE_URL_DRAKORKITA) ?: DEFAULT_BASE_URL_DRAKORKITA
+            "oppadrama" -> prefs.getString(KEY_BASE_URL_OPPADRAMA, DEFAULT_BASE_URL_OPPADRAMA) ?: DEFAULT_BASE_URL_OPPADRAMA
             else -> prefs.getString(KEY_BASE_URL_SAMEHADAKU, DEFAULT_BASE_URL_SAMEHADAKU) ?: DEFAULT_BASE_URL_SAMEHADAKU
         }
     }
@@ -57,6 +61,7 @@ object ProviderConfig {
         val key = when (providerId) {
             "samehadaku" -> KEY_BASE_URL_SAMEHADAKU
             "drakorkita" -> KEY_BASE_URL_DRAKORKITA
+            "oppadrama" -> KEY_BASE_URL_OPPADRAMA
             else -> return
         }
         prefs.edit().putString(key, url.trimEnd('/')).apply()
@@ -66,6 +71,7 @@ object ProviderConfig {
         val key = when (providerId) {
             "samehadaku" -> KEY_BASE_URL_SAMEHADAKU
             "drakorkita" -> KEY_BASE_URL_DRAKORKITA
+            "oppadrama" -> KEY_BASE_URL_OPPADRAMA
             else -> return
         }
         prefs.edit().remove(key).apply()
@@ -75,6 +81,7 @@ object ProviderConfig {
         return when (providerId) {
             "samehadaku" -> DEFAULT_BASE_URL_SAMEHADAKU
             "drakorkita" -> DEFAULT_BASE_URL_DRAKORKITA
+            "oppadrama" -> DEFAULT_BASE_URL_OPPADRAMA
             else -> DEFAULT_BASE_URL_SAMEHADAKU
         }
     }
