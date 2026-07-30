@@ -8,7 +8,7 @@ Aplikasi Android untuk nonton streaming anime dan drakor dari berbagai provider,
 |----------|-----|--------|
 | **Samehadaku** | `v2.samehadaku.how` | Anime (Latest, Ongoing, Popular) |
 | **DrakorKita** | `drakor.kita.mobi` | Drakor (Episode, Movie, Serie) |
-| **OppaDrama** | `45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
+| **OppaDrama** | `http://45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
 
 Bisa switch provider langsung dari tab Home, dan setiap provider punya domain yang bisa dikonfigurasi di Settings.
 
@@ -17,12 +17,12 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Splash Screen** | Logo "N" ribbon merah (#E50914) di background hitam, zoom-in Tudum-style animation |
-| **Multi-Provider Home** | Chip switcher untuk ganti antara Samehadaku dan DrakorKita, masing-masing dengan layout sendiri |
-| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita) atau static hero (Samehadaku) dengan Play + Info buttons |
+| **Multi-Provider Home** | Chip switcher untuk ganti antara Samehadaku / DrakorKita / OppaDrama, masing-masing dengan layout sendiri |
+| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita) atau static hero (Samehadaku) atau 5 clickable sections (OppaDrama) dengan Play + Info buttons |
 | **Continue Watching** | Simpan progress tontonan otomatis per provider, muncul di home dengan progress bar merah, tap untuk lanjut |
 | **Search** | Pencarian real-time dengan debounce 500ms + Riwayat pencarian (max 20, chip UI) |
 | **Ongoing** | Grid anime sedang tayang, fetch semua halaman via vertical infinite scroll |
-| **Category Grid** | Full-screen 3-column grid untuk Semua Episode / Movie / Serie (DrakorKita) dengan infinite scroll |
+| **Category Grid** | Full-screen 3-column grid untuk Semua Episode / Movie / Serie (DrakorKita) atau Drama Korea / China / Film Korea / Netflix (OppaDrama) dengan infinite scroll |
 | **Detail Anime** | Banner parallax, sinopsis, info lengkap, daftar episode dengan spinner range (100 eps/chunk) |
 | **Video Player** | ExoPlayer (Media3), server picker floating, gesture (brightness/volume/seek), skip opening/outro, PiP, fullscreen, episode navigation (prev/next) |
 | **Settings** | Konfigurasi domain per provider dengan validasi URL, reset default |
@@ -39,7 +39,7 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 | Glide | 4.16.0 | Image loading & caching + KSP |
 | Material Design | 1.11.0 | UI components (Chips, CardView) |
 | AndroidX Core | 1.12.0 | Core libraries |
-| Media3 ExoPlayer | 1.2.1 | Video playback (HLS, DASH, RTSP) |
+| Media3 ExoPlayer | 1.5.1 | Video playback (HLS, DASH, RTSP) |
 | ViewPager2 | - | Hero banner carousel |
 | Coroutines | 1.7.3 | Async operations |
 | Lifecycle | 2.7.0 | ViewModel + LiveData |
@@ -52,8 +52,8 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 |-----------|-------|
 | Gradle | 9.5.0 |
 | AGP | 9.3.0 |
-| KSP | 2.2.10-2.0.2 |
-| compileSdk | 34 |
+| KSP | 2.2.10-2.0.2 (for Glide) |
+| compileSdk | 35 |
 | minSdk | 24 (Android 7.0) |
 | targetSdk | 34 (Android 14) |
 | Package | `com.weebflix.app` |
@@ -105,14 +105,16 @@ WeebFlix/app/src/main/
 │   │   │   └── ProviderFactory.kt     # Singleton registry, getActiveProvider(), refreshBaseUrls()
 │   │   └── scraper/
 │   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
-│   │       └── DrakorKitaScraper.kt   # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       ├── DrakorKitaScraper.kt   # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       └── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt   # Splash screen
 │       ├── main/MainActivity.kt       # Bottom nav host (Home/Search/Ongoing/Settings)
 │       ├── home/
-│       │   ├── HomeFragment.kt        # Provider chip switcher + fragment container
-│       │   ├── SamehadakuHomeFragment.kt  # Samehadaku home (static hero + 3 rows)
-│       │   └── DrakorKitaHomeFragment.kt  # DrakorKita home (auto-scroll hero + 3 rows)
+│   │       ├── HomeFragment.kt            # Provider chip switcher + fragment container
+│   │       ├── SamehadakuHomeFragment.kt  # Samehadaku home (static hero + 3 rows)
+│   │       ├── DrakorKitaHomeFragment.kt  # DrakorKita home (auto-scroll hero + 3 rows)
+│   │       └── OppaDramaHomeFragment.kt   # OppaDrama home (5 clickable sections + h-scroll)
 │       ├── search/SearchFragment.kt   # Search tab with history
 │       ├── ongoing/OngoingFragment.kt # Ongoing tab with pagination
 │       ├── settings/SettingsFragment.kt   # Per-provider domain config (as Fragment)
@@ -135,7 +137,8 @@ WeebFlix/app/src/main/
 │   ├── drawable/      # Vector icons, backgrounds, gradients
 │   ├── values/        # colors, strings, themes
 │   ├── anim/          # Splash animations
-│   └── menu/          # Bottom navigation menu
+│   ├── menu/          # Bottom navigation menu
+│   └── raw/           # hls_min.js (bundled HLS player for turboviplay CDN)
 ├── build.gradle.kts
 ├── settings.gradle.kts
 └── gradle.properties
@@ -143,16 +146,18 @@ WeebFlix/app/src/main/
 
 ## Cara Kerja
 
-1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`) saat app start
+1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`, `OppaDramaScraper`) saat app start
 2. **HomeFragment** tampilkan chip switcher — user pilih provider, fragment container swap
 3. **Scraper** fetch HTML dari website masing-masing pakai OkHttp (DrakorKita pakai trust-all SSL certs)
 4. **Jsoup** parse HTML jadi data objects (`Anime`, `Episode`, `VideoServer`, `AnimeDetail`)
 5. **UI** tampilkan data pakai RecyclerView + Glide untuk gambar
 6. **Player** resolve server URL berdasarkan provider:
-   - **Blogspot**: AJAX + XHR interception → ExoPlayer
+   - **Blogspot (Samehadaku)**: AJAX POST → `blogger.com/video.g?token=` → WebView XHR interception → batchexecute parsing → googlevideo.com URL
    - **DrakorKita**: 3-step API (episode.php → server.php → video_hydrax.php) → Abyss CDN / direct MP4
-   - **OppaDrama**: Token-based server resolution via `oppadrama/api/v2` endpoints, WebView-based token extraction, turboviplay CDN with Referer validation
+   - **OppaDrama (Token API)**: Extract `oppaDramaData` JSON → resolve Hydrax token via `api/v2/getToken.php` → resolve server via `api/v2/server.php` → final video via `api/v2/video_hydrax.php`
+   - **OppaDrama (TurboVIP)**: WebView intercepts `emturbovid.com/t/{id}` → bundled hls.js + OkHttp proxy → m3u8 playback (rate limited)
    - **Wibufile**: Direct MP4 URL
+   - **FileLions**: WebView JS extraction + OkHttp HTML fallback
 7. **Watch History** simpan progress per provider ke SharedPreferences, tampilkan di Home
 
 ## Bugs & Solutions
@@ -163,30 +168,52 @@ WeebFlix/app/src/main/
 | Server embed bukan video URL | Deteksi kegagalan, return embed URL untuk WebView |
 | Episode list tidak terurut | Parse nomor episode dari title, sort numerik |
 | 1000+ episode causes OOM | Spinner dengan range 100 episode per chunk |
-| Fragment crash saat tab switch | Tag-based fragment lookup |
+| Fragment crash saat tab switch | Tag-based fragment lookup via `supportFragmentManager.findFragmentByTag()` |
+| Ongoing RecyclerView tidak full height | `match_parent` + `layout_weight="1"` di parent LinearLayout |
 | Fullscreen tidak toggle | Flag `isSystemBarsHidden` dengan icon swap |
 | Splash status bar abu-abu | Set status bar color ke `@color/black` di theme |
+| Search active icon tidak terwarnai | Pakai solid red fill vector, bukan outline |
 | WebView lazy init | `ensureWebView()` hanya dipanggil saat dibutuhkan |
 | wibuu.info domain mati | Scraper extract inner blogspot URL dari query param |
 | file.fm script embed | Scraper deteksi `<script src="file.fm/...">`, return embed URL |
 | Blogspot.com not detected | `resolveEmbedUrlViaWebView()` recognizes `blogspot.com` as Blogger |
 | Search crash (suspend) | Wrap `performSearch` di `lifecycleScope.launch` |
+| Episode order reversed | Fix scraper selector dan sorting logic |
 | DrakorKita SSL errors | Trust-all SSL certificates on OkHttpClient |
 | DrakorKita dead domains | Auto-rewrite old domain URLs to current domain |
+| Stale WebView callbacks | `resolveGeneration` counter mencegah old callbacks diproses |
 | Video plays few seconds then disconnects (turboviplay CDN) | Added Referer/Origin headers for `turboviplay.com` domain in OkHttp interceptor and ExoPlayer defaultRequestProperties |
 | HTML embed page played as video URL | Generic `videoUrl` check now validates direct video URL (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
+| OppaDrama servers fail to resolve | Token-based pipeline: extract `oppaDramaData` JSON → resolve Hydrax token → resolve server via API v2 |
+
+## Open Bugs (Masih Bermasalah)
+
+### 1. OppaDrama turboviplay CDN — HTTP 429 rate limiting (PERSISTENT)
+- **Server:** TurboVIP → `emturbovid.com/t/{id}` → `cdn2.turboviplay.com/data3/{id}/{id}.m3u8`
+- **CDN chain:** `cdn2.turboviplay.com` (master) → `g266.turbosplayer.com` (sub-playlist) → `lh3.googleusercontent.com` (.ts segments)
+- **Root cause:** Google CDN rate-limits per-IP setelah ~5-8 segment requests
+- **Current state:** WebView + hls.js + OkHttp proxy, first ~10s play lalu 429, retry eventually plays through with gaps
+
+### 2. OppaDrama FileLions (minochinos.com) — WebView loads embed, no video URL intercepted
+- **Symptom:** Embed page JS tidak expose video URL dengan cara yang bisa di-intercept
+- **Current state:** v3 fix with JS extraction + OkHttp fallback, masih testing
+
+### 3. OppaDrama Hydrax server — Same turboviplay CDN failure
+- **Symptom:** Sama dengan bug #1 (HTTP 429), uses CDN yang sama
 
 ## Konfigurasi
 
 ### Base URL per Provider
 Default Samehadaku: `https://v2.samehadaku.how`
 Default DrakorKita: `https://drakor.kita.mobi`
+Default OppaDrama: `http://45.11.57.192`
 
 Bisa diganti dari menu Settings di aplikasi, atau edit `ProviderConfig.kt`:
 ```kotlin
 private val DEFAULT_URLS = mapOf(
     "samehadaku" to "https://v2.samehadaku.how",
-    "drakorkita" to "https://drakor.kita.mobi"
+    "drakorkita" to "https://drakor.kita.mobi",
+    "oppadrama" to "http://45.11.57.192"
 )
 ```
 
