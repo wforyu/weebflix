@@ -78,6 +78,7 @@ class PlayerActivity : AppCompatActivity() {
             "analytics.", "fractionfridgejudiciary", "shroudedspoutunleveled",
             "egret.com", "egret",
             "adtrue", "adnow", "adreactor", "exosrv.com",
+            "pixel.quantserve",
             "juicyads", "adbucks", "clicksor", "bidvertiser",
             "popcash", "adtiger", "adfox", "adgain",
             "onclickads", "adf.ly", "ouo.io", "sh.st",
@@ -118,8 +119,7 @@ class PlayerActivity : AppCompatActivity() {
             "emxdgt.com", "lngtd.com", "adhigh",
             "adtima", "admicro", "dable",
             "popin.cc", "popin", "revenuehits",
-            "adkengage", "adk2x", "g.doubleclick",
-            "googlesource.com/interstitial", "interstitial"
+            "adkengage", "adk2x", "g.doubleclick"
         )
 
         private var simpleCache: androidx.media3.datasource.cache.SimpleCache? = null
@@ -426,6 +426,8 @@ class PlayerActivity : AppCompatActivity() {
             v.setPadding(v.paddingLeft, statusBar.coerceAtLeast(8), v.paddingRight, v.paddingBottom)
             val navBarHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
             bottomBar.setPadding(bottomBar.paddingLeft, bottomBar.paddingTop, bottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
+            wvTopBar.setPadding(wvTopBar.paddingLeft, statusBar.coerceAtLeast(8), wvTopBar.paddingRight, wvTopBar.paddingBottom)
+            wvBottomBar.setPadding(wvBottomBar.paddingLeft, wvBottomBar.paddingTop, wvBottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
             insets
         }
 
@@ -766,8 +768,7 @@ class PlayerActivity : AppCompatActivity() {
                     'undertone', 'vidazoo', 'visx.net',
                     'adyoulike', 'emxdgt.com', 'lngtd.com',
                     'adhigh', 'adtima', 'admicro', 'dable',
-                    'popin.cc', 'revenuehits', 'adkengage',
-                    'interstitial', 'pixel.'];
+                    'popin.cc', 'revenuehits', 'adkengage'];
                 var adClassPatterns = ['ad-', 'ad_', 'ads-', 'ads_', 'adsbygoogle',
                     'adsblock', 'adblock', 'advert', 'ad-box',
                     'banner_ad', 'banner-ads', 'popup-', 'popup_',
@@ -1059,12 +1060,208 @@ class PlayerActivity : AppCompatActivity() {
         })();
     """.trimIndent()
 
-    private fun playEpisodePageViaWebView(episodeUrl: String, server: VideoServer? = null, autoSelectJs: String? = null) {
+    private val REF_INJECT_POPUP_BLOCKER = """
+        (function() {
+            try {
+                var blockedAdPatterns = [
+                    'doubleclick', 'popads', 'propeller', 'exoclick',
+                    'adsterra', 'trafficjunky', 'clicksure', 'adserver',
+                    'shopee', 'yandex', 'metrika', 'googlead',
+                    'popunder', 'popup', 'adpartner', 'adfox'
+                ];
+                function isAdUrl(u) {
+                    if (!u || u === 'about:blank') return false;
+                    var l = u.toLowerCase();
+                    for (var i = 0; i < blockedAdPatterns.length; i++) {
+                        if (l.indexOf(blockedAdPatterns[i]) !== -1) return true;
+                    }
+                    return false;
+                }
+                var origOpen = window.open;
+                window.open = function(url, name, features, replace) {
+                    if (isAdUrl(url)) return null;
+                    var w = origOpen.call(window, url, name, features, replace);
+                    return w;
+                };
+                document.addEventListener('click', function(e) {
+                    var t = e.target;
+                    while (t) {
+                        if (t.tagName === 'A' && t.href) {
+                            if (isAdUrl(t.href)) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+                        }
+                        t = t.parentElement;
+                    }
+                }, true);
+                window.focus = function() {};
+            } catch(e) {}
+        })();
+    """.trimIndent()
+
+    private val REF_INJECT_ADBLOCK_ONLY = """
+        (function() {
+            try {
+                var adPatterns = [
+                    'googleads', 'doubleclick', 'googlesyndication', 'adservice',
+                    'adserver', 'advertisement', 'adfox', 'adpartner',
+                    'popunder', 'popup', 'clicksure', 'exoclick',
+                    'propellerads', 'trafficjunky', 'adsterra', 'popads',
+                    'onclickads', 'adsrv', 'admedia', 'adrevolution',
+                    'shopee', 'yandex', 'metrika', 'analytics'
+                ];
+                function str(v) { return v ? String(v) : ''; }
+                function removeEl(el) { if (el && el.parentNode) el.parentNode.removeChild(el); }
+                document.querySelectorAll('iframe, script, img, ins, embed, object').forEach(function(el) {
+                    var src = str(el.src || el.href || el.data || el.className || el.id);
+                    adPatterns.forEach(function(p) {
+                        if (src.toLowerCase().indexOf(p) !== -1) removeEl(el);
+                    });
+                    if (el.tagName === 'IFRAME') {
+                        var s = el.getAttribute('src') || '';
+                        if (s === '' || s === 'about:blank' || s.indexOf('javascript:') === 0) {
+                            removeEl(el);
+                        }
+                    }
+                    if (el.tagName === 'A' || el.tagName === 'DIV' || el.tagName === 'SECTION') {
+                        if (el.className && str(el.className).toLowerCase().indexOf('ad-') !== -1) removeEl(el);
+                        if (el.id && str(el.id).toLowerCase().indexOf('ad-') !== -1) removeEl(el);
+                    }
+                });
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) {
+                                var src = str(node.src || node.href || node.data || node.className || node.id);
+                                adPatterns.forEach(function(pattern) {
+                                    if (src.toLowerCase().indexOf(pattern) !== -1) removeEl(node);
+                                });
+                            }
+                        });
+                    });
+                });
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            } catch(e) {}
+        })();
+    """.trimIndent()
+
+    private val REF_INJECT_CLEAN_PAGE = """
+        (function() {
+            try {
+                if (window._dkControlsVisible) return;
+                var adPatterns = [
+                    'googleads', 'doubleclick', 'googlesyndication', 'adservice',
+                    'adserver', 'advertisement', 'adfox', 'adpartner',
+                    'popunder', 'popup', 'clicksure', 'exoclick',
+                    'propellerads', 'trafficjunky', 'adsterra', 'popads',
+                    'onclickads', 'adsrv', 'admedia', 'adrevolution',
+                    'shopee', 'yandex', 'metrika', 'analytics'
+                ];
+                function str(v) { return v ? String(v) : ''; }
+                function removeEl(el) {
+                    if (el && el.parentNode) el.parentNode.removeChild(el);
+                }
+                function fullscreen(el) {
+                    if (!el) return;
+                    el.style.width = '100vw';
+                    el.style.height = '100vh';
+                    el.style.border = 'none';
+                    el.style.position = 'fixed';
+                    el.style.top = '0';
+                    el.style.left = '0';
+                    el.style.zIndex = '99999';
+                    el.style.background = '#000';
+                    el.style.objectFit = 'contain';
+                    el.setAttribute('playsinline', '');
+                    el.scrollIntoView();
+                }
+                function makeFullscreen() {
+                    var els = document.querySelectorAll('iframe[src*="turbovidhls"], iframe[src*="turbovid"], iframe[src*="drakor"], iframe[id*="player"], iframe[class*="player"], #player, .player, video');
+                    for (var i = 0; i < els.length; i++) { fullscreen(els[i]); }
+                }
+                document.querySelectorAll('iframe, script, img, ins, embed, object').forEach(function(el) {
+                    var src = str(el.src || el.href || el.data || el.className || el.id);
+                    adPatterns.forEach(function(p) {
+                        if (src.toLowerCase().indexOf(p) !== -1) removeEl(el);
+                    });
+                    if (el.tagName === 'IFRAME') {
+                        var s = el.getAttribute('src') || '';
+                        if (s === '' || s === 'about:blank' || s.indexOf('javascript:') === 0) {
+                            removeEl(el);
+                        }
+                    }
+                    if (el.tagName === 'A' || el.tagName === 'DIV' || el.tagName === 'SECTION') {
+                        if (el.className && str(el.className).toLowerCase().indexOf('ad-') !== -1) removeEl(el);
+                        if (el.id && str(el.id).toLowerCase().indexOf('ad-') !== -1) removeEl(el);
+                    }
+                });
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) {
+                                var src = str(node.src || node.href || node.data || node.className || node.id);
+                                adPatterns.forEach(function(pattern) {
+                                    if (src.toLowerCase().indexOf(pattern) !== -1) {
+                                        removeEl(node);
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+                makeFullscreen();
+                setTimeout(makeFullscreen, 1000);
+                setTimeout(makeFullscreen, 3000);
+                var st = document.createElement('style');
+                st.id = 'nf-clean';
+                st.textContent = 'html,body{background:#000!important;margin:0!important;padding:0!important;height:100%!important;overflow:hidden!important}header,nav,footer,.header,.footer,.nav{display:none!important}';
+                document.head.appendChild(st);
+            } catch(e) {}
+        })();
+    """.trimIndent()
+
+    private val REF_INJECT_AUTOPLAY = """
+        (function() {
+            try {
+                function attemptPlay() {
+                    var v = document.querySelector('video');
+                    if (v) {
+                        v.muted = true;
+                        v.setAttribute('playsinline', '');
+                        v.play().catch(function(){});
+                        setTimeout(function() {
+                            v.muted = false;
+                            v.play().catch(function(){});
+                        }, 800);
+                    }
+                    var iframes = document.querySelectorAll('iframe');
+                    iframes.forEach(function(iframe) {
+                        try { iframe.contentWindow.postMessage({type: 'play'}, '*'); } catch(e) {}
+                    });
+                }
+                attemptPlay();
+                setTimeout(attemptPlay, 1500);
+                setTimeout(attemptPlay, 3000);
+            } catch(e) {}
+        })();
+    """.trimIndent()
+
+    private fun playEpisodePageViaWebView(episodeUrl: String, server: VideoServer? = null, autoSelectJs: String? = null, skipInjections: Boolean = false, customCleanJs: String? = null) {
         ensureWebView()
         isWebViewPlayback = true
         webViewPlaybackUrl = episodeUrl
 
         loadingPlayer.visibility = View.VISIBLE
+        webView?.postDelayed({
+            if (loadingPlayer.visibility == View.VISIBLE || wvLoadingSpinner.visibility == View.VISIBLE) {
+                loadingPlayer.visibility = View.GONE
+                wvLoadingSpinner.visibility = View.GONE
+                Log.d(TAG, "EP-WEBVIEW: loading timeout after 15s")
+            }
+        }, 15000)
         playerView.visibility = View.GONE
         webView?.visibility = View.VISIBLE
         webViewPlayerControls.visibility = View.VISIBLE
@@ -1090,11 +1287,6 @@ class PlayerActivity : AppCompatActivity() {
             loadsImagesAutomatically = true
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
-
-        val proxyClient = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
 
         webView?.webChromeClient = object : android.webkit.WebChromeClient() {
             override fun onShowCustomView(view: View?, callback: android.webkit.WebChromeClient.CustomViewCallback?) {
@@ -1156,20 +1348,26 @@ class PlayerActivity : AppCompatActivity() {
                 wvLoadingSpinner.visibility = View.GONE
                 view?.visibility = View.VISIBLE
                 Log.d(TAG, "EP-WEBVIEW page loaded: $url")
-                // Inject ad removal + fullscreen player
-                view?.evaluateJavascript(AD_REMOVAL_JS, null)
-                // Inject video bridge to sync playback state with controls
-                view?.evaluateJavascript(WEBVIEW_VIDEO_BRIDGE_JS, null)
-                // Inject auto-select server JS if provided
+                WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+                view?.evaluateJavascript(REF_INJECT_POPUP_BLOCKER, null)
+                if (customCleanJs != null) {
+                    view?.evaluateJavascript(customCleanJs, null)
+                } else if (!skipInjections) {
+                    view?.evaluateJavascript(REF_INJECT_CLEAN_PAGE, null)
+                    view?.evaluateJavascript(REF_INJECT_AUTOPLAY, null)
+                }
                 if (autoSelectJs != null) {
                     view?.postDelayed({
                         view.evaluateJavascript(autoSelectJs, null)
                         Log.d(TAG, "EP-WEBVIEW injected auto-select JS")
-                        // After server select, re-apply fullscreen + clean ads + re-inject bridge
+                        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
                         view.postDelayed({
-                            view.evaluateJavascript(AD_REMOVAL_JS, null)
-                            view.evaluateJavascript(WEBVIEW_VIDEO_BRIDGE_JS, null)
-                            Log.d(TAG, "EP-WEBVIEW re-injected AD_REMOVAL_JS + video bridge after server select")
+                            if (!skipInjections) {
+                                view.evaluateJavascript(REF_INJECT_CLEAN_PAGE, null)
+                                view.evaluateJavascript(REF_INJECT_AUTOPLAY, null)
+                            }
+                            WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+                            Log.d(TAG, "EP-WEBVIEW re-injected ref JS after server select")
                         }, 3000)
                     }, 2000)
                 }
@@ -1195,61 +1393,11 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun shouldInterceptRequest(view: WebView?, request: android.webkit.WebResourceRequest?): android.webkit.WebResourceResponse? {
                 val reqUrl = request?.url?.toString() ?: return null
-                val method = request?.method ?: "GET"
-                if (method != "GET") return null
-
                 val lower = reqUrl.lowercase()
                 if (BLOCKED_DOMAINS.any { lower.contains(it) }) {
                     return android.webkit.WebResourceResponse("text/plain", "utf-8", null)
                 }
-
-                val isGoogleUserContent = reqUrl.contains("googleusercontent") || reqUrl.contains("googlevideo")
-                if (isGoogleUserContent) {
-                    return null
-                }
-
-                val isCdnRequest = reqUrl.contains("turboviplay") || reqUrl.contains("turbovid") ||
-                    reqUrl.contains("turbosplayer") || reqUrl.contains("abysscdn") ||
-                    reqUrl.contains("hydrax") || reqUrl.contains("cdn2.") || reqUrl.contains("cdn3.")
-
-                if (!isCdnRequest) return null
-
-                try {
-                    val builder = okhttp3.Request.Builder().url(reqUrl)
-                        .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                        .addHeader("Accept", "*/*")
-                        .addHeader("Accept-Language", "en-US,en;q=0.9")
-                    if (reqUrl.contains("turboviplay") || reqUrl.contains("turbovid") || reqUrl.contains("turbosplayer")) {
-                        builder.addHeader("Referer", "https://turbovidhls.com/")
-                        builder.addHeader("Origin", "https://turbovidhls.com")
-                    } else if (reqUrl.contains("abysscdn") || reqUrl.contains("hydrax") || reqUrl.contains("drakor.bid")) {
-                        builder.addHeader("Referer", "https://drakor.kita.mobi/")
-                        builder.addHeader("Origin", "https://drakor.kita.mobi")
-                    }
-                    val response = proxyClient.newCall(builder.build()).execute()
-                    val body = response.body ?: return null
-                    var contentType = response.header("Content-Type") ?: "application/octet-stream"
-                    var mimeType = contentType.split(";").firstOrNull()?.trim() ?: "application/octet-stream"
-                    if (reqUrl.contains(".ts") || reqUrl.contains("/data3/")) {
-                        if (mimeType.startsWith("image/") || mimeType == "application/octet-stream") {
-                            mimeType = "video/mp2t"
-                        }
-                    }
-                    if (reqUrl.contains(".m3u8")) {
-                        mimeType = "application/vnd.apple.mpegurl"
-                    }
-                    val bytes = body.bytes()
-                    Log.d(TAG, "EP-PROXY: ${reqUrl.take(80)} → ${response.code} $mimeType (${bytes.size} bytes)")
-                    return android.webkit.WebResourceResponse(
-                        mimeType, "ISO-8859-1", response.code,
-                        response.message.ifEmpty { "OK" },
-                        mutableMapOf("Access-Control-Allow-Origin" to "*"),
-                        bytes.inputStream()
-                    )
-                } catch (e: Exception) {
-                    Log.e(TAG, "EP-PROXY error: ${e.message}")
-                    return null
-                }
+                return null
             }
         }
 
@@ -1262,6 +1410,8 @@ class PlayerActivity : AppCompatActivity() {
             wvHideControls()
             Log.d(TAG, "EP-WEBVIEW: WebView controls hidden for provider: $activeProviderId")
         }
+
+        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
     }
 
     private fun playViaWebView(url: String) {
@@ -1480,6 +1630,7 @@ class PlayerActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 wvLoadingSpinner.visibility = View.GONE
+                WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
                 view?.evaluateJavascript(AD_REMOVAL_JS, null)
                 Log.d(TAG, "VIDEO-WEBVIEW loaded: $url")
             }
@@ -1654,6 +1805,7 @@ class PlayerActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 loadingPlayer.visibility = View.GONE
+                WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
                 Log.d(TAG, "HTML5 page loaded: $url")
             }
 
@@ -1785,7 +1937,7 @@ class PlayerActivity : AppCompatActivity() {
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-                    video { width: 100%; height: 100%; object-fit: contain; }
+                    video { width: 100%; height: 100%; object-fit: cover; }
                 </style>
             </head>
             <body>
@@ -1868,7 +2020,7 @@ class PlayerActivity : AppCompatActivity() {
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-                    video { width: 100%; height: 100%; object-fit: contain; }
+                    video { width: 100%; height: 100%; object-fit: cover; }
                 </style>
             </head>
             <body>
@@ -3390,13 +3542,43 @@ class PlayerActivity : AppCompatActivity() {
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
             btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen_exit)
+            btnWvFullscreen.setImageResource(R.drawable.ic_player_fullscreen_exit)
+            if (isWebViewPlayback) {
+                webView?.evaluateJavascript(
+                    """;(function() {
+                        var v = document.getElementById('video');
+                        if (v && v.webkitSupportsFullscreen && !v.webkitDisplayingFullscreen) {
+                            v.webkitEnterFullscreen();
+                        }
+                    })();""".trimIndent(), null
+                )
+            }
         } else {
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
             btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen)
+            btnWvFullscreen.setImageResource(R.drawable.ic_player_fullscreen)
+            if (isWebViewPlayback) {
+                webView?.evaluateJavascript(
+                    """;(function() {
+                        var v = document.getElementById('video');
+                        if (v && v.webkitSupportsFullscreen && v.webkitDisplayingFullscreen) {
+                            v.webkitExitFullscreen();
+                        }
+                    })();""".trimIndent(), null
+                )
+            }
         }
-        showControls()
-        scheduleAutoHide()
+        if (isWebViewPlayback) {
+            if (isSystemBarsHidden) {
+                wvHideControls()
+            } else {
+                wvShowControls()
+            }
+        } else {
+            showControls()
+            scheduleAutoHide()
+        }
     }
 
     // ===== Controls Visibility =====
@@ -3809,47 +3991,95 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (isDrakorKitaServer(server)) {
-            Log.d(TAG, "DrakorKita server detected: ${server.name} → scraping video URL")
-            runOnUiThread {
-                loadingPlayer.visibility = View.VISIBLE
-            }
-            lifecycleScope.launch {
-                val videoUrl = try {
-                    com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).resolveServerVideoUrl(server, episodeUrl)
-                } catch (e: Exception) {
-                    Log.e(TAG, "DrakorKita scrape error: ${e.message}")
-                    ""
-                }
-                withContext(Dispatchers.Main) {
-                    if (!isFinishing && videoUrl.isNotEmpty() && (videoUrl.contains(".mp4") || videoUrl.contains(".m3u8") || videoUrl.contains(".mpd") || videoUrl.contains("googlevideo.com"))) {
-                        Log.d(TAG, "DrakorKita scraped video URL: $videoUrl")
-                        loadingPlayer.visibility = View.GONE
-                        resolvedUrlCache[serverIndex] = videoUrl
-                        playVideoViaHtml5WebView(videoUrl)
-                    } else {
-                        Log.w(TAG, "DrakorKita scrape failed, falling back to episode page WebView")
-                        loadingPlayer.visibility = View.GONE
-                        val nume = server.dataNume.replace("\\", "\\\\").replace("'", "\\'")
-                        val name = server.name.replace("\\", "\\\\").replace("'", "\\'")
-                        val autoClickJs = """
-                            (function() {
-                                var serverEl = document.querySelector('[data-nume="$nume"]');
-                                if (serverEl) { serverEl.click(); return; }
-                                var btns = document.querySelectorAll('.east_player_option, [data-nume], .btn-svx, button');
-                                for (var i = 0; i < btns.length; i++) {
-                                    var txt = btns[i].textContent || '';
-                                    if (txt.indexOf('$name') !== -1 || btns[i].getAttribute('data-nume') === '$nume') {
-                                        btns[i].click(); return;
-                                    }
+            Log.d(TAG, "DrakorKita server detected: ${server.name} → path-based URL playback (no autoSelectJs)")
+            loadingPlayer.visibility = View.GONE
+            val baseUrl = server.url.substringBefore("?")
+            val qParams = parseDrakorKitaUrl(server.url)
+            val epNum = qParams["ep"] ?: "1"
+            val tag = server.dataNume.ifEmpty { qParams["tag"] ?: "hs" }
+            val cat = server.dataType.ifEmpty { qParams["cat"] ?: "ind" }
+            val episodePageUrl = "${baseUrl.trimEnd('/')}/${tag}_${cat}/$epNum/"
+            Log.d(TAG, "DrakorKita: episode page URL=$episodePageUrl")
+            val nume = server.dataNume.replace("\\", "\\\\").replace("'", "\\'")
+            val name = server.name.replace("\\", "\\\\").replace("'", "\\'")
+            playEpisodePageViaWebView(episodePageUrl, server, skipInjections = true, customCleanJs = REF_INJECT_ADBLOCK_ONLY)
+            webView?.postDelayed({
+                val dkJs = """
+                    (function() {
+                        if (window._dkSetupDone) return;
+                        window._dkSetupDone = true;
+                        var fsVideo = null, fsOrig = {}, hideTimer = null;
+                        function exitFS() {
+                            if (fsVideo) {
+                                for (var k in fsOrig) fsVideo.style[k] = fsOrig[k];
+                                var p = fsVideo.parentElement; if (p) { p.style.width = ''; p.style.height = ''; }
+                                fsVideo = null; fsOrig = {};
+                            }
+                            document.body.style.overflow = ''; document.documentElement.style.overflow = '';
+                        }
+                        function enterFS(v) {
+                            exitFS();
+                            fsVideo = v;
+                            fsOrig = { position: v.style.position, top: v.style.top, left: v.style.left, width: v.style.width, height: v.style.height, zIndex: v.style.zIndex, background: v.style.background, objectFit: v.style.objectFit };
+                            v.style.position = 'fixed'; v.style.top = '0'; v.style.left = '0'; v.style.width = '100vw'; v.style.height = '100vh'; v.style.zIndex = '999999'; v.style.background = '#000'; v.style.objectFit = 'contain';
+                            var p = v.parentElement; if (p) { p.style.width = '100vw'; p.style.height = '100vh'; }
+                            document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; window.scrollTo(0, 0);
+                        }
+                        document.addEventListener('fullscreenchange', function() {
+                            if (document.fullscreenElement) { try { document.exitFullscreen(); } catch(e) {} }
+                        });
+                        window.addEventListener('resize', function() {
+                            if (fsVideo) { fsVideo.style.width = '100vw'; fsVideo.style.height = '100vh'; }
+                        });
+                        setTimeout(function() {
+                            if (window._dkBtn) return;
+                            var btn = document.createElement('div');
+                            window._dkBtn = btn;
+                            btn.textContent = '⛶';
+                            btn.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:9999999;width:48px;height:48px;border-radius:24px;background:#E50914;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);opacity:0.8;transition:opacity 0.5s;';
+                            var fs = false;
+                            function resetHide() {
+                                btn.style.opacity = '0.8';
+                                if (hideTimer) clearTimeout(hideTimer);
+                                hideTimer = setTimeout(function() { btn.style.opacity = '0.15'; }, 4000);
+                            }
+                            document.addEventListener('touchstart', resetHide);
+                            btn.onclick = function(e) {
+                                e.stopPropagation();
+                                fs = !fs;
+                                if (fs) {
+                                    var v = document.querySelector('video, [class*="drakor"] video, iframe[src*="drakor"]');
+                                    if (v && v.tagName === 'IFRAME') { try { var v2 = v.contentDocument ? v.contentDocument.querySelector('video') : null; if (v2) v = v2; } catch(e) {} }
+                                    if (!v) v = document.querySelector('video');
+                                    if (v) { enterFS(v); btn.textContent = '✕'; }
+                                    else { fs = false; return; }
+                                } else { exitFS(); btn.textContent = '⛶'; }
+                                btn.style.background = fs ? '#333' : '#E50914';
+                                resetHide();
+                            };
+                            document.body.appendChild(btn);
+                            resetHide();
+                        }, 1500);
+                        setTimeout(function() {
+                            var v = document.querySelector('video');
+                            if (v && !v.paused && v.readyState >= 2) return;
+                            var el = document.querySelector('[data-nume="$nume"]');
+                            if (el) { el.click(); return; }
+                            var btns = document.querySelectorAll('.east_player_option, [data-nume], .btn-svx, button');
+                            for (var i = 0; i < btns.length; i++) {
+                                var txt = btns[i].textContent || '';
+                                if (txt.indexOf('$name') !== -1 || btns[i].getAttribute('data-nume') === '$nume') {
+                                    btns[i].click(); return;
                                 }
-                                var first = document.querySelector('#server_lists .btn-svx, .east_player_option, [data-nume]');
-                                if (first) first.click();
-                            })();
-                        """.trimIndent()
-                        playEpisodePageViaWebView(server.url, server, autoClickJs)
-                    }
-                }
-            }
+                            }
+                            var first = document.querySelector('#server_lists .btn-svx, .east_player_option, [data-nume]');
+                            if (first) first.click();
+                        }, 20000);
+                    })();
+                """.trimIndent()
+                webView?.evaluateJavascript(dkJs, null)
+                Log.d(TAG, "DrakorKita: injected toggle + auto-click JS")
+            }, 4000)
             return
         }
 
@@ -3862,11 +4092,27 @@ class PlayerActivity : AppCompatActivity() {
                     loadingPlayer.visibility = View.GONE
                     playVideoViaHtml5WebView(server.videoUrl)
                 } else {
-                    val isIframeEmbed = server.videoUrl.contains("emturbovid.com") || server.videoUrl.contains("hydrax") || server.name.contains("Turbo", ignoreCase = true) || server.name.contains("Hydrax", ignoreCase = true)
+                    val isIframeEmbed = server.videoUrl.contains("hydrax") || server.name.contains("Hydrax", ignoreCase = true)
+                    val isTurboVip = server.videoUrl.contains("emturbovid.com") || server.name.contains("Turbo", ignoreCase = true)
                     if (isIframeEmbed) {
                         Log.d(TAG, "OppaDrama: loading embed URL directly in WebView (bypass iframe): ${server.videoUrl}")
                         loadingPlayer.visibility = View.GONE
                         playEpisodePageViaWebView(server.videoUrl, server)
+                    } else if (isTurboVip) {
+                        Log.d(TAG, "OppaDrama TurboVIP: loading episode page (not embed) to preserve referrer/cookies context")
+                        loadingPlayer.visibility = View.GONE
+                        val autoSelectJs = """
+                            (function() {
+                                if (window._autoSelectDone) return;
+                                window._autoSelectDone = true;
+                                var sel = document.querySelector('select.mirror, .mirror select');
+                                if (sel && sel.options.length > 0) {
+                                    sel.selectedIndex = 0;
+                                    sel.dispatchEvent(new Event('change', {bubbles: true}));
+                                }
+                            })();
+                        """.trimIndent()
+                        playEpisodePageViaWebView(episodeUrl, server, autoSelectJs)
                     } else {
                         Log.d(TAG, "OppaDrama: scraping video URL from embed: ${server.videoUrl}")
                         loadingPlayer.visibility = View.VISIBLE
@@ -3888,6 +4134,8 @@ class PlayerActivity : AppCompatActivity() {
                                     loadingPlayer.visibility = View.GONE
                                     val autoSelectMirrorJs = """
                                         (function() {
+                                            if (window._autoSelectDone) return;
+                                            window._autoSelectDone = true;
                                             var sel = document.querySelector('select.mirror, .mirror select');
                                             if (sel && sel.options.length > 0) {
                                                 sel.selectedIndex = 0;
@@ -3906,6 +4154,8 @@ class PlayerActivity : AppCompatActivity() {
                 loadingPlayer.visibility = View.GONE
                 val autoSelectMirrorJs = """
                     (function() {
+                        if (window._autoSelectDone) return;
+                        window._autoSelectDone = true;
                         var sel = document.querySelector('select.mirror, .mirror select');
                         if (sel && sel.options.length > 0) {
                             sel.selectedIndex = 0;

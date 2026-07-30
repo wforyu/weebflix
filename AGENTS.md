@@ -1,8 +1,8 @@
 # Agents.md
 
 ## Build & Run
-- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat installDebug`
-- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat assembleRelease`
+- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat installDebug`
+- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease`
 - **Gradle:** 9.5.0, AGP 9.3.0, KSP 2.2.10-2.0.2 (for Glide)
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
@@ -125,17 +125,20 @@ WeebFlix/app/src/main/
 - `onUrlFound()` bridge receives clean URL → `initExoPlayer()`
 - Server detection: `server.name.contains("Blogspot")` or `server.url.contains("blogger.com")` or `server.url.contains("bp.blogspot.com")`
 
-### DrakorKita Server (WORKING — token extraction fix applied)
-- 3-step API resolution pipeline:
-  1. GET `episode.php` → get `server_xid` and `first_ep_id`
-  2. POST `server.php` with episode_id, cat, tag, server_xid, c, t → extract direct URL or Abyss CDN ID
-  3. POST `video_hydrax.php` → extract final video URL
-- Tokens (`c`, `t`) are base64-obfuscated in the page HTML (dot-separated segments), decoded via `decodePageTokens()` in `DrakorKitaScraper.kt` (L889-936)
-- **Token extraction paths:**
-  - **Scraper path (`resolveServerVideoUrl`):** First tries simple regex `var c = '...'` on script tags, then raw HTML regex, then `decodePageTokens()` base64 fallback
-  - **WebView path (`onTokensFound`):** JS injection tries global variables → script tag regex → `AndroidBridge.onTokensFound()`. If tokens empty, OkHttp fetches raw HTML and runs base64 `decodePageTokens()` logic in Kotlin
-- Abyss CDN: decodes `atob()` payload to extract direct `.mp4` URL
-- `resolveDrakorKitaWithWebView()` orchestrates the full pipeline
+### DrakorKita Server (WORKING — direct WebView playback, skip API pipeline)
+- **Approach:** Load path-based URL (`/detail/slug/tag_cat/epNum/`) directly in WebView. Bypass the API token-resolution pipeline entirely.
+- **Reference:** https://github.com/wforyu/drakorkita — the page itself handles server resolution via JS after loading the correct URL.
+- **Code:** `PlayerActivity.kt` DrakorKita dispatch (L3945+):
+  - `playEpisodePageViaWebView()` with `skipInjections=true` and `customCleanJs=REF_INJECT_ADBLOCK_ONLY`
+  - Manual injection of toggle + auto-click JS via `webView?.postDelayed` at 4s
+- **JS injection features:**
+  - **⛶/✕ button:** Fixed-position floating button (z-index 9999999) that toggles video fullscreen via CSS (`position:fixed; 100vw; 100vh; object-fit:contain`)
+  - **Auto-hide:** Button fades to 15% opacity after 4s idle; reappears on any touch
+  - **Resize listener:** Keeps fullscreen video matched to device viewport on orientation change
+  - **Fullscreen API guard:** Intercepts `fullscreenchange` event and auto-exits native fullscreen (prefers CSS-based fullscreen)
+  - **Auto-click fallback:** After 20s, auto-clicks the matching server button (only if no video is already playing)
+- **Toggle fullscreen:** Uses CSS `position:fixed` + parent element fullscreen, not the Fullscreen API
+- **Ad blocking:** `REF_INJECT_ADBLOCK_ONLY` — ad pattern removal + MutationObserver, no CSS/layout changes
 
 ### Other Servers
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
@@ -207,6 +210,11 @@ WeebFlix/app/src/main/
 | HTML embed page played directly as video URL | Generic `server.videoUrl` check now requires `isDirectVideo` (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
 | OppaDrama servers fail to resolve | Token-based pipeline: extract `oppaDramaData` JSON → resolve Hydrax token → resolve server via API v2 |
 | DrakorKita c/t tokens empty → `server.php` HTTP 500 | `resolveServerVideoUrl()` now calls `decodePageTokens()` as fallback (base64 dot-segment decode); WebView `onTokensFound()` also falls back to OkHttp + base64 decode |
+| DrakorKita WebView infinite navigation loop | Server click → CDN redirect → page reload → auto-click re-fires → cycle. Fixed: `playEpisodePageViaWebView()` added `skipInjections` + `customCleanJs` params; DrakorKita uses `skipInjections=true` to avoid `REF_INJECT_CLEAN_PAGE`/`AUTOPLAY` re-inject; auto-click checks `video.paused && video.readyState` before clicking |
+| DrakorKita JS `src.toLowerCase is not a function` | `str(v)` helper function in `REF_INJECT_CLEAN_PAGE` handles non-string `src`/`className` (SVGAnimatedString) |
+| DrakorKita native controls hidden by clean page | `REF_INJECT_ADBLOCK_ONLY` created — ad-block only, no CSS/overflow/display:none changes |
+| DrakorKita native fullscreen broken/cut off | CSS-based fullscreen via JS button (⛶) instead of Fullscreen API; `fullscreenchange` event auto-exits native FS; resize listener keeps viewport match |
+| DrakorKita toggle button disappears on page nav | JS injected via Kotlin `postDelayed` (not in `onPageFinished`); `window._dkSetupDone` flag prevents double inject |
 
 ## Open Bugs (Still Buggy — Needs Further Investigation)
 
@@ -256,9 +264,9 @@ WeebFlix/app/src/main/
 - **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
 
 ## TODO / Next Session
-- **Test DrakorKita v1 fix** — base64 `decodePageTokens()` fallback in `resolveServerVideoUrl()` + OkHttp fallback in `onTokensFound()` WebView bridge
 - **Test turboviplay v5 fix** — 120ms segment delay + exponential backoff sync byte retry (5s/10s, max 2 retries)
 - **Test FileLions v4 fix** — iframe enumeration + cookie passing + sub-iframe navigation
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
+- **DrakorKita episode selection**: Choose specific episode from AnimeDetail → ensure path-based URL uses correct `epNum` from selected episode
