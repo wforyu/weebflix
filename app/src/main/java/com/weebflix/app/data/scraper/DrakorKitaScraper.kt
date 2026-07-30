@@ -11,8 +11,10 @@ import com.weebflix.app.data.provider.AnimeProvider
 import com.weebflix.app.data.provider.ProviderFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -600,7 +602,167 @@ class DrakorKitaScraper : AnimeProvider {
             }
 
             if (server.dataPost.isNotEmpty() && server.dataNume.isNotEmpty()) {
-                Log.d("DrakorKita", "DrakorKita server needs WebView resolution: movieId=${server.dataPost}, type=${server.dataNume}, lang=${server.dataType}")
+                Log.d("DrakorKita", "Resolving via API chain: movieId=${server.dataPost}, type=${server.dataNume}, lang=${server.dataType}")
+
+                val epDoc = fetchDocument(episodeUrl.substringBefore("?"))
+                var cVal = ""
+                var tVal = ""
+                val scripts = epDoc.select("script")
+                for (script in scripts) {
+                    val txt = script.html()
+                    val cm = Regex("""var\s+c\s*=\s*['"]([^'"]+)['"]""").find(txt)
+                    val tm = Regex("""var\s+t\s*=\s*['"]([^'"]+)['"]""").find(txt)
+                    if (cm != null) cVal = cm.groupValues[1]
+                    if (tm != null) tVal = tm.groupValues[1]
+                }
+                Log.d("DrakorKita", "Extracted tokens: c=$cVal, t=$tVal")
+
+                if (cVal.isEmpty() || tVal.isEmpty()) {
+                    val html = try {
+                        val req = Request.Builder().url(episodeUrl.substringBefore("?"))
+                            .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                            .build()
+                        client.newCall(req).execute().use { it.body?.string() ?: "" }
+                    } catch (e: Exception) { "" }
+                    val cm2 = Regex("""var\s+c\s*=\s*['"]([^'"]+)['"]""").find(html)
+                    val tm2 = Regex("""var\s+t\s*=\s*['"]([^'"]+)['"]""").find(html)
+                    if (cm2 != null) cVal = cm2.groupValues[1]
+                    if (tm2 != null) tVal = tm2.groupValues[1]
+                }
+
+                val apiHost = "https://api.nonton.bid/c_api"
+                val params = parseEpisodeUrl(episodeUrl)
+                val targetEid = params["eid"] ?: ""
+                val movieId = server.dataPost
+                val serverType = server.dataNume
+                val lang = server.dataType
+
+                val epUrl = "$apiHost/episode.php?is_mob=0&is_uc=0&movie_id=$movieId&tag=$serverType&cat=$lang"
+                Log.d("DrakorKita", "Step 1: $epUrl")
+                val epReq = Request.Builder().url(epUrl)
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                    .addHeader("Referer", "https://drakor.kita.mobi/")
+                    .addHeader("Origin", "https://drakor.kita.mobi")
+                    .build()
+                val epResp = client.newCall(epReq).execute()
+                val epBody = epResp.use { it.body?.string() ?: "" }
+                Log.d("DrakorKita", "Step 1 response (${epResp.code}): ${epBody.take(300)}")
+
+                var serverXid = ""
+                var firstEpId = targetEid
+                try {
+                    val epJson = org.json.JSONObject(epBody)
+                    serverXid = epJson.optString("server_xid", "")
+                    firstEpId = epJson.optString("first_ep_id", targetEid)
+                } catch (e: Exception) {
+                    val sxMatch = Regex(""""server_xid"\s*:\s*"([^"]+)"""").find(epBody)
+                    if (sxMatch != null) serverXid = sxMatch.groupValues[1]
+                    val feMatch = Regex(""""first_ep_id"\s*:\s*"([^"]+)"""").find(epBody)
+                    if (feMatch != null) firstEpId = feMatch.groupValues[1]
+                }
+                val targetEp = if (targetEid.isNotEmpty()) targetEid else firstEpId
+                Log.d("DrakorKita", "serverXid=$serverXid, targetEp=$targetEp")
+
+                val srvBody = "is_mob=0&is_uc=0" +
+                    "&episode_id=${java.net.URLEncoder.encode(targetEp, "UTF-8")}" +
+                    "&cat=${java.net.URLEncoder.encode(serverType, "UTF-8")}" +
+                    "&tag=${java.net.URLEncoder.encode(lang, "UTF-8")}" +
+                    "&server_xid=${java.net.URLEncoder.encode(serverXid, "UTF-8")}" +
+                    "&c=${java.net.URLEncoder.encode(cVal, "UTF-8")}" +
+                    "&t=${java.net.URLEncoder.encode(tVal, "UTF-8")}"
+                Log.d("DrakorKita", "Step 2: server.php")
+                val srvReq = Request.Builder().url("$apiHost/server.php")
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .addHeader("Referer", "https://drakor.kita.mobi/")
+                    .addHeader("Origin", "https://drakor.kita.mobi")
+                    .addHeader("X-Requested-With", "XMLHttpRequest")
+                    .post(srvBody.toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+                    .build()
+                val srvResp = client.newCall(srvReq).execute()
+                val srvRespBody = srvResp.use { it.body?.string() ?: "" }
+                Log.d("DrakorKita", "Step 2 response (${srvResp.code}): ${srvRespBody.take(500)}")
+
+                if (srvResp.code == 200 && srvRespBody.isNotEmpty()) {
+                    try {
+                        val srvJson = org.json.JSONObject(srvRespBody)
+                        val serverUrl = srvJson.optString("server_url", "")
+                            .ifEmpty { srvJson.optString("url", "") }
+                            .ifEmpty { srvJson.optString("embed_url", "") }
+                            .ifEmpty { srvJson.optString("id", "") }
+                            .ifEmpty { srvJson.optString("hydrax_id", "") }
+                            .ifEmpty { srvJson.optString("file", "") }
+                            .ifEmpty { srvJson.optString("video_url", "") }
+                        Log.d("DrakorKita", "serverUrl from API: $serverUrl")
+
+                        if (serverUrl.startsWith("http") && (serverUrl.contains(".mp4") || serverUrl.contains(".m3u8"))) {
+                            Log.d("DrakorKita", "Found direct video URL: $serverUrl")
+                            return@withContext serverUrl
+                        }
+
+                        if (serverUrl.isNotEmpty() && !serverUrl.startsWith("http") && serverUrl.length > 3) {
+                            val abyssUrl = "https://abysscdn.com/?v=$serverUrl"
+                            Log.d("DrakorKita", "Resolved Abyss URL: $abyssUrl")
+                            val resolvedAbyss = resolveAbyssUrl(abyssUrl)
+                            if (resolvedAbyss.contains(".mp4") || resolvedAbyss.contains(".m3u8")) {
+                                return@withContext resolvedAbyss
+                            }
+                        }
+
+                        if (serverUrl.startsWith("http") && (serverUrl.contains("abysscdn") || serverUrl.contains("hydrax"))) {
+                            val resolvedAbyss = resolveAbyssUrl(serverUrl)
+                            if (resolvedAbyss.contains(".mp4") || resolvedAbyss.contains(".m3u8")) {
+                                return@withContext resolvedAbyss
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DrakorKita", "Step 2 parse error: ${e.message}")
+                    }
+                }
+
+                val hydBody = "is_uc=0" +
+                    "&id=${java.net.URLEncoder.encode(targetEp, "UTF-8")}" +
+                    "&qua=hd&res=800x480" +
+                    "&server_id=${java.net.URLEncoder.encode(serverXid, "UTF-8")}" +
+                    "&cat=${java.net.URLEncoder.encode(serverType, "UTF-8")}" +
+                    "&tag=${java.net.URLEncoder.encode(lang, "UTF-8")}" +
+                    "&c=${java.net.URLEncoder.encode(cVal, "UTF-8")}" +
+                    "&t=${java.net.URLEncoder.encode(tVal, "UTF-8")}"
+                Log.d("DrakorKita", "Step 3: video_hydrax.php")
+                val hydReq = Request.Builder().url("$apiHost/video_hydrax.php")
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .addHeader("Referer", "https://drakor.kita.mobi/")
+                    .addHeader("Origin", "https://drakor.kita.mobi")
+                    .addHeader("X-Requested-With", "XMLHttpRequest")
+                    .post(hydBody.toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+                    .build()
+                val hydResp = client.newCall(hydReq).execute()
+                val hydRespBody = hydResp.use { it.body?.string() ?: "" }
+                Log.d("DrakorKita", "Step 3 response (${hydResp.code}): ${hydRespBody.take(500)}")
+
+                if (hydResp.code == 200 && hydRespBody.isNotEmpty()) {
+                    try {
+                        val hdJson = org.json.JSONObject(hydRespBody)
+                        val videoUrl = hdJson.optString("url", "")
+                            .ifEmpty { hdJson.optString("file", "") }
+                            .ifEmpty { hdJson.optString("video_url", "") }
+                            .ifEmpty { hdJson.optString("link", "") }
+                        Log.d("DrakorKita", "hydrax videoUrl: $videoUrl")
+                        if (videoUrl.startsWith("http") && (videoUrl.contains(".mp4") || videoUrl.contains(".m3u8"))) {
+                            return@withContext videoUrl
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DrakorKita", "Step 3 parse error: ${e.message}")
+                    }
+
+                    val mp4Match = Regex("https?://[^\\s\"']+\\.mp4[^\\s\"']*").find(hydRespBody)
+                    if (mp4Match != null) {
+                        return@withContext mp4Match.value
+                    }
+                }
+
+                Log.d("DrakorKita", "API chain exhausted, no video URL found")
                 return@withContext ""
             }
 
@@ -608,6 +770,51 @@ class DrakorKitaScraper : AnimeProvider {
         } catch (e: Exception) {
             Log.e("DrakorKita", "Error resolving server: ${server.name}", e)
             ""
+        }
+    }
+
+    private suspend fun resolveAbyssUrl(abyssUrl: String): String = withContext(Dispatchers.IO) {
+        try {
+            Log.d("DrakorKita", "Resolving Abyss: $abyssUrl")
+            val request = Request.Builder().url(abyssUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .build()
+            val response = client.newCall(request).execute()
+            val html = response.use { it.body?.string() ?: "" }
+
+            val atobMatch = Regex("""atob\(["']([^"']+)["']\)""").find(html)
+            if (atobMatch != null) {
+                val encoded = atobMatch.groupValues[1]
+                val decoded = String(android.util.Base64.decode(encoded, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                Log.d("DrakorKita", "Decoded Abyss payload: ${decoded.take(500)}")
+
+                val domainMatch = Regex(""""domain"\s*:\s*"([^"]+)"""").find(decoded)
+                val idMatch = Regex(""""id"\s*:\s*"([^"]+)"""").find(decoded)
+                if (domainMatch != null && idMatch != null) {
+                    val directUrl = "https://${domainMatch.groupValues[1]}/${idMatch.groupValues[1]}"
+                    Log.d("DrakorKita", "Abyss resolved: $directUrl")
+                    return@withContext directUrl
+                }
+            }
+
+            val patterns = listOf(
+                Regex("""https?://[^\s"']+\.mp4[^\s"']*"""),
+                Regex("""https?://[^\s"']+\.m3u8[^\s"']*"""),
+                Regex("""https?://[^\s"']+googlevideo\.com[^\s"']*""")
+            )
+            for (pattern in patterns) {
+                val match = pattern.find(html)
+                if (match != null) {
+                    Log.d("DrakorKita", "Abyss fallback match: ${match.value}")
+                    return@withContext match.value.trim()
+                }
+            }
+
+            abyssUrl
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "Abyss resolution failed: ${e.message}")
+            abyssUrl
         }
     }
 

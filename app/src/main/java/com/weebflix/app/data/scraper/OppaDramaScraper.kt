@@ -261,7 +261,12 @@ class OppaDramaScraper : AnimeProvider {
             val url = "$baseUrl/series/?status=&type=&order=update&page=$page"
             val doc = fetchDocument(url)
             val items = parseCardList(doc)
-            items.map { anime ->
+            items.filter { anime ->
+                val t = anime.type.lowercase()
+                val title = anime.title.lowercase()
+                t.contains("drama") || t.contains("movie") || t.contains("film") ||
+                    title.contains("netflix") || t.contains("series") || t.isEmpty()
+            }.map { anime ->
                 Episode(
                     title = anime.title,
                     url = anime.url,
@@ -461,7 +466,55 @@ class OppaDramaScraper : AnimeProvider {
             }
 
             if (server.videoUrl.isNotEmpty() && server.videoUrl.contains("http")) {
-                val doc = fetchDocument(server.videoUrl)
+                val embedHtml = try {
+                    val embedReq = Request.Builder()
+                        .url(server.videoUrl)
+                        .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                        .addHeader("Referer", "https://turbovidhls.com/")
+                        .addHeader("Origin", "https://turbovidhls.com")
+                        .build()
+                    val embedResp = client.newCall(embedReq).execute()
+                    embedResp.use { it.body?.string() ?: "" }
+                } catch (e: Exception) {
+                    Log.e("OppaDrama", "Failed to fetch embed page: ${e.message}")
+                    ""
+                }
+
+                if (embedHtml.isNotEmpty()) {
+                    val m3u8Patterns = listOf(
+                        Regex("""var\s+urlPlay\s*=\s*['"](https?://[^'"]+\.m3u8[^'"]*)['"]"""),
+                        Regex("""data-hash=["'](https?://[^'"]+\.m3u8[^'"]*)["']"""),
+                        Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)["']"""),
+                        Regex("""https?://[^\s"'<>]+turboviplay[^\s"'<>]+\.m3u8[^\s"'<>]*"""),
+                        Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+                    )
+                    for (pattern in m3u8Patterns) {
+                        val match = pattern.find(embedHtml)
+                        if (match != null) {
+                            val url = match.groupValues.getOrElse(1) { match.value }.trim()
+                            if (url.startsWith("http") && url.contains("m3u8")) {
+                                Log.d("OppaDrama", "Found m3u8 URL in embed page: $url")
+                                return@withContext url
+                            }
+                        }
+                    }
+
+                    val mp4Match = Regex("""https?://[^\s"'<>]+\.mp4[^\s"'<>]*""").find(embedHtml)
+                    if (mp4Match != null) {
+                        val url = mp4Match.value.trim()
+                        Log.d("OppaDrama", "Found mp4 URL in embed page: $url")
+                        return@withContext url
+                    }
+                }
+
+                val doc = Jsoup.parse(embedHtml.ifEmpty {
+                    val fallbackReq = Request.Builder()
+                        .url(server.videoUrl)
+                        .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                        .build()
+                    client.newCall(fallbackReq).execute().use { it.body?.string() ?: "" }
+                })
                 doc.select("iframe[src]").firstOrNull()?.attr("src")?.let {
                     return@withContext normalizeUrl(it)
                 }

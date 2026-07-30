@@ -138,6 +138,15 @@ WeebFlix/app/src/main/
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
 
+### TurboVIP / Hydrax Server (OppaDrama - PARTIAL — rate limited)
+- Server URL pattern: `emturbovid.com/t/{id}` → resolves to `https://cdn2.turboviplay.com/data3/{id}/{id}.m3u8`
+- **CDN chain:** master m3u8 (cdn2.turboviplay.com) → sub-playlist (g266.turbosplayer.com) → .ts segments (lh3.googleusercontent.com)
+- **Resolution:** WebView intercepts m3u8 URL from embed page → bundled hls.js + OkHttp proxy
+- **Rate limiting:** Google CDN (`lh3.googleusercontent.com`) rate-limits after ~5-8 segment requests → 429 HTML
+- **429 retry:** OkHttp proxy retries 4 times with Retry-After backoff
+- **hls.js config:** `maxParallelFrags:1`, `startFragPrefetch:false`, `fragLoadingRetry:15000`, `startLevel:0`
+- **Result:** Plays first ~10s, then buffers/retries through 429
+
 ## ExoPlayer Configuration
 - Buffer: `minBufferMs=10s`, `maxBufferMs=45s`, `bufferForPlaybackMs=3s`, `bufferForPlaybackAfterRebufferMs=2s` (aggressive low buffer to avoid 429 rate limiting on turboviplay CDN)
 - Cache: `SimpleCache` with 250MB limit, turboviplay URLs bypass cache (unique cache key) to prevent stale re-fetches
@@ -197,22 +206,59 @@ WeebFlix/app/src/main/
 
 ## Open Bugs (Still Buggy — Needs Further Investigation)
 
-### 1. OppaDrama turboviplay CDN — HTTP 429 rate limiting after ~30s-2min
-- **Server:** TurboVIP → `emturbovid.com/t/6a6636b94a2fb` → WebView resolves to `https://cdn2.turboviplay.com/data3/6a6636b94a2fb/6a6636b94a2fb.m3u8`
-- **Symptom:** Video plays for 30s-2min then ExoPlayer throws `HttpDataSource$InvalidResponseCodeException: Response code: 429`. NOT a "Cannot find sync byte" — it's a rate limit.
+### 1. OppaDrama turboviplay CDN — HTTP 429 rate limiting (PERSISTENT)
+- **Server:** TurboVIP → `emturbovid.com/t/{id}` → resolves to `https://cdn2.turboviplay.com/data3/{id}/{id}.m3u8`
+- **CDN chain:** `cdn2.turboviplay.com` (master m3u8) → `g266.turbosplayer.com/file/{uuid}/master.m3u8` (sub-playlist) → `lh3.googleusercontent.com/d/{id}=d` (.ts segments)
+- **Root cause:** `lh3.googleusercontent.com` is Google's CDN hosting the actual .ts video segments. It applies **per-IP rate limiting** — after ~5-8 segment requests (approx 10-15s of playback), ALL subsequent requests return **HTTP 429** with HTML error page (`<!DOCTYP...`). This is a server-side rate limit on free video hosting, NOT something that can be fully bypassed client-side.
 - **CORS origin in embed page:** `https://turbovidhls.com` (NOT `emturbovid.com`)
-- **Root cause:** CDN rate-limits too many segment requests. ExoPlayer's aggressive buffering (120s ahead) triggers 429.
-- **Attempted fixes:**
-  - v1: Added Referer/Origin `https://emturbovid.com/` → 429 after ~80s
-  - v2: Changed Referer/Origin to `https://turbovidhls.com/` → 429 after 30s-2min (rate limit is the issue, not Referer)
-  - v3: Reduced buffer 120s→60s + added 429-specific retry with Retry-After header support (4 retries, 3s backoff) → 429 persists
-  - v4: Reduced buffer 60s→45s min + 10s minBufferMs + 80ms per-segment delay + cache bypass for turboviplay + `Cache-Control: no-cache` header + auto-retry same URL on sync byte error → **TESTING** (commit `e408bb6`)
-- **Code locations:** `PlayerActivity.kt` OkHttp interceptor (L115-120), retry interceptor with rate-limit delay (L121-145), `initExoPlayer` upstream factory (L1352-1369), loadControl (L1376-1384), cache key factory (L1387-1396), onPlayerError sync byte retry (L1462-1483)
-- **Possible next steps if v4 still fails:**
-  - Try fetching m3u8 manually via OkHttp to check if rate limit is per-session or per-IP
-  - Try completely bypassing ExoPlayer cache + using a dedicated non-shared OkHttpClient for turboviplay
-  - CDN may have a fixed rate limit per IP per minute — need to measure how many segments/min it allows
-  - Try switching to a different CDN or proxy approach
+
+#### Attempted fixes (ALL FAILED — rate limit is server-side, not client-side):
+
+| # | Approach | Result | Why it failed |
+|---|----------|--------|---------------|
+| v1 | ExoPlayer + Referer/Origin `emturbovid.com` | 429 after ~80s | Rate limit is IP-based, not Referer-based |
+| v2 | Changed Referer/Origin to `turbovidhls.com` | 429 after 30s-2min | Still IP-based rate limit |
+| v3 | Reduced buffer 120s→60s + 429 retry w/ Retry-After (4 retries, 3s backoff) | 429 persists | CDN blocks for extended period, not just per-request |
+| v4 | Buffer 10s/45s + 80ms segment delay + cache bypass + sync byte retry | 429 persists | Rate limit accumulates across sessions |
+| v5 | Switched to WebView + bundled hls.js + OkHttp proxy | 429 after ~10s (same segments) | Proxy adds latency, CDN rate limit unchanged |
+| v6 | OkHttp proxy with 429 retry (up to 4 retries w/ Retry-After) | 429 persists for ALL requests | Once rate-limited, CDN blocks entire IP for minutes |
+| v7 | hls.js tuning (maxParallelFrags:1, no prefetch, startLevel:0) | 429 after ~10s | Single-threading helps slightly but CDN still rate-limits |
+| v8 | Removed googleusercontent from proxy filter (direct WebView) | 429 after ~10s | CDN rate-limits regardless of fetch method |
+| v9 | Added `googleusercontent` to CDN filter | 429 immediately | Proxy + rate-limited CDN = worse |
+
+#### Key observations from logcat analysis:
+- **Master m3u8** (cdn2.turboviplay.com): 363 bytes, always loads OK ✓
+- **Sub-playlist** (g266.turbosplayer.com): 44056 bytes, always loads OK ✓ (after adding to filter)
+- **.ts segments** (lh3.googleusercontent.com): 429 after ~5-8 requests ✗
+- First 5-6 segments play fine, then 429 kicks in for ALL subsequent segments
+- Even after waiting 30+ minutes, 429 persists for previously-requested URLs
+- The 429 response is HTML (`hex=3c21444f43545950` = `<!DOCTYP`), which causes `fragParsingError` when hls.js tries to parse it as TS
+
+#### Research findings (from web search):
+1. **lh3.googleusercontent.com 429 is well-documented** — Google rate-limits this CDN for content hosted on Google Drive. See [GitHub issue #60](https://github.com/ArdiArtani/Google-Drive-Player-Script/issues/60): "429 - The rate limit has been exceeded"
+2. **turboviplay.com** is a free video hosting platform that uses Google CDN for HLS segments — they don't control the rate limit
+3. **Best practice for CDN 429**: Exponential backoff + jitter, respect Retry-After, reduce concurrency — but these only DELAY the 429, they don't prevent it
+4. **HLS Proxy pattern** (node-HLS-Proxy, mediaflow-proxy): Segment prefetch + cache ahead of time distributes requests. But in an Android app without a server, we can't do true prefetch
+5. **IP rotation** is the only real bypass for per-IP rate limits — not feasible on a single Android device
+
+#### What WOULD work (but is complex/expensive):
+- **External proxy server** with multiple IPs (residential proxies, Cloudflare Workers)
+- **Segment prefetch**: Download first 30-60s of segments before playback starts (need to parse m3u8, extract segment URLs, download in background)
+- **TurboVIPlay Premium**: Paid plan may have higher/zero rate limits
+- **Accept limitation**: Play first ~10s, buffer/retry periodically, the video WILL eventually play through with enough retries
+
+#### Current state (latest build):
+- WebView + bundled hls.js + OkHttp proxy with ISO-8859-1 binary encoding
+- 429 retry in proxy (4 retries with Retry-After)
+- hls.js: `maxParallelFrags:1`, `startFragPrefetch:false`, `fragLoadingRetry:15000`, `startLevel:0`
+- All CDN domains in filter: turboviplay, turbovid, turbosplayer, abysscdn, hydrax, googlevideo, googleusercontent, cdn2.
+- **Result**: First ~10s plays, then 429 → `fragParsingError` → hls.js retries → eventually plays through with gaps
+
+#### Code locations:
+- OkHttp proxy with 429 retry: `PlayerActivity.kt` L826-845
+- hls.js config: `PlayerActivity.kt` L928-936
+- CDN filter: `PlayerActivity.kt` L807-810
+- `playVideoViaHtml5WebView()`: L868+
 
 ### 2. OppaDrama FileLions (minochinos.com) — WebView loads embed, no video URL intercepted
 - **Server:** FileLions → `https://minochinos.com/v/5k9cuh96zb25`
@@ -230,11 +276,11 @@ WeebFlix/app/src/main/
 
 ### 3. OppaDrama Hydrax server — Same turboviplay CDN failure
 - **Server:** Hydrax → loads episode page → WebView intercepts same `cdn2.turboviplay.com` URL
-- **Symptom:** Same HTTP 429 rate limiting after ~30s-2min (uses same CDN as bug #1)
+- **Symptom:** Same HTTP 429 rate limiting after ~10s (uses same CDN as bug #1)
 - **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
 
 ## TODO / Next Session
-- **Test turboviplay v4 fix** (commit `e408bb6`) — 80ms segment delay + 10s/45s buffer + cache bypass + sync byte retry
+- **Test turboviplay 429 proxy retry** — latest build has OkHttp 429 retry (4 retries w/ Retry-After) + hls.js `maxParallelFrags:1` + `startFragPrefetch:false` + all CDN domains in filter
 - **Test FileLions v3 fix** (commit `e408bb6`) — fixed JS extraction + OkHttp fallback
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
