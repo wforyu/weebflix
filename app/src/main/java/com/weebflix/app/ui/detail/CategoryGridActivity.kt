@@ -184,17 +184,9 @@ class CategoryGridActivity : AppCompatActivity() {
                     } else if (isDrakorKita) {
                         val provider = activeProvider as DrakorKitaScraper
                         when (category) {
-                            CATEGORY_EPISODES -> provider.getHomeContent().latestEpisodes.map { ep ->
-                                Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
-                            }
-                            CATEGORY_MOVIES -> {
-                                if (currentPage <= 1) provider.getHomeContent().movies
-                                else provider.getOngoingAnime(currentPage)
-                            }
-                            CATEGORY_SERIES -> {
-                                if (currentPage <= 1) provider.getHomeContent().series
-                                else provider.getPopularAnime(currentPage)
-                            }
+                            CATEGORY_EPISODES -> provider.getAllAnime(currentPage)
+                            CATEGORY_MOVIES -> provider.getOngoingAnime(currentPage)
+                            CATEGORY_SERIES -> provider.getPopularAnime(currentPage)
                             else -> provider.getAllAnime(currentPage)
                         }
                     } else {
@@ -214,10 +206,6 @@ class CategoryGridActivity : AppCompatActivity() {
                         items.addAll(newItems)
                         gridAdapter.notifyItemRangeInserted(start, newItems.size)
                         currentPage++
-
-                        if (category == CATEGORY_EPISODES) {
-                            hasMore = false
-                        }
                     }
 
                     isLoading = false

@@ -215,6 +215,7 @@ WeebFlix/app/src/main/
 | DrakorKita native controls hidden by clean page | `REF_INJECT_ADBLOCK_ONLY` created — ad-block only, no CSS/overflow/display:none changes |
 | DrakorKita native fullscreen broken/cut off | CSS-based fullscreen via JS button (⛶) instead of Fullscreen API; `fullscreenchange` event auto-exits native FS; resize listener keeps viewport match |
 | DrakorKita toggle button disappears on page nav | JS injected via Kotlin `postDelayed` (not in `onPageFinished`); `window._dkSetupDone` flag prevents double inject |
+| CategoryGridActivity DrakorKita infinite scroll not working | 3 bugs fixed: (1) Episodes used `getHomeContent().latestEpisodes` (unpaginated, ~10 items) + `hasMore=false` → changed to `getAllAnime(page)` (paginated). (2) Movies page 1 used `getHomeContent().movies` (few items), page 2+ used `getOngoingAnime(page)` (gap) → now always uses `getOngoingAnime(page)`. (3) Series same as Movies → now always uses `getPopularAnime(page)` |
 
 ## Open Bugs (Still Buggy — Needs Further Investigation)
 
@@ -270,3 +271,4 @@ WeebFlix/app/src/main/
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
 - **DrakorKita episode selection**: Choose specific episode from AnimeDetail → ensure path-based URL uses correct `epNum` from selected episode
+- **CategoryGridActivity DrakorKita**: Episodes/Movies/Series using `getHomeContent()` (unpaginated) → now use proper paginated methods
