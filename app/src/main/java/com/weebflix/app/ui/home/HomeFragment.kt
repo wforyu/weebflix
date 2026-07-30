@@ -89,6 +89,7 @@ class HomeFragment : Fragment() {
         val newFragment = when (providerId) {
             ProviderFactory.DRAKORKITA_ID -> DrakorKitaHomeFragment()
             ProviderFactory.OPPADRAMA_ID -> OppaDramaHomeFragment()
+            ProviderFactory.ANICHIN_ID -> AnichinHomeFragment()
             else -> SamehadakuHomeFragment()
         }
 

@@ -18,6 +18,9 @@ object ProviderConfig {
     private const val KEY_BASE_URL_OPPADRAMA = "base_url_oppadrama"
     private const val DEFAULT_BASE_URL_OPPADRAMA = "http://45.11.57.192"
 
+    private const val KEY_BASE_URL_ANICHIN = "base_url_anichin"
+    private const val DEFAULT_BASE_URL_ANICHIN = "https://anichin.cafe"
+
     private const val KEY_BASE_URL_LEGACY = "base_url"
 
     private lateinit var prefs: SharedPreferences
@@ -53,7 +56,8 @@ object ProviderConfig {
             "samehadaku" -> prefs.getString(KEY_BASE_URL_SAMEHADAKU, DEFAULT_BASE_URL_SAMEHADAKU) ?: DEFAULT_BASE_URL_SAMEHADAKU
             "drakorkita" -> prefs.getString(KEY_BASE_URL_DRAKORKITA, DEFAULT_BASE_URL_DRAKORKITA) ?: DEFAULT_BASE_URL_DRAKORKITA
             "oppadrama" -> prefs.getString(KEY_BASE_URL_OPPADRAMA, DEFAULT_BASE_URL_OPPADRAMA) ?: DEFAULT_BASE_URL_OPPADRAMA
-            else -> prefs.getString(KEY_BASE_URL_SAMEHADAKU, DEFAULT_BASE_URL_SAMEHADAKU) ?: DEFAULT_BASE_URL_SAMEHADAKU
+            "anichin" -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
+            else -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
         }
     }
 
@@ -62,6 +66,7 @@ object ProviderConfig {
             "samehadaku" -> KEY_BASE_URL_SAMEHADAKU
             "drakorkita" -> KEY_BASE_URL_DRAKORKITA
             "oppadrama" -> KEY_BASE_URL_OPPADRAMA
+            "anichin" -> KEY_BASE_URL_ANICHIN
             else -> return
         }
         prefs.edit().putString(key, url.trimEnd('/')).apply()
@@ -72,6 +77,7 @@ object ProviderConfig {
             "samehadaku" -> KEY_BASE_URL_SAMEHADAKU
             "drakorkita" -> KEY_BASE_URL_DRAKORKITA
             "oppadrama" -> KEY_BASE_URL_OPPADRAMA
+            "anichin" -> KEY_BASE_URL_ANICHIN
             else -> return
         }
         prefs.edit().remove(key).apply()
@@ -82,7 +88,8 @@ object ProviderConfig {
             "samehadaku" -> DEFAULT_BASE_URL_SAMEHADAKU
             "drakorkita" -> DEFAULT_BASE_URL_DRAKORKITA
             "oppadrama" -> DEFAULT_BASE_URL_OPPADRAMA
-            else -> DEFAULT_BASE_URL_SAMEHADAKU
+            "anichin" -> DEFAULT_BASE_URL_ANICHIN
+            else -> DEFAULT_BASE_URL_ANICHIN
         }
     }
 

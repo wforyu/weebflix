@@ -26,7 +26,8 @@ WeebFlix/app/src/main/
 │   │   │   └── ProviderFactory.kt     # Singleton registry, getActiveProvider(), refreshBaseUrls()
 │   │   └── scraper/
 │   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
-│   │       └── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       ├── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       └── AnichinScraper.kt     # Donghua/Anime scraper (Jsoup) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt      # Splash with animated N logo
 │       ├── main/MainActivity.kt          # Bottom nav host (Home/Search/Ongoing/Settings)
@@ -34,7 +35,8 @@ WeebFlix/app/src/main/
 │       │   ├── HomeFragment.kt           # Provider chip switcher + fragment container
 │       │   ├── SamehadakuHomeFragment.kt # Samehadaku home (static hero + 3 rows)
 │       │   ├── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
-│       │   └── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
+│   │       ├── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
+│   │       └── AnichinHomeFragment.kt  # Anichin home (latest + ongoing)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
 │       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
@@ -74,7 +76,7 @@ WeebFlix/app/src/main/
 ## Provider Architecture
 - **`AnimeProvider` interface:** `id`, `name`, `baseUrl`, `getLatestEpisodes()`, `getOngoingAnime()`, `getPopularAnime()`, `searchAnime()`, `getAnimeDetail()`, `getEpisodeServers()`, `resolveServerVideoUrl()`, `getEpisodeNavigation()`
 - **`ProviderFactory`:** Singleton registry, lazy-init all providers, `getActiveProvider()` reads from `ProviderConfig.activeProviderId`
-- **`ProviderConfig`:** Stores per-provider base URLs (`base_url_samehadaku`, `base_url_drakorkita`) and active provider ID in SharedPreferences
+- **`ProviderConfig`:** Stores per-provider base URLs (`base_url_samehadaku`, `base_url_drakorkita`, `base_url_anichin`) and active provider ID in SharedPreferences
 - **Active provider** is persisted — app remembers last selected provider across restarts
 
 ## Providers
@@ -91,6 +93,16 @@ WeebFlix/app/src/main/
 - Features: Auto-rewrites dead domain URLs to current domain, trust-all SSL certs, Base64 token decoding for API access
 - Key methods: `getHomeContent()` (returns episodes + movies + series + featured), `getAllAnime(page)`, `getEpisodeServers()`, `getEpisodeNavigation()`
 
+### Anichin
+- Website: `https://anichin.cafe`
+- Content: Donghua/Anime (Latest Episodes, Ongoing, Completed)
+- CMS: WordPress with animestream theme by themesia
+- Scraper: `AnichinScraper.kt` — Jsoup CSS selectors
+- Key methods: `getLatestEpisodes(page)` (homepage latest), `getOngoingAnime(page)` (`/ongoing/page/{N}/`), `getPopularAnime(page)` (`/completed/page/{N}/`), `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)` (base64-decoded `<select class="mirror">`), `getEpisodeNavigation(url)` (`a[rel=prev/next]`)
+- **Server resolution:** Main player is `anichin.stream/?id={id}` (JWPlayer HLS) — extracted via unpacked eval'd JS for m3u8 URL or WebView `shouldInterceptRequest` `.m3u8` interception. AbyssCDN/hydrax URLs handled by existing resolution code. Other servers (OK.ru, Rumble) → WebView fallback
+- **Home:** Provider-specific home (`AnichinHomeFragment.kt`) with Continue Watching + Latest Episodes + Ongoing (horizontal scroll, infinite scroll)
+- **CategoryGridActivity:** Falls through to `activeProvider.getOngoingAnime(currentPage)` (generic handler)
+
 ### OppaDrama
 - Website: `http://45.11.57.192` (default)
 - Content: Korean Drama (Latest Episodes, Movies, Series)
@@ -106,6 +118,7 @@ WeebFlix/app/src/main/
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll)
   - DrakorKita: Auto-scrolling ViewPager2 hero carousel (4s interval) + Continue Watching + Episodes + Movies + Series (infinite scroll)
   - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
+  - Anichin: Continue Watching + Latest Episodes + Ongoing (horizontal infinite scroll)
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
@@ -169,6 +182,14 @@ WeebFlix/app/src/main/
 - All selectors in `SamehadakuScraper.kt` are CSS selectors via Jsoup
 - If website HTML structure changes, update selectors in the corresponding method
 - Key methods: `getLatestEpisodes(page)`, `getOngoingAnime(page)`, `getPopularAnime(page)`, `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)`
+
+### Anichin
+- Website: `https://anichin.cafe`
+- Card selectors: `div.listupd > article.bs > div.bsx > a` (title via `attr("title")`, poster via `img.ts-post-image[src]`, episode/status via `span.epx`, type via `span.typez`)
+- Detail page: `h1.entry-title`, `div.desc`, metadata via `.info-content .spe span` (Status/Tipe/Episode/Studio), genres via `.genxed a`, episode list via `.eplister > ul > li`
+- Episode servers: `<select class="mirror">` `<option>` values are base64-encoded iframe HTML — decode, extract `src`, return as `VideoServer`
+- Navigation: `a[rel=prev]` / `a[rel=next]` inside `div.naveps.bignav`
+- Video resolution: JWPlayer at `anichin.stream/?id={id}` — `resolveServerVideoUrl()` fetches page, unpacks eval'd JS, extracts `.m3u8` URL via regex patterns. Falls back to WebView interception via `shouldInterceptRequest` (`.m3u8` pattern matches)
 
 ### DrakorKita
 - Website: `https://drakor.kita.mobi`
@@ -265,10 +286,10 @@ WeebFlix/app/src/main/
 - **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
 
 ## TODO / Next Session
+- **Test Anichin provider** — test all methods (home, detail, search, player video resolution via anichin.stream m3u8)
 - **Test turboviplay v5 fix** — 120ms segment delay + exponential backoff sync byte retry (5s/10s, max 2 retries)
 - **Test FileLions v4 fix** — iframe enumeration + cookie passing + sub-iframe navigation
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
 - **DrakorKita episode selection**: Choose specific episode from AnimeDetail → ensure path-based URL uses correct `epNum` from selected episode
-- **CategoryGridActivity DrakorKita**: Episodes/Movies/Series using `getHomeContent()` (unpaginated) → now use proper paginated methods
