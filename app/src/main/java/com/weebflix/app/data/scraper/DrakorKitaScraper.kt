@@ -615,7 +615,7 @@ class DrakorKitaScraper : AnimeProvider {
                     if (cm != null) cVal = cm.groupValues[1]
                     if (tm != null) tVal = tm.groupValues[1]
                 }
-                Log.d("DrakorKita", "Extracted tokens: c=$cVal, t=$tVal")
+                Log.d("DrakorKita", "Extracted tokens (simple): c=$cVal, t=$tVal")
 
                 if (cVal.isEmpty() || tVal.isEmpty()) {
                     val html = try {
@@ -628,6 +628,21 @@ class DrakorKitaScraper : AnimeProvider {
                     val tm2 = Regex("""var\s+t\s*=\s*['"]([^'"]+)['"]""").find(html)
                     if (cm2 != null) cVal = cm2.groupValues[1]
                     if (tm2 != null) tVal = tm2.groupValues[1]
+                }
+
+                if (cVal.isEmpty() || tVal.isEmpty()) {
+                    val pageHtml = try {
+                        val req = Request.Builder().url(episodeUrl.substringBefore("?"))
+                            .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                            .build()
+                        client.newCall(req).execute().use { it.body?.string() ?: "" }
+                    } catch (e: Exception) { "" }
+                    if (pageHtml.isNotEmpty()) {
+                        val decoded = decodePageTokens(pageHtml)
+                        if (decoded.c.isNotEmpty()) cVal = decoded.c
+                        if (decoded.t.isNotEmpty()) tVal = decoded.t
+                        Log.d("DrakorKita", "Extracted tokens (decodePageTokens): c=${cVal.take(20)}, t=${tVal.take(20)}")
+                    }
                 }
 
                 val apiHost = "https://api.nonton.bid/c_api"

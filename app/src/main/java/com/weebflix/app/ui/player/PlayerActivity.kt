@@ -76,7 +76,50 @@ class PlayerActivity : AppCompatActivity() {
             "outbrain", "infolinks", "facebook.com/tr",
             "shopee.co.id", "shopee.", "lazada.", "tokopedia.",
             "analytics.", "fractionfridgejudiciary", "shroudedspoutunleveled",
-            "egret.com", "egret"
+            "egret.com", "egret",
+            "adtrue", "adnow", "adreactor", "exosrv.com",
+            "juicyads", "adbucks", "clicksor", "bidvertiser",
+            "popcash", "adtiger", "adfox", "adgain",
+            "onclickads", "adf.ly", "ouo.io", "sh.st",
+            "adfoc.us", "linkbucks", "admyad",
+            "static.fbadd", "adpushup", "adthrive",
+            "media.net", "adversal", "adblade",
+            "adbutler", "adventory", "adglare",
+            "adk2", "adk3", "adk4", "adk5",
+            "snapads", "tremorhub", "video-ad",
+            "prebid", "openx.net", "rubicon",
+            "criteo", "pubmatic", "appnexus",
+            "casalemedia", "sharethrough", "indexww",
+            "sovrn", "amazon-adsystem", "adnxs",
+            "adsafeprotected", "moatads", "teads",
+            "adroll", "adsymptotic", "bluekai",
+            "exelator", "lotame", "krxd",
+            "demdex", "rlcdn", "crwdcntrl",
+            "addthis", "disqus", "scorecardresearch",
+            "quantserve", "comscore", "parsely",
+            "admantx", "nuffnang", "clickky",
+            "ad6media", "adkreator", "adnium",
+            "nativeads", "adspirit", "adrecord",
+            "adtng", "advangelists", "advariant",
+            "bidfluence", "adventurefeeder", "pixel.quantserve",
+            "2mdn.net", "adobedc.net", "demand.supply",
+            "adacado", "adform", "adition",
+            "adloox", "adnami", "adplus",
+            "adstir", "adtelligent", "adzerk",
+            "bidswitch", "conversantmedia", "districtm",
+            "improvedigital", "indexexchange", "loopme",
+            "mediafuse", "onetag", "optimizely",
+            "pexo.co", "plugrush", "pornhub",
+            "revcontent", "sekindo", "skimresources",
+            "smartyads", "sortable", "spotxchange",
+            "stickyadstv", "streamrail", "triplelift",
+            "undertone", "vidazoo", "videology",
+            "visx.net", "adtheorent", "adyoulike",
+            "emxdgt.com", "lngtd.com", "adhigh",
+            "adtima", "admicro", "dable",
+            "popin.cc", "popin", "revenuehits",
+            "adkengage", "adk2x", "g.doubleclick",
+            "googlesource.com/interstitial", "interstitial"
         )
 
         private var simpleCache: androidx.media3.datasource.cache.SimpleCache? = null
@@ -138,25 +181,27 @@ class PlayerActivity : AppCompatActivity() {
                         }
                         .addInterceptor { chain ->
                             val reqUrl = chain.request().url.toString()
-                            val isTurboSegment = reqUrl.contains("turboviplay.com") && (reqUrl.contains(".ts") || reqUrl.contains("data3/") || reqUrl.endsWith(".m3u8"))
-                            if (isTurboSegment) {
-                                java.lang.Thread.sleep(150L)
+                            val isTurboSegment = reqUrl.contains("turboviplay.com") && (reqUrl.contains(".ts") || reqUrl.contains("data3/") || reqUrl.contains(".m3u8"))
+                            val isGoogleCdn = reqUrl.contains("googleusercontent.com") || reqUrl.contains("googlevideo.com")
+                            if (isTurboSegment || isGoogleCdn) {
+                                java.lang.Thread.sleep(120L)
                             }
                             var response = chain.proceed(chain.request())
                             var retries = 0
-                            val maxRetries = if (response.code == 429) 6 else 2
+                            val maxRetries = 3
                             while (!response.isSuccessful && retries < maxRetries) {
                                 retries++
                                 val retryAfter = response.header("Retry-After")?.toLongOrNull()
                                 val code = response.code
                                 response.close()
-                                val backoff = if (code == 429 && retryAfter != null) {
-                                    retryAfter * 1000L
+                                val backoff = if (retryAfter != null) {
+                                    (retryAfter * 1000L).coerceAtMost(10000L)
                                 } else if (code == 429) {
                                     retries * 5000L
                                 } else {
-                                    retries * 1000L
+                                    retries * 2000L
                                 }
+                                Log.w(TAG, "HTTP $code on $reqUrl, retry $retries/$maxRetries in ${backoff}ms")
                                 java.lang.Thread.sleep(backoff)
                                 response = chain.proceed(chain.request())
                             }
@@ -267,6 +312,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private var pendingResolveServerIndex: Int = -1
     private var pendingAutoFailRunnable: Runnable? = null
+    private var syncByteRetryCount = 0
+    private val maxSyncByteRetries = 2
 
     private enum class ResolveMode { NONE, SERVER_CLICK, EMBED_FETCH, DRAKOR_KITA }
 
@@ -564,7 +611,7 @@ class PlayerActivity : AppCompatActivity() {
                     }
 
                     val isBloggerVideoG = reqUrl.contains("blogger.com/video.g") || reqUrl.contains("video.g?token=")
-                    val isVideoUrl = reqUrl.contains("googlevideo.com") ||
+                    val isVideoUrl = (reqUrl.contains("googlevideo.com") ||
                         reqUrl.contains("videoplayback") ||
                         reqUrl.contains(".m3u8") ||
                         reqUrl.contains(".mp4") ||
@@ -572,7 +619,11 @@ class PlayerActivity : AppCompatActivity() {
                         reqUrl.contains("blogspot.com/v/") ||
                         reqUrl.contains("bp.blogspot.com") ||
                         reqUrl.contains("abysscdn.com") ||
-                        reqUrl.contains("hydrax")
+                        reqUrl.contains("hydrax")) &&
+                        !reqUrl.contains("google-analytics.com") &&
+                        !reqUrl.contains("googletagmanager.com") &&
+                        !reqUrl.contains("doubleclick.net") &&
+                        !reqUrl.contains("/collect?")
 
                     if (isBloggerVideoG) {
                         Log.d(TAG, ">>> Intercepting video.g HTML to inject XHR interception: $reqUrl")
@@ -692,30 +743,178 @@ class PlayerActivity : AppCompatActivity() {
                     'adpartner', 'adfox', 'shopee', 'yandex',
                     'metrika', 'analytics', 'egret', 'mvp789', 'zafn9604',
                     'install.js', 'cpm', 'revive', 'mgid', 'taboola',
-                    'outbrain', 'infolinks'];
+                    'outbrain', 'infolinks', 'adtrue', 'adnow',
+                    'adreactor', 'exosrv', 'juicyads', 'adbucks',
+                    'clicksor', 'bidvertiser', 'popcash', 'adtiger',
+                    'adgain', 'adf.ly', 'ouo.io', 'adfoc.us',
+                    'linkbucks', 'admyad', 'adpushup', 'adthrive',
+                    'media.net', 'adversal', 'adblade', 'adbutler',
+                    'adventory', 'adglare', 'adk2', 'adnxs',
+                    'criteo', 'pubmatic', 'rubicon', 'openx',
+                    'casalemedia', 'sharethrough', 'sovrn',
+                    'adsafeprotected', 'moatads', 'teads', 'adroll',
+                    'bluekai', 'exelator', 'krxd', 'demdex',
+                    'rlcdn', 'scorecardresearch', 'quantserve',
+                    'comscore', 'parsely', 'nuffnang', 'clickky',
+                    'adnium', 'nativeads', 'adspirit', 'adtng',
+                    'bidfluence', '2mdn.net', 'adobedc.net',
+                    'adacado', 'adform', 'adloox', 'adnami',
+                    'adplus', 'adstir', 'adtelligent', 'adzerk',
+                    'loopme', 'mediafuse', 'onetag', 'optimizely',
+                    'pexo.co', 'plugrush', 'revcontent', 'skimresources',
+                    'smartyads', 'spotxchange', 'stickyadstv',
+                    'undertone', 'vidazoo', 'visx.net',
+                    'adyoulike', 'emxdgt.com', 'lngtd.com',
+                    'adhigh', 'adtima', 'admicro', 'dable',
+                    'popin.cc', 'revenuehits', 'adkengage',
+                    'interstitial', 'pixel.'];
+                var adClassPatterns = ['ad-', 'ad_', 'ads-', 'ads_', 'adsbygoogle',
+                    'adsblock', 'adblock', 'advert', 'ad-box',
+                    'banner_ad', 'banner-ads', 'popup-', 'popup_',
+                    'overlay-ads', 'overlay_ad', 'sticky-ad', 'stickyad',
+                    'float-ads', 'floating-ads', 'floating_ad',
+                    'sponsor', 'sponsored', 'promo-', 'promo_',
+                    'dfp-', 'dfp_', 'gpt-', 'gpt_',
+                    'google_ads', 'google-ads', 'ad-container',
+                    'ad-wrapper', 'ad-holder', 'adslot',
+                    'adplacement', 'adspot', 'adunit',
+                    'adzone', 'banner-728', 'banner-300',
+                    'skyscraper', 'leaderboard', 'mpu-', 'mpu_',
+                    'widget-ads', 'widget_ad', 'side-ad',
+                    'top-ad', 'bottom-ad', 'footer-ad',
+                    'header-ad', 'mid-ad', 'post-ad',
+                    'text-ad', 'textad', 'img-ad', 'imgad',
+                    'video-ad', 'videoad', 'preroll', 'midroll',
+                    'postroll', 'ad-overlay', 'adoverlay',
+                    'layer-ad', 'layerad', 'pop-layer',
+                    'dimmed-layer', 'modal-ad', 'modalad',
+                    'btn-close-ad', 'btn_ad_close', 'close-ad',
+                    'ad-close', 'adclose', 'ad-btn', 'adbtn',
+                    'id-ad', 'ad-container-', 'ad-placement',
+                    'advertisement', 'advertisement-',
+                    'advertise', 'advertise-', 'ads-list',
+                    'ads-item', 'ad-item', 'ad-list'];
+                var adIdPatterns = ['ad-', 'ad_', 'ads-', 'ads_', 'adsbygoogle',
+                    'adsblock', 'adblock', 'advert', 'ad-box',
+                    'banner_ad', 'popup-', 'popup_',
+                    'overlay_ad', 'sticky_ad', 'floating_ad',
+                    'sponsor', 'sponsored', 'promo-', 'promo_',
+                    'dfp-', 'gpt-', 'google_ads', 'google-ads',
+                    'ad-container', 'ad-wrapper', 'adslot',
+                    'adplacement', 'adspot', 'adunit', 'adzone',
+                    'leaderboard', 'mpu', 'skyscraper',
+                    'side-ad', 'top-ad', 'bottom-ad', 'footer-ad',
+                    'header-ad', 'mid-ad', 'post-ad',
+                    'text-ad', 'textad', 'video-ad', 'videoad',
+                    'preroll', 'midroll', 'postroll',
+                    'ad-overlay', 'adoverlay', 'layer-ad', 'layerad',
+                    'pop-layer', 'dimmed-layer', 'modal-ad', 'modalad',
+                    'close-ad', 'ad-close', 'adclose'];
+
+                var playerSrcPatterns = ['turbovidhls', 'turbovid', 'emturbovid', 'turbosplayer',
+                    'abysscdn', 'hydrax', 'drakor.bid', 'drakor.kita',
+                    'bp.blogspot.com', 'blogger.com', 'googlevideo'];
 
                 function removeEl(el) {
                     if (el && el.parentNode) el.parentNode.removeChild(el);
                 }
 
-                function cleanPage() {
-                    document.querySelectorAll('iframe, script, img, ins, embed, object').forEach(function(el) {
-                        var src = (el.src || el.href || el.data || el.className || el.id || '').toLowerCase();
-                        for (var p = 0; p < adPatterns.length; p++) {
-                            if (src.indexOf(adPatterns[p]) !== -1) { removeEl(el); return; }
+                function isPlayerElement(el) {
+                    if (!el) return false;
+                    var src = (el.src || el.href || el.data || '').toLowerCase();
+                    for (var p = 0; p < playerSrcPatterns.length; p++) {
+                        if (src.indexOf(playerSrcPatterns[p]) !== -1) return true;
+                    }
+                    if (el.tagName === 'VIDEO') return true;
+                    return false;
+                }
+
+                function removeAds(el) {
+                    if (!el || el._adClean) return;
+                    el._adClean = true;
+                    if (el.nodeType !== 1) return;
+                    var src = (el.src || el.href || el.data || '').toLowerCase();
+                    var tag = el.tagName;
+                    var cls = (el.className || '').toLowerCase();
+                    var id = (el.id || '').toLowerCase();
+                    var style = el.getAttribute ? (el.getAttribute('style') || '').toLowerCase() : '';
+
+                    if (isPlayerElement(el)) return;
+
+                    if (src.indexOf('javascript:') === 0 && tag === 'A') {
+                        if (el.onclick || /^javascript:window\.open/.test(src)) {
+                            removeEl(el); el.href = '#'; el.onclick = null; el.target = ''; return;
                         }
-                        if (el.tagName === 'IFRAME') {
-                            var s = el.getAttribute('src') || '';
-                            if (s === '' || s.indexOf('about:blank') === 0 || s.indexOf('javascript:') === 0) {
-                                removeEl(el);
+                    }
+
+                    for (var p = 0; p < adPatterns.length; p++) {
+                        if (src.indexOf(adPatterns[p]) !== -1) { removeEl(el); return; }
+                    }
+
+                    if (tag === 'IFRAME') {
+                        var s = el.getAttribute('src') || '';
+                        if (s === '' || s.indexOf('about:blank') === 0 || s.indexOf('javascript:') === 0) {
+                            removeEl(el); return;
+                        }
+                        var w = el.width || el.getAttribute('width') || '';
+                        var h = el.height || el.getAttribute('height') || '';
+                        if ((w == '1' || w == '0' || w == '') && (h == '1' || h == '0' || h == '')) {
+                            removeEl(el); return;
+                        }
+                    }
+
+                    if (tag === 'A') {
+                        if (el.target === '_blank' && !el.href) { removeEl(el); return; }
+                        var href = (el.href || '').toLowerCase();
+                        if (href && (href.indexOf('javascript:') === 0 || href === '#' || href === '')) {
+                            if (!el.querySelector('img, video, iframe')) { removeEl(el); return; }
+                        }
+                    }
+
+                    for (var p = 0; p < adClassPatterns.length; p++) {
+                        if (cls.indexOf(adClassPatterns[p]) !== -1) { removeEl(el); return; }
+                        if (id.indexOf(adIdPatterns[p]) !== -1) { removeEl(el); return; }
+                    }
+
+                    if (style.indexOf('display:none') !== -1 || style.indexOf('visibility:hidden') !== -1) {
+                        return;
+                    }
+
+                    if (style.indexOf('position:fixed') !== -1 || style.indexOf('position: fixed') !== -1) {
+                        var z = parseInt(el.style.zIndex) || 0;
+                        if (z > 1000) {
+                            if (!isPlayerElement(el)) { removeEl(el); return; }
+                        }
+                    }
+
+                    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+                    if (rect && (rect.width < 5 || rect.height < 5)) {
+                        if (tag !== 'VIDEO' && tag !== 'IFRAME') { removeEl(el); return; }
+                    }
+                }
+
+                function cleanPage() {
+                    var all = document.querySelectorAll('iframe, script, img, ins, embed, object, a, div, section, aside, span, table, tr, td');
+                    for (var i = 0; i < all.length; i++) removeAds(all[i]);
+
+                    var fixedEls = document.querySelectorAll('div, span, section, aside');
+                    for (var i = 0; i < fixedEls.length; i++) {
+                        var el = fixedEls[i];
+                        if (el._adClean) continue;
+                        var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+                        if (cs && cs.position === 'fixed') {
+                            var z = parseInt(cs.zIndex) || 0;
+                            if (z > 100 && !isPlayerElement(el)) {
+                                var bg = cs.backgroundColor || '';
+                                var op = parseFloat(cs.opacity) || 1;
+                                if (bg.indexOf('rgb') !== -1 || op > 0.5) {
+                                    if (!el.querySelector('video, iframe[src*=\"turbovid\"], iframe[src*=\"blogger\"]')) {
+                                        removeEl(el);
+                                    }
+                                }
                             }
                         }
-                        if (el.tagName === 'A' || el.tagName === 'DIV' || el.tagName === 'SECTION') {
-                            var cls = (el.className || '').toLowerCase();
-                            var id = (el.id || '').toLowerCase();
-                            if (cls.indexOf('ad-') === 0 || id.indexOf('ad-') === 0) removeEl(el);
-                        }
-                    });
+                    }
                 }
 
                 cleanPage();
@@ -723,16 +922,21 @@ class PlayerActivity : AppCompatActivity() {
                 var observer = new MutationObserver(function(mutations) {
                     mutations.forEach(function(mutation) {
                         mutation.addedNodes.forEach(function(node) {
-                            if (node.nodeType === 1) {
-                                var src = (node.src || node.href || node.data || node.className || node.id || '').toLowerCase();
-                                for (var p = 0; p < adPatterns.length; p++) {
-                                    if (src.indexOf(adPatterns[p]) !== -1) { removeEl(node); return; }
+                            if (node.nodeType === 1) removeAds(node);
+                        });
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            var t = mutation.target;
+                            if (t && t.nodeType === 1) {
+                                var cs = window.getComputedStyle ? window.getComputedStyle(t) : null;
+                                if (cs && cs.position === 'fixed' && !isPlayerElement(t)) {
+                                    var z = parseInt(cs.zIndex) || 0;
+                                    if (z > 100) removeEl(t);
                                 }
                             }
-                        });
+                        }
                     });
                 });
-                observer.observe(document.documentElement, { childList: true, subtree: true });
+                observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'src'] });
 
                 function makePlayerFullscreen() {
                     var iframe = document.querySelector('iframe[src*="turbovidhls"], iframe[src*="turbovid"], iframe[src*="emturbovid"], iframe[src*="turbosplayer"]');
@@ -757,6 +961,10 @@ class PlayerActivity : AppCompatActivity() {
                         v.style.height = '100vh';
                         v.style.objectFit = 'contain';
                         v.style.background = '#000';
+                        v.style.position = 'fixed';
+                        v.style.top = '0';
+                        v.style.left = '0';
+                        v.style.zIndex = '99999';
                         v.setAttribute('playsinline', '');
                         v.setAttribute('webkit-playsinline', '');
                         v.scrollIntoView();
@@ -772,6 +980,26 @@ class PlayerActivity : AppCompatActivity() {
                 });
                 playerObs.observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true });
                 setTimeout(function() { playerObs.disconnect(); }, 15000);
+
+                function killPopups() {
+                    document.querySelectorAll('a[onclick*="window.open"], a[onclick*="popup"], a[target="_blank"][href*="http"]').forEach(function(a) {
+                        if (!isPlayerElement(a) && !a.querySelector('img[src*="turbovid"], img[src*="blogger"], img[src*="googlevideo"]')) {
+                            a.removeAttribute('onclick');
+                            a.target = '_self';
+                            a.href = '#';
+                        }
+                    });
+                    var overlayDivs = document.querySelectorAll('div[style*="z-index"][style*="fixed"], div[style*="z-index"][style*="absolute"]');
+                    overlayDivs.forEach(function(d) {
+                        if (d._adClean) return;
+                        if (!d.querySelector('iframe') && !d.querySelector('video')) {
+                            var z = parseInt(d.style.zIndex) || 0;
+                            if (z > 5000) removeEl(d);
+                        }
+                    });
+                }
+                killPopups();
+                setInterval(killPopups, 2000);
 
                 function autoPlay() {
                     var v = document.querySelector('video');
@@ -1028,6 +1256,12 @@ class PlayerActivity : AppCompatActivity() {
         webView?.visibility = View.VISIBLE
         webView?.loadUrl(episodeUrl)
         Log.d(TAG, "EP-WEBVIEW: loading episode page $episodeUrl")
+
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
+            activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+            wvHideControls()
+            Log.d(TAG, "EP-WEBVIEW: WebView controls hidden for provider: $activeProviderId")
+        }
     }
 
     private fun playViaWebView(url: String) {
@@ -1055,6 +1289,8 @@ class PlayerActivity : AppCompatActivity() {
             builtInZoomControls = false
             displayZoomControls = false
             setSupportZoom(false)
+            setSupportMultipleWindows(false)
+            javaScriptCanOpenWindowsAutomatically = false
             blockNetworkImage = false
             loadsImagesAutomatically = true
         }
@@ -1097,6 +1333,11 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message?): Boolean {
+                resultMsg?.obj = null
+                return false
+            }
         }
 
         webView?.webViewClient = object : android.webkit.WebViewClient() {
@@ -1108,6 +1349,7 @@ class PlayerActivity : AppCompatActivity() {
                     loadingPlayer.visibility = View.GONE
                 }
                 view?.visibility = View.VISIBLE
+                view?.evaluateJavascript(AD_REMOVAL_JS, null)
             }
 
             override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
@@ -1118,7 +1360,22 @@ class PlayerActivity : AppCompatActivity() {
                 tvError.text = "Error: $description"
             }
 
+            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                val url = request?.url?.toString() ?: return false
+                val lower = url.lowercase()
+                if (BLOCKED_DOMAINS.any { lower.contains(it) }) {
+                    Log.d(TAG, "WV-PLAYBACK blocked ad navigation: $lower")
+                    return true
+                }
+                return false
+            }
+
             override fun shouldInterceptRequest(view: WebView?, request: android.webkit.WebResourceRequest?): android.webkit.WebResourceResponse? {
+                val reqUrl = request?.url?.toString() ?: return null
+                val lower = reqUrl.lowercase()
+                if (BLOCKED_DOMAINS.any { lower.contains(it) }) {
+                    return android.webkit.WebResourceResponse("text/plain", "utf-8", null)
+                }
                 return null
             }
         }
@@ -1126,6 +1383,12 @@ class PlayerActivity : AppCompatActivity() {
         webView?.visibility = View.VISIBLE
         webView?.loadUrl(url)
         Log.d(TAG, "WebView playback mode: loading $url")
+
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
+            activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+            wvHideControls()
+            Log.d(TAG, "WV-PLAYBACK: WebView controls hidden for provider: $activeProviderId")
+        }
     }
 
     private fun playVideoUrlViaWebView(videoUrl: String) {
@@ -1157,6 +1420,8 @@ class PlayerActivity : AppCompatActivity() {
             loadsImagesAutomatically = true
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+            setSupportMultipleWindows(false)
+            javaScriptCanOpenWindowsAutomatically = false
         }
 
         val proxyClient = okhttp3.OkHttpClient.Builder()
@@ -1204,12 +1469,18 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 return true
             }
+
+            override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message?): Boolean {
+                resultMsg?.obj = null
+                return false
+            }
         }
 
         webView?.webViewClient = object : android.webkit.WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 wvLoadingSpinner.visibility = View.GONE
+                view?.evaluateJavascript(AD_REMOVAL_JS, null)
                 Log.d(TAG, "VIDEO-WEBVIEW loaded: $url")
             }
 
@@ -1219,6 +1490,16 @@ class PlayerActivity : AppCompatActivity() {
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.VISIBLE
                 tvError.text = "Error: $description"
+            }
+
+            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                val url = request?.url?.toString() ?: return false
+                val lower = url.lowercase()
+                if (BLOCKED_DOMAINS.any { lower.contains(it) }) {
+                    Log.d(TAG, "VIDEO-WEBVIEW blocked ad navigation: $lower")
+                    return true
+                }
+                return false
             }
 
             override fun shouldInterceptRequest(view: WebView?, request: android.webkit.WebResourceRequest?): android.webkit.WebResourceResponse? {
@@ -1279,6 +1560,12 @@ class PlayerActivity : AppCompatActivity() {
         webView?.visibility = View.VISIBLE
         webView?.loadUrl(videoUrl)
         Log.d(TAG, "VIDEO-WEBVIEW: loading video URL: $videoUrl")
+
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
+            activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+            wvHideControls()
+            Log.d(TAG, "VIDEO-WEBVIEW: WebView controls hidden for provider: $activeProviderId")
+        }
     }
 
     private fun playVideoViaHtml5WebView(videoUrl: String) {
@@ -1615,6 +1902,12 @@ class PlayerActivity : AppCompatActivity() {
         webView?.visibility = View.VISIBLE
         webView?.loadDataWithBaseURL("http://player.weebflix.app/", html, "text/html", "UTF-8", null)
         Log.d(TAG, "HTML5 WebView player: ${if (isHls) "hls.js+PROXY" else "direct"} → $videoUrl")
+
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
+            activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+            wvHideControls()
+            Log.d(TAG, "WebView controls hidden for provider: $activeProviderId")
+        }
     }
 
     private fun exitWebViewPlayback() {
@@ -2413,9 +2706,60 @@ class PlayerActivity : AppCompatActivity() {
         @JavascriptInterface
         fun onTokensFound(c: String?, t: String?, apiHost: String?) {
             Log.e(TAG, "DrakorKita tokens: c=$c, t=$t, apiHost=$apiHost")
-            val cVal = c ?: ""
-            val tVal = t ?: ""
+            var cVal = c ?: ""
+            var tVal = t ?: ""
             val host = apiHost ?: "https://api.nonton.bid/c_api"
+
+            if (cVal.isEmpty() || tVal.isEmpty()) {
+                val pageUrl = pendingResolveServer?.url?.substringBefore("?") ?: ""
+                if (pageUrl.isNotEmpty()) {
+                    Log.e(TAG, "DrakorKita: tokens empty from JS, trying OkHttp fallback decode...")
+                    try {
+                        val req = okhttp3.Request.Builder().url(pageUrl)
+                            .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                            .build()
+                        val resp = getOkHttpClient(cacheDir).newCall(req).execute()
+                        val html = resp.use { it.body?.string() ?: "" }
+                        if (html.isNotEmpty()) {
+                            val encodedRegex = Regex("(\\w+)='([A-Za-z0-9+/=]{15,}\\.([A-Za-z0-9+/=]+\\.){5,}[A-Za-z0-9+/=]+)'")
+                            val match = encodedRegex.find(html)
+                            if (match != null) {
+                                val encoded = match.groupValues[2]
+                                val segments = encoded.split(".")
+                                val allDigits = StringBuilder()
+                                for (segment in segments) {
+                                    try {
+                                        var padded = segment
+                                        while (padded.length % 4 != 0) padded += "="
+                                        val bytes = android.util.Base64.decode(padded, android.util.Base64.DEFAULT)
+                                        val text = String(bytes, Charsets.ISO_8859_1)
+                                        for (ch in text) {
+                                            if (ch in '0'..'9') allDigits.append(ch)
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                                val digitStr = allDigits.toString()
+                                val decodedChars = mutableListOf<Char>()
+                                var i = 0
+                                while (i + 2 < digitStr.length) {
+                                    val code = digitStr.substring(i, i + 3).toIntOrNull() ?: break
+                                    if (code in 0..65535) decodedChars.add(code.toChar())
+                                    i += 3
+                                }
+                                val decodedScript = decodedChars.joinToString("")
+                                val cm3 = Regex("var\\s+c\\s*=\\s*'([^'']*)'").find(decodedScript)
+                                val tm3 = Regex("var\\s+t\\s*=\\s*'([^'']*)'").find(decodedScript)
+                                if (cm3 != null) cVal = cm3.groupValues[1]
+                                if (tm3 != null) tVal = tm3.groupValues[1]
+                                Log.e(TAG, "DrakorKita: OkHttp fallback tokens: c=${cVal.take(20)}, t=${tVal.take(20)}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "DrakorKita: OkHttp fallback failed: ${e.message}")
+                    }
+                }
+            }
+
             if (cVal.isNotEmpty() && tVal.isNotEmpty()) {
                 val server = pendingResolveServer ?: return
                 val gen = resolveGeneration
@@ -2436,7 +2780,8 @@ class PlayerActivity : AppCompatActivity() {
                 resolvedUrl.contains("doubleclick") || resolvedUrl.contains("facebook.com/tr") ||
                 resolvedUrl.contains("mc.") || resolvedUrl.contains("analytics") ||
                 resolvedUrl.contains("cdn-cgi") || resolvedUrl.contains("/rum") ||
-                resolvedUrl.contains("cloudflare") || resolvedUrl.contains("challenges")
+                resolvedUrl.contains("cloudflare") || resolvedUrl.contains("challenges") ||
+                resolvedUrl.contains("googletagmanager.com") || resolvedUrl.contains("/collect?")
             if (isTrackingUrl) {
                 Log.d(TAG, "WebView resolved tracking/analytics URL, ignoring: $resolvedUrl")
                 return
@@ -2549,49 +2894,97 @@ class PlayerActivity : AppCompatActivity() {
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun initExoPlayer(videoUrl: String) {
+        val isTurboM3u8 = videoUrl.contains("turboviplay.com") && videoUrl.contains(".m3u8")
+        if (isTurboM3u8 && !videoUrl.startsWith("file://")) {
+            Log.d(TAG, "Pre-fetch: intercepting turboviplay m3u8, downloading to local cache...")
+            pendingAutoFailRunnable?.let { autoHideHandler.removeCallbacks(it) }
+            loadingPlayer.visibility = View.VISIBLE
+            var playbackLaunched = false
+            lifecycleScope.launch {
+                val localPath = withContext(Dispatchers.IO) {
+                    prefetchTurboVideo(videoUrl) { readyPath ->
+                        if (!playbackLaunched && !isFinishing) {
+                            playbackLaunched = true
+                            Log.d(TAG, "Pre-fetch: launching ExoPlayer with ready segments")
+                            runOnUiThread {
+                                resolvedUrlCache[currentServerIndex] = readyPath
+                                loadingPlayer.visibility = View.GONE
+                                initExoPlayer(readyPath)
+                            }
+                        }
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    if (!playbackLaunched && !isFinishing) {
+                        if (localPath != null) {
+                            Log.d(TAG, "Pre-fetch: all done, playing from local: $localPath")
+                            resolvedUrlCache[currentServerIndex] = localPath
+                            initExoPlayer(localPath)
+                        } else {
+                            Log.e(TAG, "Pre-fetch: failed, falling back to remote URL")
+                            initExoPlayerRemote(videoUrl)
+                        }
+                    }
+                }
+            }
+            return
+        }
+        initExoPlayerRemote(videoUrl)
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun initExoPlayerRemote(videoUrl: String) {
         exoPlayer?.release()
+
+        val isLocal = videoUrl.startsWith("file://")
 
         val cache = getSimpleCache(this)
         val okHttpClient = getOkHttpClient(cacheDir)
 
         val upstreamFactory = OkHttpDataSource.Factory(okHttpClient).apply {
-            if (videoUrl.contains("googlevideo.com")) {
-                setDefaultRequestProperties(mapOf(
-                    "Referer" to "https://www.blogger.com/",
-                    "Origin" to "https://www.blogger.com"
-                ))
-            } else if (videoUrl.contains("abysscdn.com") || videoUrl.contains("hydrax") || videoUrl.contains("drakor.bid")) {
-                setDefaultRequestProperties(mapOf(
-                    "Referer" to "https://drakor.kita.mobi/",
-                    "Origin" to "https://drakor.kita.mobi"
-                ))
-            } else if (videoUrl.contains("turboviplay.com")) {
-                setDefaultRequestProperties(mapOf(
-                    "Referer" to "https://turbovidhls.com/",
-                    "Origin" to "https://turbovidhls.com"
-                ))
+            if (!isLocal) {
+                if (videoUrl.contains("googlevideo.com")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://www.blogger.com/",
+                        "Origin" to "https://www.blogger.com"
+                    ))
+                } else if (videoUrl.contains("abysscdn.com") || videoUrl.contains("hydrax") || videoUrl.contains("drakor.bid")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://drakor.kita.mobi/",
+                        "Origin" to "https://drakor.kita.mobi"
+                    ))
+                } else if (videoUrl.contains("turboviplay.com")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://turbovidhls.com/",
+                        "Origin" to "https://turbovidhls.com"
+                    ))
+                }
             }
         }
 
-        val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
-            .setCache(cache)
-            .setUpstreamDataSourceFactory(upstreamFactory)
-            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-            .setCacheKeyFactory(object : androidx.media3.datasource.cache.CacheKeyFactory {
-                override fun buildCacheKey(dataSpec: androidx.media3.datasource.DataSpec): String {
-                    val uri = dataSpec.uri.toString()
-                    return if (uri.contains("turboviplay.com")) {
-                        "turboviplay_no_cache_${uri.hashCode()}"
-                    } else {
-                        uri.hashCode().toString()
+        val cacheDataSourceFactory = if (isLocal) {
+            androidx.media3.datasource.FileDataSource.Factory()
+        } else {
+            androidx.media3.datasource.cache.CacheDataSource.Factory()
+                .setCache(cache)
+                .setUpstreamDataSourceFactory(upstreamFactory)
+                .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                .setCacheKeyFactory(object : androidx.media3.datasource.cache.CacheKeyFactory {
+                    override fun buildCacheKey(dataSpec: androidx.media3.datasource.DataSpec): String {
+                        val uri = dataSpec.uri.toString()
+                        return if (uri.contains("turboviplay.com")) {
+                            "turboviplay_no_cache_${uri.hashCode()}"
+                        } else {
+                            uri.hashCode().toString()
+                        }
                     }
-                }
-            })
+                })
+        }
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                10_000,    // minBufferMs (10s — minimal buffer to reduce CDN request bursts)
-                45_000,    // maxBufferMs (45s — tight cap to avoid 429 rate limiting)
+                5_000,     // minBufferMs (5s — minimal buffer)
+                20_000,    // maxBufferMs (20s — tight cap, fewer concurrent segment requests to avoid 429)
                 3_000,     // bufferForPlaybackMs (3s initial buffer before play)
                 2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
             )
@@ -2614,6 +3007,13 @@ class PlayerActivity : AppCompatActivity() {
             .setTrackSelector(trackSelector)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setAudioAttributes(
+                androidx.media3.common.AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(),
+                true
+            )
             .build()
             .also { player ->
                 playerView.player = player
@@ -2643,6 +3043,7 @@ class PlayerActivity : AppCompatActivity() {
                                 Player.STATE_READY -> {
                                     loadingPlayer.visibility = View.GONE
                                     tvError.visibility = View.GONE
+                                    syncByteRetryCount = 0
                                 }
                                 Player.STATE_ENDED -> {
                                     isPlaying = false
@@ -2667,25 +3068,25 @@ class PlayerActivity : AppCompatActivity() {
                             val isRateLimit = fullMsg.contains("429") || isSyncByteError
                             if (isRateLimit && currentServerIndex in servers.indices) {
                                 val cachedUrl = resolvedUrlCache[currentServerIndex] ?: ""
-                                if (cachedUrl.isNotEmpty() && turboRetryCount < 3) {
-                                    turboRetryCount++
-                                    val delayMs = turboRetryCount * 5000L
-                                    Log.w(TAG, "Rate limit / sync byte error, retry #${turboRetryCount} in ${delayMs}ms...")
+                                if (cachedUrl.isNotEmpty() && syncByteRetryCount < maxSyncByteRetries) {
+                                    syncByteRetryCount++
+                                    val delayMs = if (isSyncByteError) 5000L * syncByteRetryCount else 3000L
+                                    Log.w(TAG, "Rate limit / sync byte error, retry $syncByteRetryCount/$maxSyncByteRetries in ${delayMs}ms...")
                                     pendingAutoFailRunnable?.let { autoHideHandler.removeCallbacks(it) }
                                     pendingAutoFailRunnable = Runnable {
                                         if (!isFinishing && cachedUrl.isNotEmpty()) {
-                                            Log.d(TAG, "Retrying ExoPlayer with cached URL after rate limit (retry #${turboRetryCount})")
+                                            Log.d(TAG, "Retrying ExoPlayer with cached URL (attempt $syncByteRetryCount)")
                                             loadingPlayer.visibility = View.VISIBLE
                                             initExoPlayer(cachedUrl)
                                         }
                                     }
                                     autoHideHandler.postDelayed(pendingAutoFailRunnable!!, delayMs)
                                 } else {
-                                    Log.w(TAG, "Rate limit exceeded (${turboRetryCount} retries), clearing cache and failing over")
-                                    turboRetryCount = 0
+                                    Log.w(TAG, "Rate limit: exhausted retries ($syncByteRetryCount/$maxSyncByteRetries), trying next server")
+                                    syncByteRetryCount = 0
                                     resolvedUrlCache.remove(currentServerIndex)
                                     pendingAutoFailRunnable?.let { autoHideHandler.removeCallbacks(it) }
-                                    val serverName = if (currentServerIndex in servers.indices) servers[currentServerIndex].name else "Unknown"
+                                    val serverName = servers[currentServerIndex].name
                                     scheduleAutoFail(serverName)
                                 }
                             } else {
@@ -3336,6 +3737,7 @@ class PlayerActivity : AppCompatActivity() {
     private var popupWindow: android.widget.PopupWindow? = null
 
     private fun loadServer(index: Int) {
+        syncByteRetryCount = 0
         if (index in servers.indices) playServer(servers[index])
     }
 
@@ -3724,10 +4126,42 @@ class PlayerActivity : AppCompatActivity() {
         val isTurboVip = embedUrl.contains("emturbovid") || embedUrl.contains("turbovidhls") || embedUrl.contains("turboviplay")
 
         if (isTurboVip) {
-            Log.d(TAG, "TurboVip detected, using OkHttp extraction (no WebView ads)")
+            Log.d(TAG, "TurboVip detected, using OkHttp extraction")
             val gen = resolveGeneration
             lifecycleScope.launch {
-                val m3u8Url = extractTurboVipViaOkHttp(embedUrl)
+                val m3u8Url = withContext(Dispatchers.IO) {
+                    try {
+                        val client = okhttp3.OkHttpClient.Builder()
+                            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                            .followRedirects(true)
+                            .build()
+                        val req = okhttp3.Request.Builder().url(embedUrl)
+                            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Referer", "https://turbovidhls.com/")
+                            .header("Origin", "https://turbovidhls.com")
+                            .build()
+                        val response = client.newCall(req).execute()
+                        val body = response.body?.string() ?: ""
+                        response.close()
+                        val patterns = listOf(
+                            Regex("""https?://[^\s"'<>]+cdn2\.turboviplay\.com[^\s"'<>]+\.m3u8[^\s"'<>]*"""),
+                            Regex("""https?://[^\s"'<>]+turboviplay[^\s"'<>]+\.m3u8[^\s"'<>]*"""),
+                            Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
+                            Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+                        )
+                        var result = ""
+                        for (pattern in patterns) {
+                            val match = pattern.find(body)
+                            if (match != null) {
+                                result = match.groupValues.getOrElse(1) { match.value }
+                                if (result.startsWith("http")) break
+                            }
+                        }
+                        result
+                    } catch (e: Exception) { "" }
+                }
                 withContext(Dispatchers.Main) {
                     if (gen != resolveGeneration || isFinishing) return@withContext
                     if (m3u8Url.isNotEmpty()) {
@@ -3823,19 +4257,83 @@ class PlayerActivity : AppCompatActivity() {
                     webView?.evaluateJavascript(extractFileLionsVideoJs(), null)
                     webView?.postDelayed({
                         if (webViewResolving && resolveGeneration == gen) {
-                            Log.d(TAG, "FileLions extraction failed after timeout, trying OkHttp fallback...")
-                            webViewResolving = false
-                            webViewResolveMode = ResolveMode.NONE
-                            webViewResolveCallback?.invoke("")
-                            webViewResolveCallback = null
-                            pendingResolveServer = null
-                            lifecycleScope.launch {
-                                val fallbackUrl = extractFileLionsViaOkHttp(embedUrl)
-                                if (!isFinishing && fallbackUrl.isNotEmpty()) {
-                                    withContext(Dispatchers.Main) {
-                                        resolvedUrlCache[serverIndex] = fallbackUrl
-                                        loadingPlayer.visibility = View.GONE
-                                        initExoPlayer(fallbackUrl)
+                            Log.d(TAG, "FileLions JS extraction failed, enumerating iframes...")
+                            webView?.evaluateJavascript("""
+                                (function() {
+                                    var iframes = document.querySelectorAll('iframe');
+                                    var urls = [];
+                                    for (var i = 0; i < iframes.length; i++) {
+                                        var s = iframes[i].src || iframes[i].getAttribute('src') || '';
+                                        if (s && s.indexOf('http') === 0 && s.indexOf('about:blank') === -1) {
+                                            urls.push(s);
+                                        }
+                                    }
+                                    return JSON.stringify(urls);
+                                })();
+                            """.trimIndent()) { iframeJson ->
+                                if (webViewResolving && resolveGeneration == gen) {
+                                    val urls = try {
+                                        org.json.JSONArray(iframeJson?.removeSurrounding("\"") ?: "[]").let { arr ->
+                                            (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { u -> u.isNotEmpty() } }
+                                        }
+                                    } catch (_: Exception) { emptyList() }
+                                    Log.d(TAG, "FileLions found ${urls.size} iframes: $urls")
+                                    val targetIframe = urls.firstOrNull { u ->
+                                        u.contains("wibufile") || u.contains("streamtape") || u.contains("doodstream") ||
+                                        u.contains("fcdn") || u.contains("turboviplay") || u.contains("turbovid") ||
+                                        u.contains("abysscdn") || u.contains("hydrax") || u.contains("minochinos")
+                                    }
+                                    if (targetIframe != null) {
+                                        Log.d(TAG, "FileLions navigating to sub-iframe: $targetIframe")
+                                        webView?.loadUrl(targetIframe)
+                                        webView?.postDelayed({
+                                            if (webViewResolving && resolveGeneration == gen) {
+                                                Log.d(TAG, "FileLions sub-iframe extraction still failing, trying OkHttp on sub-iframe...")
+                                                webViewResolving = false
+                                                webViewResolveMode = ResolveMode.NONE
+                                                webViewResolveCallback?.invoke("")
+                                                webViewResolveCallback = null
+                                                pendingResolveServer = null
+                                                lifecycleScope.launch {
+                                                    var found = ""
+                                                    for (url in urls) {
+                                                        found = extractFileLionsViaOkHttp(url)
+                                                        if (found.isNotEmpty()) break
+                                                    }
+                                                    if (!isFinishing && found.isNotEmpty()) {
+                                                        withContext(Dispatchers.Main) {
+                                                            resolvedUrlCache[serverIndex] = found
+                                                            loadingPlayer.visibility = View.GONE
+                                                            initExoPlayer(found)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }, 10000)
+                                    } else {
+                                        Log.d(TAG, "FileLions no video host iframe found, trying OkHttp on all iframes...")
+                                        webViewResolving = false
+                                        webViewResolveMode = ResolveMode.NONE
+                                        webViewResolveCallback?.invoke("")
+                                        webViewResolveCallback = null
+                                        pendingResolveServer = null
+                                        lifecycleScope.launch {
+                                            var found = ""
+                                            for (url in urls) {
+                                                found = extractFileLionsViaOkHttp(url)
+                                                if (found.isNotEmpty()) break
+                                            }
+                                            if (found.isEmpty() && embedUrl.isNotEmpty()) {
+                                                found = extractFileLionsViaOkHttp(embedUrl)
+                                            }
+                                            if (!isFinishing && found.isNotEmpty()) {
+                                                withContext(Dispatchers.Main) {
+                                                    resolvedUrlCache[serverIndex] = found
+                                                    loadingPlayer.visibility = View.GONE
+                                                    initExoPlayer(found)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -4049,7 +4547,7 @@ class PlayerActivity : AppCompatActivity() {
                 function isVideoUrl(s) {
                     if (!s || s.indexOf('about:blank') !== -1 || s.indexOf('blob:') !== -1 || s.indexOf('data:') !== -1 || s.indexOf('javascript:') !== -1) return false;
                     if (s.indexOf('.css') !== -1 || s.indexOf('.js') !== -1 || s.indexOf('.png') !== -1 || s.indexOf('.jpg') !== -1 || s.indexOf('.gif') !== -1 || s.indexOf('.svg') !== -1 || s.indexOf('.ico') !== -1 || s.indexOf('.woff') !== -1) return false;
-                    if (s.indexOf('yandex.') !== -1 || s.indexOf('google-analytics') !== -1 || s.indexOf('analytics') !== -1 || s.indexOf('doubleclick') !== -1 || s.indexOf('facebook') !== -1) return false;
+                    if (s.indexOf('yandex.') !== -1 || s.indexOf('google-analytics.com') !== -1 || s.indexOf('analytics') !== -1 || s.indexOf('doubleclick.net') !== -1 || s.indexOf('facebook.com/tr') !== -1 || s.indexOf('hotjar.com') !== -1 || s.indexOf('sentry.io') !== -1 || s.indexOf('/collect?') !== -1) return false;
                     return s.indexOf('.mp4') !== -1 || s.indexOf('.m3u8') !== -1 || s.indexOf('.mpd') !== -1 ||
                            s.indexOf('googlevideo.com') !== -1 || s.indexOf('videoplayback') !== -1 ||
                            s.indexOf('wibufile') !== -1 || s.indexOf('vipstream') !== -1 ||
@@ -4175,7 +4673,7 @@ class PlayerActivity : AppCompatActivity() {
                 function isVideoUrl(s) {
                     if (!s || s.indexOf('about:blank') !== -1 || s.indexOf('blob:') !== -1 || s.indexOf('data:') !== -1 || s.indexOf('javascript:') !== -1) return false;
                     if (s.indexOf('.css') !== -1 || s.indexOf('.js') !== -1 || s.indexOf('.png') !== -1 || s.indexOf('.jpg') !== -1 || s.indexOf('.gif') !== -1 || s.indexOf('.svg') !== -1 || s.indexOf('.ico') !== -1 || s.indexOf('.woff') !== -1) return false;
-                    if (s.indexOf('yandex.') !== -1 || s.indexOf('google-analytics') !== -1 || s.indexOf('analytics') !== -1 || s.indexOf('doubleclick') !== -1 || s.indexOf('facebook') !== -1 || s.indexOf('mc.') !== -1) return false;
+                    if (s.indexOf('yandex.') !== -1 || s.indexOf('google-analytics.com') !== -1 || s.indexOf('analytics') !== -1 || s.indexOf('doubleclick.net') !== -1 || s.indexOf('facebook.com/tr') !== -1 || s.indexOf('hotjar.com') !== -1 || s.indexOf('sentry.io') !== -1 || s.indexOf('/collect?') !== -1) return false;
                     try {
                         var h = new URL(s).hostname;
                         if (h.indexOf('minochinos') !== -1 || h.indexOf('filelions') !== -1) return true;
@@ -4319,20 +4817,52 @@ class PlayerActivity : AppCompatActivity() {
 
     private suspend fun extractFileLionsViaOkHttp(embedUrl: String): String {
         return try {
+            val sslContext = javax.net.ssl.SSLContext.getInstance("TLS")
+            sslContext.init(null, arrayOf(object : javax.net.ssl.X509TrustManager {
+                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+            }), java.security.SecureRandom())
             val client = okhttp3.OkHttpClient.Builder()
-                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
                 .followRedirects(true)
+                .followSslRedirects(true)
+                .sslSocketFactory(sslContext.socketFactory, object : javax.net.ssl.X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                })
+                .hostnameVerifier { _, _ -> true }
                 .build()
+            val cookieManager = android.webkit.CookieManager.getInstance()
+            val cookies = cookieManager.getCookie("https://minochinos.com") ?: ""
+            Log.d(TAG, "FileLions OkHttp: cookies from WebView: ${cookies.take(200)}")
             val req = okhttp3.Request.Builder().url(embedUrl)
                 .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                .header("Accept-Language", "en-US,en;q=0.9")
                 .header("Referer", "https://minochinos.com/")
+                .header("Sec-Fetch-Dest", "document")
+                .header("Sec-Fetch-Mode", "navigate")
+                .header("Sec-Fetch-Site", "same-origin")
+                .apply { if (cookies.isNotEmpty()) header("Cookie", cookies) }
                 .build()
+            Log.d(TAG, "FileLions OkHttp: requesting $embedUrl")
             val response = client.newCall(req).execute()
-            val body = response.body?.string() ?: return ""
+            Log.d(TAG, "FileLions OkHttp: response code=${response.code}, redirect=${response.request.url}")
+            val body = response.body?.string() ?: ""
             response.close()
+            if (body.isEmpty()) {
+                Log.e(TAG, "FileLions OkHttp: empty body from $embedUrl")
+                return ""
+            }
             Log.d(TAG, "FileLions OkHttp: fetched ${body.length} bytes from $embedUrl")
+            if (body.length < 5000) {
+                Log.d(TAG, "FileLions OkHttp: full HTML: $body")
+            } else {
+                Log.d(TAG, "FileLions OkHttp: first 2000 chars: ${body.take(2000)}")
+            }
             val patterns = listOf(
                 Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
                 Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)""", RegexOption.IGNORE_CASE),
@@ -4357,7 +4887,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
             val iframePattern = Regex("""<iframe[^>]+src=["'](https?://[^"']+)["']""", RegexOption.IGNORE_CASE)
-            val videoHosts = listOf("wibufile", "streamtape", "doodstream", "fcdn", "turboviplay", "turbovid")
+            val videoHosts = listOf("wibufile", "streamtape", "doodstream", "fcdn", "turboviplay", "turbovid", "abysscdn", "hydrax")
             for (match in iframePattern.findAll(body)) {
                 val iframeUrl = match.groupValues[1]
                 if (videoHosts.any { iframeUrl.contains(it, ignoreCase = true) }) {
@@ -4365,59 +4895,222 @@ class PlayerActivity : AppCompatActivity() {
                     return iframeUrl
                 }
             }
-            Log.d(TAG, "FileLions OkHttp: no video URL found in page")
-            ""
-        } catch (e: Exception) {
-            Log.e(TAG, "FileLions OkHttp extraction failed: ${e.message}")
-            ""
-        }
-    }
-
-    private suspend fun extractTurboVipViaOkHttp(embedUrl: String): String {
-        return try {
-            val client = okhttp3.OkHttpClient.Builder()
-                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .followRedirects(true)
-                .build()
-            val req = okhttp3.Request.Builder().url(embedUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .header("Referer", "https://turbovidhls.com/")
-                .header("Origin", "https://turbovidhls.com")
-                .build()
-            val response = client.newCall(req).execute()
-            val body = response.body?.string() ?: return ""
-            response.close()
-            Log.d(TAG, "TurboVip OkHttp: fetched ${body.length} bytes from $embedUrl")
-            val patterns = listOf(
-                Regex("""https?://[^\s"'<>]+cdn2\.turboviplay\.com[^\s"'<>]+\.m3u8[^\s"'<>]*"""),
-                Regex("""https?://[^\s"'<>]+turboviplay[^\s"'<>]+\.m3u8[^\s"'<>]*"""),
-                Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
-                Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
-                Regex("""["']src["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
-                Regex("""["']url["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
-                Regex("""["']videoUrl["']\s*:\s*["'](https?://[^"']+\.m3u8[^"']*)""", RegexOption.IGNORE_CASE),
-                Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-            )
-            for (pattern in patterns) {
-                val match = pattern.find(body)
-                if (match != null) {
-                    val url = match.groupValues.getOrElse(1) { match.value }
-                    if (url.startsWith("http")) {
-                        Log.d(TAG, "TurboVip OkHttp: found m3u8 URL: $url")
-                        return url
+            val minochinosIframe = iframePattern.find(body)
+            if (minochinosIframe != null) {
+                val subIframeUrl = minochinosIframe.groupValues[1]
+                if (subIframeUrl.contains("minochinos.com") || subIframeUrl.contains("filelions")) {
+                    Log.d(TAG, "FileLions OkHttp: found minochinos sub-iframe, following: $subIframeUrl")
+                    val subReq = okhttp3.Request.Builder().url(subIframeUrl)
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .header("Referer", "https://minochinos.com/")
+                        .build()
+                    val subResp = client.newCall(subReq).execute()
+                    val subBody = subResp.body?.string() ?: ""
+                    subResp.close()
+                    for (pattern in patterns) {
+                        val subMatch = pattern.find(subBody)
+                        if (subMatch != null) {
+                            val url = subMatch.groupValues.getOrElse(1) { subMatch.value }
+                            if (url.startsWith("http")) {
+                                Log.d(TAG, "FileLions OkHttp: found video URL in sub-iframe: $url")
+                                return url
+                            }
+                        }
                     }
                 }
             }
-            Log.d(TAG, "TurboVip OkHttp: no m3u8 URL found in page")
+            Log.d(TAG, "FileLions OkHttp: no video URL found in page")
             ""
         } catch (e: Exception) {
-            Log.e(TAG, "TurboVip OkHttp extraction failed: ${e.message}")
+            Log.e(TAG, "FileLions OkHttp extraction failed: ${e.javaClass.simpleName}: ${e.message}", e)
             ""
         }
     }
 
+    // ===== TurboVI Pre-fetch =====
+    private suspend fun prefetchTurboVideo(m3u8Url: String, onReady: ((String) -> Unit)? = null): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val cacheDir = java.io.File(cacheDir, "turbo_prefetch")
+                cacheDir.mkdirs()
+
+                val sslContext = javax.net.ssl.SSLContext.getInstance("TLS")
+                sslContext.init(null, arrayOf(object : javax.net.ssl.X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                }), java.security.SecureRandom())
+                val client = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .sslSocketFactory(sslContext.socketFactory, object : javax.net.ssl.X509TrustManager {
+                        override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                        override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                    })
+                    .hostnameVerifier { _, _ -> true }
+                    .build()
+
+                fun fetchUrl(url: String): String {
+                    val req = okhttp3.Request.Builder().url(url)
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .header("Referer", "https://turbovidhls.com/")
+                        .header("Origin", "https://turbovidhls.com")
+                        .build()
+                    val resp = client.newCall(req).execute()
+                    val body = resp.body?.string() ?: ""
+                    resp.close()
+                    return body
+                }
+
+                Log.d(TAG, "Pre-fetch: downloading m3u8 from $m3u8Url")
+                val m3u8Content = fetchUrl(m3u8Url)
+                if (m3u8Content.isEmpty()) {
+                    Log.e(TAG, "Pre-fetch: empty m3u8 response")
+                    return@withContext null
+                }
+                Log.d(TAG, "Pre-fetch: m3u8 fetched (${m3u8Content.length} bytes)")
+
+                if (m3u8Content.contains("#EXT-X-STREAM-INF")) {
+                    Log.d(TAG, "Pre-fetch: master playlist detected, fetching variant")
+                    val variantPattern = Regex("""^(?!#)(https?://\S+|\S+\.m3u8\S*)$""", RegexOption.MULTILINE)
+                    val variantMatch = variantPattern.find(m3u8Content)
+                    if (variantMatch != null) {
+                        var variantUrl = variantMatch.groupValues[1]
+                        if (!variantUrl.startsWith("http")) {
+                            val baseUrl = m3u8Url.substringBeforeLast("/") + "/"
+                            variantUrl = baseUrl + variantUrl
+                        }
+                        Log.d(TAG, "Pre-fetch: variant URL: $variantUrl")
+                        val variantContent = fetchUrl(variantUrl)
+                        if (variantContent.isNotEmpty()) {
+                            return@withContext downloadHlsPlaylist(variantUrl, variantContent, cacheDir, client, onReady)
+                        }
+                    }
+                    Log.e(TAG, "Pre-fetch: failed to resolve variant URL")
+                    return@withContext null
+                }
+
+                return@withContext downloadHlsPlaylist(m3u8Url, m3u8Content, cacheDir, client, onReady)
+            } catch (e: Exception) {
+                Log.e(TAG, "Pre-fetch failed: ${e.javaClass.simpleName}: ${e.message}", e)
+                null
+            }
+        }
+    }
+
+    private fun downloadHlsPlaylist(m3u8Url: String, m3u8Content: String, cacheDir: java.io.File, client: okhttp3.OkHttpClient, onReady: ((String) -> Unit)? = null): String? {
+        val lines = m3u8Content.lines()
+        val segmentUrls = mutableListOf<Pair<Int, String>>()
+        var baseUrl = m3u8Url.substringBeforeLast("/") + "/"
+
+        for (i in lines.indices) {
+            val line = lines[i].trim()
+            if (line.isEmpty() || line.startsWith("#")) continue
+            var segUrl = line
+            if (!segUrl.startsWith("http")) {
+                segUrl = baseUrl + segUrl
+            }
+            segmentUrls.add(i to segUrl)
+        }
+
+        if (segmentUrls.isEmpty()) {
+            Log.e(TAG, "Pre-fetch: no segments found in m3u8")
+            return null
+        }
+
+        val minSegmentsToStart = 30
+        Log.d(TAG, "Pre-fetch: found ${segmentUrls.size} segments, need $minSegmentsToStart to start playback")
+
+        val downloadedSegments = mutableMapOf<Int, String>()
+        var localM3u8: String? = null
+        var playbackStarted = false
+
+        for ((lineIdx, segUrl) in segmentUrls) {
+            val segName = "seg_${lineIdx}_${java.io.File(segUrl).name}"
+            val segFile = java.io.File(cacheDir, segName)
+            if (segFile.exists() && segFile.length() > 0) {
+                Log.d(TAG, "Pre-fetch: segment already cached: $segName")
+                downloadedSegments[lineIdx] = segFile.absolutePath
+                if (downloadedSegments.size >= minSegmentsToStart && !playbackStarted && onReady != null) {
+                    playbackStarted = true
+                    localM3u8 = writeLocalM3u8(lines, downloadedSegments, cacheDir)
+                    Log.d(TAG, "Pre-fetch: starting playback early with ${downloadedSegments.size} segments")
+                    onReady(localM3u8!!)
+                }
+                continue
+            }
+            var retries = 0
+            while (retries < 5) {
+                try {
+                    val req = okhttp3.Request.Builder().url(segUrl)
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .header("Referer", "https://turbovidhls.com/")
+                        .header("Origin", "https://turbovidhls.com")
+                        .build()
+                    val resp = client.newCall(req).execute()
+                    if (resp.code == 200) {
+                        val bytes = resp.body?.bytes() ?: byteArrayOf()
+                        resp.close()
+                        segFile.writeBytes(bytes)
+                        downloadedSegments[lineIdx] = segFile.absolutePath
+                        Log.d(TAG, "Pre-fetch: segment ${downloadedSegments.size}/${segmentUrls.size} OK ($segName, ${bytes.size} bytes)")
+                        retries = 0
+                        Thread.sleep(1500L)
+                        break
+                    } else {
+                        retries++
+                        val retryAfter = resp.header("Retry-After")?.toLongOrNull()
+                        resp.close()
+                        val backoff = if (retryAfter != null) {
+                            (retryAfter * 1000L).coerceAtMost(30000L)
+                        } else {
+                            (retries * 5000L).coerceAtMost(40000L)
+                        }
+                        Log.w(TAG, "Pre-fetch: segment HTTP ${resp.code} on $segName, retry $retries/5 in ${backoff}ms")
+                        Thread.sleep(backoff)
+                    }
+                } catch (e: Exception) {
+                    retries++
+                    val backoff = (retries * 5000L).coerceAtMost(30000L)
+                    Log.w(TAG, "Pre-fetch: segment error on $segName: ${e.message}, retry $retries/5 in ${backoff}ms")
+                    Thread.sleep(backoff)
+                }
+            }
+            if (!downloadedSegments.containsKey(lineIdx)) {
+                Log.e(TAG, "Pre-fetch: failed to download segment after 5 retries: $segName")
+                if (downloadedSegments.size >= minSegmentsToStart) {
+                    Log.w(TAG, "Pre-fetch: continuing with ${downloadedSegments.size} available segments")
+                    break
+                }
+                return null
+            }
+
+            if (downloadedSegments.size >= minSegmentsToStart && !playbackStarted && onReady != null) {
+                playbackStarted = true
+                localM3u8 = writeLocalM3u8(lines, downloadedSegments, cacheDir)
+                Log.d(TAG, "Pre-fetch: starting playback early with ${downloadedSegments.size} segments")
+                onReady(localM3u8!!)
+            }
+        }
+
+        val finalM3u8 = localM3u8 ?: writeLocalM3u8(lines, downloadedSegments, cacheDir)
+        val totalSize = downloadedSegments.values.sumOf { java.io.File(it).length() }
+        Log.d(TAG, "Pre-fetch: done — ${downloadedSegments.size}/${segmentUrls.size} segments, ${(totalSize / 1024)}KB total")
+        return finalM3u8
+    }
+
+    private fun writeLocalM3u8(lines: List<String>, downloadedSegments: Map<Int, String>, cacheDir: java.io.File): String {
+        val rewrittenLines = lines.toMutableList()
+        for ((lineIdx, localPath) in downloadedSegments) {
+            rewrittenLines[lineIdx] = "file://$localPath"
+        }
+        val localM3u8 = java.io.File(cacheDir, "local_playlist.m3u8")
+        localM3u8.writeText(rewrittenLines.joinToString("\n"))
+        return localM3u8.absolutePath
+    }
     // ===== PiP =====
 
     private fun enterPipMode() {
