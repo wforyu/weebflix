@@ -1,8 +1,8 @@
 # Agents.md
 
 ## Build & Run
-- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat installDebug`
-- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease`
+- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat installDebug`
+- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat assembleRelease`
 - **Gradle:** 9.5.0, AGP 9.3.0, KSP 2.2.10-2.0.2 (for Glide)
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
@@ -116,6 +116,8 @@ WeebFlix/app/src/main/
 - Features: Cookie-based auth, token extraction from episode page (Base64 encoded), server resolution via `oppadrama/api/v2` endpoints, turboviplay CDN support with Referer validation
 - Key methods: `getHomeContent()`, `getAllAnime(page)`, `getAnimeDetail()`, `getEpisodeServers()`, `getEpisodeNavigation()`
 - Server resolution: Extracts `oppaDramaData` JSON from episode page, resolves Hydrax token via `api/v2/getToken.php`, resolves server via `api/v2/server.php`, final video URL via `api/v2/video_hydrax.php` or turboviplay CDN
+- **Server routing (audited 2026-08, live):** every episode has exactly 3 `<select class="mirror">` servers (base64 iframe src): **FileLions** (`minochinos.com/v/{id}`) → signed HLS on `dramiyos-cdn.com`/`acek-cdn.com` (`/hls2/01/08487/{id}_,l,n,h,.urlset/master.m3u8`, DRM-free, **no 429** → **ExoPlayer** via `extractFileLionsM3u8()` unpacking the eval'd packed JS in `resolveServerVideoUrl`); **TurboVIP** (`emturbovid.com/t/{id}`) and **Hydrax** (`abyssplayer.com/?v={id}`) → both resolve to Google-drive segments on `lh3.googleusercontent.com` which **429 rate-limit** from plain IPs → **WebView** (`playVideoViaHtml5WebView`). `PlayerActivity` OppaDrama branch routes `.urlset/`/`/hls2/` m3u8 → `initExoPlayer`, everything else → WebView
+- **Metadata parsing:** the detail info box is `<span><b>Episode:</b> 32</span>` — the numeric value sits OUTSIDE `<b>`, so parse with `span.ownText()` (not `span.select("b").text()`); movie posts (`movie-...`) have NO episode list (guard against empty eplister)
 - **OppaDrama Home:** Provider-specific home fragment (`OppaDramaHomeFragment.kt`) with 5 clickable sections: Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix. Each section has horizontal infinite scroll and "Lihat Semua" opens `CategoryGridActivity`
 - **CategoryGridActivity:** Supports OppaDrama categories (`CATEGORY_DRAMA_KOREA`, `CATEGORY_DRAMA_CHINA`, `CATEGORY_FILM_KOREA`, `CATEGORY_NETFLIX`) with infinite scroll
 
@@ -151,6 +153,9 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 | Anichin | Drive 1 [ADS] | `play.abyssplayer.com/{id}` | WebView (`rewriteAnichinPlayerPage`) |
 | Anichin | Drive 2 [ADS] | `rubyvidhub.com/embed-{id}.html` | WebView (`rewriteAnichinPlayerPage`) |
 | Anichin (old post) | Google Drive / Drive 2 | `archive.org/embed` / `racaty.my.id` / `short.icu` | DEAD at source — auto-fail |
+| OppaDrama | FileLions | `minochinos.com/v/{id}` → packed JS → signed `{sub}.dramiyos-cdn.com / {sub}.acek-cdn.com /hls2/01/08487/{id}_,l,n,h,.urlset/master.m3u8?t=...&e=129600` | **ExoPlayer** (`extractFileLionsM3u8` unpacked eval JS in `resolveServerVideoUrl`) — segments clean MPEG-TS, no 429 |
+| OppaDrama | TurboVIP | `emturbovid.com/t/{id}` → `cdn3.turboviplay.com` → `g*.turbosplayer.com` → `lh3.googleusercontent.com/d/{gDriveId}=d` | **WebView** (`playVideoViaHtml5WebView`) — Google-drive segments **429 rate-limited** from a plain IP → NOT ExoPlayer-viable |
+| OppaDrama | Hydrax | `abyssplayer.com/?v={id}` → JWPlayer iamcdn.net | **WebView** — `abysscdn.com/api/source` 404 (old API dead); redirect-guard handled by `rewriteAnichinPlayerPage` |
 
 `SamehadakuScraper.resolveServerVideoUrl()` guards direct videos: if `server.url` already ends in a direct-video suffix → returned unchanged (no AJAX re-fetch); the AJAX `player_ajax` iframe src is also checked with `isDirectVideoUrl()` before Blogger/filedon branches.
 
@@ -268,6 +273,8 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 | Video plays few seconds then disconnects (turboviplay CDN) | Added Referer/Origin headers for `turboviplay.com` domain in OkHttp interceptor and ExoPlayer `defaultRequestProperties` |
 | HTML embed page played directly as video URL | Generic `server.videoUrl` check now requires `isDirectVideo` (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |
 | OppaDrama servers fail to resolve | Token-based pipeline: extract `oppaDramaData` JSON → resolve Hydrax token → resolve server via API v2 |
+| OppaDrama FileLions m3u8 hidden in packed JS (WebView can't extract) | `extractFileLionsM3u8()` in `OppaDramaScraper.resolveServerVideoUrl()` reimplements the packer `e()` algorithm and returns the signed m3u8 → `PlayerActivity` routes `.urlset/`/`/hls2/` to ExoPlayer |
+| OppaDrama detail `Episode:` count empty/wrong | Info box is `<span><b>Episode:</b> 32</span>` — numeric value OUTSIDE `<b>`. Parse with `span.ownText()` not `span.select("b").text()` |
 | DrakorKita c/t tokens empty → `server.php` HTTP 500 | `resolveServerVideoUrl()` now calls `decodePageTokens()` as fallback (base64 dot-segment decode); WebView `onTokensFound()` also falls back to OkHttp + base64 decode |
 | DrakorKita WebView infinite navigation loop | Server click → CDN redirect → page reload → auto-click re-fires → cycle. Fixed: `playEpisodePageViaWebView()` added `skipInjections` + `customCleanJs` params; DrakorKita uses `skipInjections=true` to avoid `REF_INJECT_CLEAN_PAGE`/`AUTOPLAY` re-inject; auto-click checks `video.paused && video.readyState` before clicking |
 | DrakorKita JS `src.toLowerCase is not a function` | `str(v)` helper function in `REF_INJECT_CLEAN_PAGE` handles non-string `src`/`className` (SVGAnimatedString) |
@@ -311,35 +318,22 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
   - Try switching to a different CDN or proxy approach
   - Try lower maxBufferMs (e.g. 30s) to reduce concurrent segment requests
 
-### 2. OppaDrama FileLions (minochinos.com) — WebView loads embed, no video URL intercepted
-- **Server:** FileLions → `https://minochinos.com/v/5k9cuh96zb25`
-- **Symptom:** WebView loads embed page but no video URL intercepted — embed page JS doesn't expose video URL in a way our JS extraction can find it
-- **Attempted fixes:**
-  - v1: Added `minochinos.com`/`filelions` to `shouldInterceptRequest` isVideoUrl → BROKE IT (page URL itself intercepted, ExoPlayer got HTML not video → `UnrecognizedInputFormatException`)
-  - v2: Removed `minochinos.com`/`filelions` from isVideoUrl + added `extractFileLionsVideoJs()` + increased timeout to 15s → no video found
-  - v3: Fixed iframe bug (only send video URLs), timeout 15s→20s, grace period 5s→8s, added `scanObjectEmbed()`, `setAttribute` interception, `onProgressChanged` handles FileLions directly, added OkHttp HTML fallback (`extractFileLionsViaOkHttp()`) → **TESTING** (commit `e408bb6`)
-  - v4 (current): trustAllCerts on OkHttp + iframe enumeration from page HTML + cookie passing from WebView + navigate into sub-iframe + retry all iframes via OkHttp
-- **Logcat findings:**
-  - OkHttp fallback fails in 9ms with `null` error → likely DNS resolution failure (minochinos.com unreachable from device) or Cloudflare blocking
-  - trustAllCerts alone didn't fix it, confirms it's not SSL but DNS/connection
-  - New flow: JS extraction → enumerate iframes → navigate to video host iframe → re-extract → OkHttp fallback with cookies
-- **Code locations:** `PlayerActivity.kt` `resolveEmbedUrlViaWebView()` (L2447-2545 iframe enumeration), `shouldInterceptRequest()` (L469-486 isVideoUrl — must NOT contain minochinos.com), `extractFileLionsVideoJs()` (L2782+), `extractFileLionsViaOkHttp()` (L2934+, trustAllCerts + cookies + better headers), `onProgressChanged` (L529-581 FileLions branch)
-- **Possible next steps if v4 still fails:**
-  - Use Chrome DevTools Protocol (CDP) via WebView to inspect network requests after page load
-  - Check if minochinos.com is completely down / domain not resolving
-  - Try alternative embed URL sources for FileLions content
-  - FileLions may use blob URLs or WebM players that can't be intercepted via XHR
+### 2. OppaDrama FileLions (minochinos.com) — FIXED (scraper-side unpack → ExoPlayer)
+- **Server:** FileLions → `https://minochinos.com/v/{id}` → signed HLS on `dramiyos-cdn.com`/`acek-cdn.com`
+- **Root cause:** the direct m3u8 is hidden inside a base-36 **packed eval JS** (`eval(function(p,a,c,k,e,d){...}('DATA',36,N,'DICT'.split('|'))`) that WebView JS extraction couldn't read; the WebView embed itself never exposes the URL to interception
+- **Fix (2026-08):** `OppaDramaScraper.resolveServerVideoUrl()` now fetches the `minochinos.com/v/{id}` embed page and runs `extractFileLionsM3u8()` — Kotlin reimplementation of the packer `e()` algorithm (`token(i)=i.toString(base)`, `\b`-word-boundary replacement, highest index first) → extracts `var links={"hls2":"https://{sub}.dramiyos-cdn.com/hls2/01/08487/{id}_,l,n,h,.urlset/master.m3u8?t=...&e=129600","hls3":...}` → returns the m3u8 directly. `PlayerActivity` OppaDrama branch routes `.urlset/`/`/hls2/` m3u8 → `initExoPlayer` (segments are clean MPEG-TS, **no 429**). Prior WebView attempts (v1-v4) all abandoned — the iframe-enumeration/OkHttp fallback path in `resolveEmbedUrlViaWebView`/`extractFileLionsViaOkHttp` is now a dead end for FileLions (page JS requires a browser context to build the URL).
+- **Signed URL expiry:** `e=129600` (~36h) → resolve per-episode, never cache the m3u8 across sessions
 
-### 3. OppaDrama Hydrax server — Same turboviplay CDN failure
-- **Server:** Hydrax → loads episode page → WebView intercepts same `cdn2.turboviplay.com` URL
-- **Symptom:** Same HTTP 429 rate limiting after ~10s (uses same CDN as bug #1)
-- **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
+### 3. OppaDrama Hydrax server — WebView (ExoPlayer NOT viable)
+- **Server:** Hydrax → `abyssplayer.com/?v={id}` → JWPlayer iamcdn.net, redirect-guard (`abyss.to`) + base64 `const datas` token
+- **Symptom:** Old API endpoints `abysscdn.com/api/source` + `abyssplayer.com/api/source` return **404 "Path not found"** → token/API resolution dead
+- **Fix:** routed to visible-WebView playback (`playVideoViaHtml5WebView`); `rewriteAnichinPlayerPage` handles the abyss.to redirect guard + popup overlay. Google-drive segments rate-limit from plain IPs (same as TurboVIP), so ExoPlayer is not viable
 
 ## TODO / Next Session
 - **Test filedon VIP (Kimetsu movie etc.)** — `SamehadakuScraper` now returns the signed R2 `.mkv` (ExoPlayer Matroska). Needs on-device verification: VIP STREAMING server should now play in ExoPlayer instead of blank WebView
 - **Test Anichin Premium server** — `unpackPackedJs()` fixed; anichin.stream should now resolve to `https://anichin.stream/hls/{id}.m3u8` (direct, ExoPlayer). Verify with a new-post episode (e.g. `100-000-years-of-refining-qi`)
 - **Test turboviplay v5 fix** — 120ms segment delay + exponential backoff sync byte retry (5s/10s, max 2 retries)
-- **Test FileLions v4 fix** — iframe enumeration + cookie passing + sub-iframe navigation
+- **Test OppaDrama FileLions → ExoPlayer** — `extractFileLionsM3u8()` unpack + `.urlset/`/`/hls2/` routing in PlayerActivity. Needs on-device verification: pick a FileLions server on any OppaDrama episode (e.g. draw-this-then-die), confirm ExoPlayer plays HLS without 429 (segments verified clean MPEG-TS from this IP)
 - **Auto play next episode**: Implement automatic playback of next episode when current finishes (partially done via auto-play overlay)
 - **Add more providers**: Implement `AnimeProvider` interface for new content sources
 - **DrakorKita episode selection**: Choose specific episode from AnimeDetail → ensure path-based URL uses correct `epNum` from selected episode

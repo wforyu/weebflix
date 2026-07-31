@@ -4131,7 +4131,12 @@ class PlayerActivity : AppCompatActivity() {
                 if (isDirect) {
                     resolvedUrlCache[serverIndex] = server.videoUrl
                     loadingPlayer.visibility = View.GONE
-                    playVideoViaHtml5WebView(server.videoUrl)
+                    if (server.videoUrl.contains(".urlset/") || server.videoUrl.contains("/hls2/")) {
+                        Log.d(TAG, "OppaDrama direct FileLions CDN URL, playing in ExoPlayer: ${server.videoUrl}")
+                        initExoPlayer(server.videoUrl)
+                    } else {
+                        playVideoViaHtml5WebView(server.videoUrl)
+                    }
                 } else {
                     val isIframeEmbed = server.videoUrl.contains("hydrax") || server.name.contains("Hydrax", ignoreCase = true)
                     val isTurboVip = server.videoUrl.contains("emturbovid.com") || server.name.contains("Turbo", ignoreCase = true)
@@ -4169,7 +4174,13 @@ class PlayerActivity : AppCompatActivity() {
                                     Log.d(TAG, "OppaDrama scraped video URL: $videoUrl")
                                     loadingPlayer.visibility = View.GONE
                                     resolvedUrlCache[serverIndex] = videoUrl
-                                    playVideoViaHtml5WebView(videoUrl)
+                                    if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) &&
+                                        (videoUrl.contains(".urlset/") || videoUrl.contains("/hls2/"))) {
+                                        Log.d(TAG, "OppaDrama FileLions CDN detected, playing in ExoPlayer: $videoUrl")
+                                        initExoPlayer(videoUrl)
+                                    } else {
+                                        playVideoViaHtml5WebView(videoUrl)
+                                    }
                                 } else {
                                     Log.w(TAG, "OppaDrama scrape failed, loading episode page in WebView")
                                     loadingPlayer.visibility = View.GONE

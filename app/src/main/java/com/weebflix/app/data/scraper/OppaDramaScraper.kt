@@ -339,14 +339,15 @@ class OppaDramaScraper : AnimeProvider {
 
             doc.select(".info-content .spe span").forEach { span ->
                 val text = span.text().lowercase()
+                val own = span.ownText().trim()
                 when {
-                    text.contains("status") -> status = span.select("b").text()
-                    text.contains("tipe") || text.contains("type") -> type = span.select("b").text()
-                    text.contains("episode") -> totalEp = span.select("b").text()
-                    text.contains("network") -> network = span.select("a").text().ifEmpty { span.select("b").text() }
-                    text.contains("negara") || text.contains("country") -> country = span.select("a").text().ifEmpty { span.select("b").text() }
-                    text.contains("durasi") || text.contains("duration") -> duration = span.select("b").text()
-                    text.contains("dirilis") || text.contains("rilis") -> releaseDate = span.select("time").text().ifEmpty { span.select("b").text() }
+                    text.contains("status") -> status = own
+                    text.contains("tipe") || text.contains("type") -> type = own
+                    text.contains("episode") -> totalEp = own
+                    text.contains("network") -> network = span.select("a").text().ifEmpty { own }
+                    text.contains("negara") || text.contains("country") -> country = span.select("a").text().ifEmpty { own }
+                    text.contains("durasi") || text.contains("duration") -> duration = own
+                    text.contains("dirilis") || text.contains("rilis") -> releaseDate = span.select("time").text().ifEmpty { own }
                 }
             }
 
@@ -506,6 +507,12 @@ class OppaDramaScraper : AnimeProvider {
                         Log.d("OppaDrama", "Found mp4 URL in embed page: $url")
                         return@withContext url
                     }
+
+                    val fileLionsUrl = extractFileLionsM3u8(embedHtml)
+                    if (fileLionsUrl.isNotEmpty()) {
+                        Log.d("OppaDrama", "Found FileLions m3u8 URL: $fileLionsUrl")
+                        return@withContext fileLionsUrl
+                    }
                 }
 
                 val doc = Jsoup.parse(embedHtml.ifEmpty {
@@ -549,6 +556,52 @@ class OppaDramaScraper : AnimeProvider {
         } catch (e: Exception) {
             Log.e("OppaDrama", "Error in getEpisodeNavigation", e)
             EpisodeNavigation()
+        }
+    }
+
+    /**
+     * FileLions (minochinos.com) embeds obfuscate the direct m3u8 inside a packed JS
+     * (eval(function(p,a,c,k,e,d){...}('DATA',36,N,'DICT'.split('|')))). The video lives on
+     * a signed CDN (e.g. {sub}.dramiyos-cdn.com / {sub}.acek-cdn.com /hls2/...master.m3u8?t=...)
+     * which serves clean MPEG-TS segments with no rate limiting — unlike the turboviplay/Google
+     * CDN used by TurboVIP/Hydrax. This unpacks the simple base-N packer and returns the m3u8.
+     */
+    private fun extractFileLionsM3u8(html: String): String {
+        if (!html.contains("split('|')")) return ""
+        try {
+            val packerRegex = Regex(
+                """eval\(function\(p,a,c,k,e,d\)\{.*?\}\('((?:[^'\\]|\\.)*)',(\d+),(\d+),'((?:[^'\\]|\\.)*)'\.split\('\|'\)""",
+                RegexOption.DOT_MATCHES_ALL
+            )
+            var data = html
+            var depth = 0
+            while (depth < 8) {
+                val packedMatch = packerRegex.find(data) ?: break
+                val packedBody = packedMatch.groupValues[1]
+                val base = packedMatch.groupValues[2].toIntOrNull() ?: break
+                if (base < 2) break
+                val dict = packedMatch.groupValues[4].split("|")
+
+                var out = packedBody
+                    .replace("\\'", "'")
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\")
+
+                for (i in dict.indices.reversed()) {
+                    val value = dict[i]
+                    if (value.isEmpty()) continue
+                    val token = i.toString(base)
+                    out = out.replace(Regex("\\b" + Regex.escape(token) + "\\b"), value)
+                }
+
+                data = out
+                depth++
+            }
+
+            return Regex("""https?://[^\s"'`]+\.m3u8[^\s"'`]*""").find(data)?.value ?: ""
+        } catch (e: Exception) {
+            Log.d("OppaDrama", "FileLions unpack failed: ${e.message}")
+            return ""
         }
     }
 }
