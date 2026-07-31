@@ -4229,6 +4229,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains("googlevideo.com")) {
                     resolvedUrlCache[serverIndex] = scraperUrl
                     initExoPlayer(scraperUrl)
+                } else if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID && isWebViewPlayableEmbed(scraperUrl)) {
+                    Log.d(TAG, "Anichin: playing embed page directly in WebView: $scraperUrl")
+                    loadingPlayer.visibility = View.GONE
+                    playEpisodePageViaWebView(scraperUrl, server, skipInjections = true)
                 } else {
                     resolveEmbedUrl(scraperUrl, server, serverIndex)
                 }
@@ -4256,6 +4260,14 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun isWebViewPlayableEmbed(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains("dailymotion.com") || lower.contains("archive.org") ||
+            lower.contains("mega.nz") || lower.contains("ok.ru") ||
+            lower.contains("rumble.com") || lower.contains("anichin-player.web.id") ||
+            lower.contains("rubyvidhub") || lower.contains("vk.com")
     }
 
     private fun resolveEmbedUrl(embedUrl: String, server: VideoServer, serverIndex: Int) {
@@ -4590,11 +4602,17 @@ class PlayerActivity : AppCompatActivity() {
                         }
                     }, 8000)
                 } else {
+                    val cb = webViewResolveCallback
                     webViewResolving = false
                     webViewResolveMode = ResolveMode.NONE
-                    webViewResolveCallback?.invoke("")
                     webViewResolveCallback = null
                     pendingResolveServer = null
+                    if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID && isWebViewPlayableEmbed(embedUrl)) {
+                        Log.d(TAG, "Anichin: embed resolution timed out, playing embed page directly in WebView: $embedUrl")
+                        playEpisodePageViaWebView(embedUrl, server, skipInjections = true)
+                    } else {
+                        cb?.invoke("")
+                    }
                 }
             }
         }, timeoutMs)

@@ -9,6 +9,7 @@ Aplikasi Android untuk nonton streaming anime dan drakor dari berbagai provider,
 | **Samehadaku** | `v2.samehadaku.how` | Anime (Latest, Ongoing, Popular) |
 | **DrakorKita** | `drakor.kita.mobi` | Drakor (Episode, Movie, Serie) |
 | **OppaDrama** | `http://45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
+| **Anichin** | `anichin.cafe` | Donghua/Anime (Latest, Ongoing, Completed, All Anime) — WordPress + animestream theme |
 
 Bisa switch provider langsung dari tab Home, dan setiap provider punya domain yang bisa dikonfigurasi di Settings.
 
@@ -17,8 +18,8 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Splash Screen** | Logo "N" ribbon merah (#E50914) di background hitam, zoom-in Tudum-style animation |
-| **Multi-Provider Home** | Chip switcher untuk ganti antara Samehadaku / DrakorKita / OppaDrama, masing-masing dengan layout sendiri |
-| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita) atau static hero (Samehadaku) atau 5 clickable sections (OppaDrama) dengan Play + Info buttons |
+| **Multi-Provider Home** | Chip switcher untuk ganti antara Samehadaku / DrakorKita / OppaDrama / Anichin, masing-masing dengan layout sendiri |
+| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita) atau static hero (Samehadaku) atau 5 clickable sections (OppaDrama) atau Continue Watching + sections (Anichin) dengan Play + Info buttons |
 | **Continue Watching** | Simpan progress tontonan otomatis per provider, muncul di home dengan progress bar merah, tap untuk lanjut |
 | **Search** | Pencarian real-time dengan debounce 500ms + Riwayat pencarian (max 20, chip UI) |
 | **Ongoing** | Grid anime sedang tayang, fetch semua halaman via vertical infinite scroll |
@@ -106,7 +107,8 @@ WeebFlix/app/src/main/
 │   │   └── scraper/
 │   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
 │   │       ├── DrakorKitaScraper.kt   # Drakor scraper (Jsoup) — implements AnimeProvider
-│   │       └── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       ├── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
+│   │       └── AnichinScraper.kt      # Donghua/Anime scraper (Jsoup) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt   # Splash screen
 │       ├── main/MainActivity.kt       # Bottom nav host (Home/Search/Ongoing/Settings)
@@ -114,7 +116,8 @@ WeebFlix/app/src/main/
 │   │       ├── HomeFragment.kt            # Provider chip switcher + fragment container
 │   │       ├── SamehadakuHomeFragment.kt  # Samehadaku home (static hero + 3 rows)
 │   │       ├── DrakorKitaHomeFragment.kt  # DrakorKita home (auto-scroll hero + 3 rows)
-│   │       └── OppaDramaHomeFragment.kt   # OppaDrama home (5 clickable sections + h-scroll)
+│   │       ├── OppaDramaHomeFragment.kt   # OppaDrama home (5 clickable sections + h-scroll)
+│   │       └── AnichinHomeFragment.kt     # Anichin home (Continue Watching + latest + ongoing + completed + all anime)
 │       ├── search/SearchFragment.kt   # Search tab with history
 │       ├── ongoing/OngoingFragment.kt # Ongoing tab with pagination
 │       ├── settings/SettingsFragment.kt   # Per-provider domain config (as Fragment)
@@ -146,7 +149,7 @@ WeebFlix/app/src/main/
 
 ## Cara Kerja
 
-1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`, `OppaDramaScraper`) saat app start
+1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`, `OppaDramaScraper`, `AnichinScraper`) saat app start
 2. **HomeFragment** tampilkan chip switcher — user pilih provider, fragment container swap
 3. **Scraper** fetch HTML dari website masing-masing pakai OkHttp (DrakorKita pakai trust-all SSL certs)
 4. **Jsoup** parse HTML jadi data objects (`Anime`, `Episode`, `VideoServer`, `AnimeDetail`)
@@ -155,9 +158,11 @@ WeebFlix/app/src/main/
    - **Blogspot (Samehadaku)**: AJAX POST → `blogger.com/video.g?token=` → WebView XHR interception → batchexecute parsing → googlevideo.com URL
    - **DrakorKita**: 3-step API (episode.php → server.php → video_hydrax.php) → Abyss CDN / direct MP4
    - **OppaDrama (Token API)**: Extract `oppaDramaData` JSON → resolve Hydrax token via `api/v2/getToken.php` → resolve server via `api/v2/server.php` → final video via `api/v2/video_hydrax.php`
-   - **OppaDrama (TurboVIP)**: WebView intercepts `emturbovid.com/t/{id}` → bundled hls.js + OkHttp proxy → m3u8 playback (rate limited)
-   - **Wibufile**: Direct MP4 URL
-   - **FileLions**: WebView JS extraction + OkHttp HTML fallback
+    - **OppaDrama (TurboVIP)**: WebView intercepts `emturbovid.com/t/{id}` → bundled hls.js + OkHttp proxy → m3u8 playback (rate limited)
+    - **Anichin (anichin.stream)**: WebView intercepts m3u8 → ExoPlayer; AbyssCDN/hydrax via existing resolution
+    - **Anichin (old posts)**: Dailymotion/Mega/archive.org/OK.ru/Rumble embed → dimainkan langsung di WebView (`playEpisodePageViaWebView`)
+    - **Wibufile**: Direct MP4 URL
+    - **FileLions**: WebView JS extraction + OkHttp HTML fallback
 7. **Watch History** simpan progress per provider ke SharedPreferences, tampilkan di Home
 
 ## Bugs & Solutions
@@ -207,13 +212,15 @@ WeebFlix/app/src/main/
 Default Samehadaku: `https://v2.samehadaku.how`
 Default DrakorKita: `https://drakor.kita.mobi`
 Default OppaDrama: `http://45.11.57.192`
+Default Anichin: `https://anichin.cafe`
 
 Bisa diganti dari menu Settings di aplikasi, atau edit `ProviderConfig.kt`:
 ```kotlin
 private val DEFAULT_URLS = mapOf(
     "samehadaku" to "https://v2.samehadaku.how",
     "drakorkita" to "https://drakor.kita.mobi",
-    "oppadrama" to "http://45.11.57.192"
+    "oppadrama" to "http://45.11.57.192",
+    "anichin" to "https://anichin.cafe"
 )
 ```
 

@@ -36,7 +36,7 @@ WeebFlix/app/src/main/
 │       │   ├── SamehadakuHomeFragment.kt # Samehadaku home (static hero + 3 rows)
 │       │   ├── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
 │   │       ├── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
-│   │       └── AnichinHomeFragment.kt  # Anichin home (latest + ongoing)
+│   │       └── AnichinHomeFragment.kt  # Anichin home (Continue Watching + latest + ongoing + completed + all anime)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
 │       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
@@ -95,12 +95,13 @@ WeebFlix/app/src/main/
 
 ### Anichin
 - Website: `https://anichin.cafe`
-- Content: Donghua/Anime (Latest Episodes, Ongoing, Completed)
+- Content: Donghua/Anime (Latest Episodes, Ongoing, Completed, All Anime)
 - CMS: WordPress with animestream theme by themesia
 - Scraper: `AnichinScraper.kt` — Jsoup CSS selectors
-- Key methods: `getLatestEpisodes(page)` (homepage latest), `getOngoingAnime(page)` (`/ongoing/page/{N}/`), `getPopularAnime(page)` (`/completed/page/{N}/`), `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)` (base64-decoded `<select class="mirror">`), `getEpisodeNavigation(url)` (`a[rel=prev/next]`)
-- **Server resolution:** Main player is `anichin.stream/?id={id}` (JWPlayer HLS) — extracted via unpacked eval'd JS for m3u8 URL or WebView `shouldInterceptRequest` `.m3u8` interception. AbyssCDN/hydrax URLs handled by existing resolution code. Other servers (OK.ru, Rumble) → WebView fallback
-- **Home:** Provider-specific home (`AnichinHomeFragment.kt`) with Continue Watching + Latest Episodes + Ongoing (horizontal scroll, infinite scroll)
+- Key methods: `getLatestEpisodes(page)` (homepage latest, scoped to `div.releases.latesthome` to avoid Popular Today duplicates), `getOngoingAnime(page)` (`/ongoing/page/{N}/`), `getPopularAnime(page)` (`/completed/page/{N}/`), `getAllAnime(page)` (`/seri/` + `/?page={N}`, full catalog ~48 pages), `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)` (base64-decoded `<select class="mirror">`), `getEpisodeNavigation(url)` (`a[rel=prev/next]`)
+- **Detail resolution:** `getAnimeDetail()` on an *episode* URL (e.g. from a Latest Episode card) resolves to the series page via breadcrumb `.ts-breadcrumb ol li a[href*='/seri/']` — episode pages have NO episode list (`div.eplister` only exists on `/seri/{slug}/` pages)
+- **Server resolution:** Main player is `anichin.stream/?id={id}` (JWPlayer HLS) — extracted via unpacked eval'd JS for m3u8 URL or WebView `shouldInterceptRequest` `.m3u8` interception. AbyssCDN/hydrax URLs handled by existing resolution code. **Old-post embeds** (Dailymotion, Mega, archive.org, OK.ru, Rumble, `anichin-player.web.id`, rubyvidhub) are returned as-is by `resolveServerVideoUrl()` (`isBrowserPlayableEmbed()`) and played directly in the visible WebView via `playEpisodePageViaWebView(skipInjections=true)` in `PlayerActivity`
+- **Home:** Provider-specific home (`AnichinHomeFragment.kt`) with Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal scroll, infinite scroll per section)
 - **CategoryGridActivity:** Falls through to `activeProvider.getOngoingAnime(currentPage)` (generic handler)
 
 ### OppaDrama
@@ -118,7 +119,7 @@ WeebFlix/app/src/main/
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll)
   - DrakorKita: Auto-scrolling ViewPager2 hero carousel (4s interval) + Continue Watching + Episodes + Movies + Series (infinite scroll)
   - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
-  - Anichin: Continue Watching + Latest Episodes + Ongoing (horizontal infinite scroll)
+  - Anichin: Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal infinite scroll per section)
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
@@ -190,6 +191,8 @@ WeebFlix/app/src/main/
 - Episode servers: `<select class="mirror">` `<option>` values are base64-encoded iframe HTML — decode, extract `src`, return as `VideoServer`
 - Navigation: `a[rel=prev]` / `a[rel=next]` inside `div.naveps.bignav`
 - Video resolution: JWPlayer at `anichin.stream/?id={id}` — `resolveServerVideoUrl()` fetches page, unpacks eval'd JS, extracts `.m3u8` URL via regex patterns. Falls back to WebView interception via `shouldInterceptRequest` (`.m3u8` pattern matches)
+- **Episode URL → series:** `getAnimeDetail()` on an episode URL (no `div.eplister` found) re-fetches the series page found in `.ts-breadcrumb ol li a[href*='/seri/']` — NOTE: the breadcrumb class is `ts-breadcrumb`, NOT `breadcrumb` (selector `.breadcrumb ...` matches nothing and silently returns an empty episode list)
+- **Old-post embeds:** `resolveServerVideoUrl()` returns Dailymotion/Mega/archive.org/OK.ru/Rumble/`anichin-player.web.id`/rubyvidhub embed URLs unchanged (`isBrowserPlayableEmbed()`); `PlayerActivity.isWebViewPlayableEmbed()` routes them to visible-WebView playback (`playEpisodePageViaWebView(skipInjections=true)`) instead of hidden-WebView interception
 
 ### DrakorKita
 - Website: `https://drakor.kita.mobi`
@@ -237,6 +240,10 @@ WeebFlix/app/src/main/
 | DrakorKita native fullscreen broken/cut off | CSS-based fullscreen via JS button (⛶) instead of Fullscreen API; `fullscreenchange` event auto-exits native FS; resize listener keeps viewport match |
 | DrakorKita toggle button disappears on page nav | JS injected via Kotlin `postDelayed` (not in `onPageFinished`); `window._dkSetupDone` flag prevents double inject |
 | CategoryGridActivity DrakorKita infinite scroll not working | 3 bugs fixed: (1) Episodes used `getHomeContent().latestEpisodes` (unpaginated, ~10 items) + `hasMore=false` → changed to `getAllAnime(page)` (paginated). (2) Movies page 1 used `getHomeContent().movies` (few items), page 2+ used `getOngoingAnime(page)` (gap) → now always uses `getOngoingAnime(page)`. (3) Series same as Movies → now always uses `getPopularAnime(page)` |
+| Anichin latest episode card opens detail with no episode list | Episode URLs have NO `div.eplister` (only `/seri/{slug}/` pages do). `getAnimeDetail()` detects empty episode list and re-fetches the series page via breadcrumb `.ts-breadcrumb ol li a[href*='/seri/']` |
+| Anichin detail empty because breadcrumb selector missed | The breadcrumb class is `ts-breadcrumb` (NOT `breadcrumb`) — `.breadcrumb ol li a` matches nothing silently, returns empty episode list |
+| Anichin old posts can't play (Dailymotion/Mega/archive.org servers) | `resolveServerVideoUrl()` returns browser-playable embeds as-is (`isBrowserPlayableEmbed()`); `PlayerActivity` plays them in the visible WebView (`playEpisodePageViaWebView(skipInjections=true)`) instead of hidden-WebView interception that timed out and failed |
+| Anichin home latest section duplicates on page 2+ | Homepage `div.listupd article.bs` matches both "Latest Release" AND "Popular Today" sections → `getLatestEpisodes()` scoped to `div.releases.latesthome`'s parent list |
 
 ## Open Bugs (Still Buggy — Needs Further Investigation)
 
@@ -286,7 +293,7 @@ WeebFlix/app/src/main/
 - **Note:** Will be fixed if bug #1 is fixed, since both resolve to the same turboviplay CDN URL
 
 ## TODO / Next Session
-- **Test Anichin provider** — test all methods (home, detail, search, player video resolution via anichin.stream m3u8)
+- **Test Anichin new-post player** — anichin.stream m3u8 resolution + Abyss CDN server (new posts use these; old posts now play via WebView)
 - **Test turboviplay v5 fix** — 120ms segment delay + exponential backoff sync byte retry (5s/10s, max 2 retries)
 - **Test FileLions v4 fix** — iframe enumeration + cookie passing + sub-iframe navigation
 - **VIP Streaming (filedon.co)**: Extract video URL from `filedon.co/embed/...` pages

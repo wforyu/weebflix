@@ -97,7 +97,14 @@ class AnichinScraper : AnimeProvider {
             val doc = fetchDocument(url)
             val episodes = mutableListOf<Episode>()
 
-            doc.select("div.latesthome div.listupd > div.excstf > article.bs").forEach { element ->
+            val latestSection = doc.select("div.releases.latesthome").first()
+            val articles = if (latestSection != null) {
+                latestSection.parent()?.select("div.listupd article.bs") ?: doc.select("div.listupd article.bs")
+            } else {
+                doc.select("div.listupd article.bs")
+            }
+
+            articles.forEach { element ->
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
@@ -119,30 +126,6 @@ class AnichinScraper : AnimeProvider {
                 }
             }
 
-            if (episodes.isEmpty()) {
-                doc.select("div.listupd > article.bs, div.listupd.cp > article.bs").forEach { element ->
-                    try {
-                        val a = element.select("div.bsx > a").first()
-                        val title = a?.attr("title") ?: element.select(".tt").text()
-                        val url = a?.attr("href") ?: ""
-                        val imageUrl = element.select(".limit img.ts-post-image").attr("src")
-                        val epNum = element.select(".limit .bt span.epx").text()
-
-                        if (title.isNotEmpty() && url.isNotEmpty()) {
-                            episodes.add(Episode(
-                                title = title,
-                                url = url,
-                                imageUrl = imageUrl,
-                                episodeNumber = epNum,
-                                uploadDate = ""
-                            ))
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }
-
             episodes
         } catch (e: Exception) {
             e.printStackTrace()
@@ -156,7 +139,7 @@ class AnichinScraper : AnimeProvider {
             val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
-            doc.select("div.listupd > article.bs, div.listupd.cp > article.bs").forEach { element ->
+            doc.select("div.listupd.cp > article.bs, div.listupd article.bs").forEach { element ->
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
@@ -194,7 +177,7 @@ class AnichinScraper : AnimeProvider {
             val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
-            doc.select("div.listupd > article.bs").forEach { element ->
+            doc.select("div.listupd article.bs").forEach { element ->
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
@@ -223,13 +206,51 @@ class AnichinScraper : AnimeProvider {
         }
     }
 
+    suspend fun getAllAnime(page: Int): List<Anime> = withContext(Dispatchers.IO) {
+        try {
+            val url = if (page <= 1) "$baseUrl/seri/" else "$baseUrl/seri/?page=$page"
+            val doc = fetchDocument(url)
+            val animeList = mutableListOf<Anime>()
+
+            doc.select("div.listupd article.bs").forEach { element ->
+                try {
+                    val a = element.select("div.bsx > a").first()
+                    val title = a?.attr("title") ?: element.select(".tt").text()
+                    val url = a?.attr("href") ?: ""
+                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val epNum = element.select(".limit .bt span.epx").text()
+                    val type = element.select(".limit .typez").text()
+                    val status = if (epNum.contains("Ongoing", ignoreCase = true) || epNum.contains("Completed", ignoreCase = true)) epNum else ""
+
+                    if (title.isNotEmpty() && url.isNotEmpty()) {
+                        animeList.add(Anime(
+                            title = title,
+                            url = url,
+                            imageUrl = imageUrl,
+                            episode = if (status.isEmpty()) epNum else "",
+                            type = type,
+                            status = status
+                        ))
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            animeList
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     override suspend fun searchAnime(query: String): List<Anime> = withContext(Dispatchers.IO) {
         try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
             val doc = fetchDocument("$baseUrl/?s=$encodedQuery")
             val animeList = mutableListOf<Anime>()
 
-            doc.select("div.listupd > article.bs").forEach { element ->
+            doc.select("div.listupd article.bs").forEach { element ->
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
@@ -263,85 +284,99 @@ class AnichinScraper : AnimeProvider {
 
     override suspend fun getAnimeDetail(url: String): AnimeDetail = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument(url)
+            var doc = fetchDocument(url)
+            var detail = parseAnimeDetail(doc, url)
 
-            val title = doc.select("h1.entry-title").text()
-            val synopsis = doc.select("div.desc, div.entry-content p").text()
-            val imageUrl = doc.select("div.thumb img, div.thumbook img").attr("src")
-
-            var status = ""
-            var type = ""
-            var totalEp = ""
-            var studio = ""
-            var score = ""
-            var duration = ""
-            var released = ""
-
-            doc.select(".info-content .spe span, .infox .spe span").forEach { span ->
-                val text = span.text().lowercase()
-                when {
-                    text.contains("status") -> {
-                        val a = span.select("a").first()
-                        status = a?.text() ?: span.text()
-                    }
-                    text.contains("tipe") || text.contains("type") -> {
-                        val a = span.select("a").first()
-                        type = a?.text() ?: span.text()
-                    }
-                    text.contains("episode") -> totalEp = span.text().replace("Episodes:", "").trim()
-                    text.contains("studio") -> {
-                        val a = span.select("a").first()
-                        studio = a?.text() ?: span.text()
-                    }
-                    text.contains("skor") || text.contains("score") -> score = span.text()
-                    text.contains("duration") -> duration = span.text().replace("Duration:", "").trim()
-                    text.contains("released") -> released = span.text().replace("Released:", "").trim()
+            if (detail.episodes.isEmpty()) {
+                val seriesUrl = doc.select(".ts-breadcrumb ol li a[href*='/seri/'], .breadcrumb ol li a[href*='/seri/']").first()?.attr("href").orEmpty()
+                if (seriesUrl.isNotEmpty() && seriesUrl != url) {
+                    Log.d("AnichinDetail", "No episode list found (episode page?), resolving to series: $seriesUrl")
+                    doc = fetchDocument(seriesUrl)
+                    detail = parseAnimeDetail(doc, seriesUrl)
                 }
             }
 
-            val genres = doc.select("div.genxed a").map { it.text() }
-
-            val episodes = mutableListOf<Episode>()
-            doc.select("div.eplister > ul > li").forEach { element ->
-                try {
-                    val epUrl = element.select("a").attr("href")
-                    val epNum = element.select("div.epl-num").text()
-                    val epTitle = element.select("div.epl-title").text()
-                    val epDate = element.select("div.epl-date").text()
-
-                    if (epUrl.isNotEmpty()) {
-                        val displayName = if (epTitle.isNotEmpty()) "Episode $epNum - $epTitle" else "Episode $epNum"
-                        episodes.add(Episode(
-                            title = displayName,
-                            url = epUrl,
-                            episodeNumber = epNum,
-                            uploadDate = epDate
-                        ))
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            val anime = Anime(
-                title = title,
-                url = url,
-                imageUrl = imageUrl,
-                episode = episodes.firstOrNull()?.episodeNumber ?: "",
-                type = type,
-                status = status,
-                score = score,
-                studio = studio,
-                synopsis = synopsis,
-                totalEpisodes = totalEp,
-                genres = genres
-            )
-
-            AnimeDetail(anime = anime, episodes = episodes)
+            detail
         } catch (e: Exception) {
             e.printStackTrace()
             AnimeDetail(anime = Anime(title = "Error", synopsis = e.message ?: "Unknown error"))
         }
+    }
+
+    private fun parseAnimeDetail(doc: org.jsoup.nodes.Document, url: String): AnimeDetail {
+        val title = doc.select("h1.entry-title").text()
+        val synopsis = doc.select("div.desc, div.entry-content p").text()
+        val imageUrl = doc.select("div.thumb img, div.thumbook img").attr("src")
+
+        var status = ""
+        var type = ""
+        var totalEp = ""
+        var studio = ""
+        var score = ""
+        var duration = ""
+        var released = ""
+
+        doc.select(".info-content .spe span, .infox .spe span").forEach { span ->
+            val text = span.text().lowercase()
+            when {
+                text.contains("status") -> {
+                    val a = span.select("a").first()
+                    status = a?.text() ?: span.text()
+                }
+                text.contains("tipe") || text.contains("type") -> {
+                    val a = span.select("a").first()
+                    type = a?.text() ?: span.text()
+                }
+                text.contains("episode") -> totalEp = span.text().replace("Episodes:", "").trim()
+                text.contains("studio") -> {
+                    val a = span.select("a").first()
+                    studio = a?.text() ?: span.text()
+                }
+                text.contains("skor") || text.contains("score") -> score = span.text()
+                text.contains("duration") -> duration = span.text().replace("Duration:", "").trim()
+                text.contains("released") -> released = span.text().replace("Released:", "").trim()
+            }
+        }
+
+        val genres = doc.select("div.genxed a").map { it.text() }
+
+        val episodes = mutableListOf<Episode>()
+        doc.select("div.eplister > ul > li").forEach { element ->
+            try {
+                val epUrl = element.select("a").attr("href")
+                val epNum = element.select("div.epl-num").text()
+                val epTitle = element.select("div.epl-title").text()
+                val epDate = element.select("div.epl-date").text()
+
+                if (epUrl.isNotEmpty()) {
+                    val displayName = if (epTitle.isNotEmpty()) "Episode $epNum - $epTitle" else "Episode $epNum"
+                    episodes.add(Episode(
+                        title = displayName,
+                        url = epUrl,
+                        episodeNumber = epNum,
+                        uploadDate = epDate
+                    ))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        val anime = Anime(
+            title = title,
+            url = url,
+            imageUrl = imageUrl,
+            episode = episodes.firstOrNull()?.episodeNumber ?: "",
+            type = type,
+            status = status,
+            score = score,
+            studio = studio,
+            synopsis = synopsis,
+            totalEpisodes = totalEp,
+            genres = genres
+        )
+
+        return AnimeDetail(anime = anime, episodes = episodes)
     }
 
     override suspend fun getEpisodeServers(episodeUrl: String): List<VideoServer> = withContext(Dispatchers.IO) {
@@ -391,6 +426,14 @@ class AnichinScraper : AnimeProvider {
             e.printStackTrace()
             emptyList()
         }
+    }
+
+    private fun isBrowserPlayableEmbed(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains("dailymotion.com") || lower.contains("archive.org") ||
+            lower.contains("mega.nz") || lower.contains("ok.ru") ||
+            lower.contains("rumble.com") || lower.contains("anichin-player.web.id") ||
+            lower.contains("rubyvidhub") || lower.contains("vk.com")
     }
 
     private fun extractDirectUrl(html: String): String {
@@ -454,6 +497,11 @@ class AnichinScraper : AnimeProvider {
 
             if (embedUrl.contains("abysscdn.com") || embedUrl.contains("abyssplayer")) {
                 Log.d("AnichinResolve", "Abyss player: $embedUrl")
+                return@withContext embedUrl
+            }
+
+            if (isBrowserPlayableEmbed(embedUrl)) {
+                Log.d("AnichinResolve", "Browser-playable embed (plays in WebView): $embedUrl")
                 return@withContext embedUrl
             }
 

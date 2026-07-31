@@ -36,6 +36,8 @@
     <string name="info">Info</string>
     <string name="popular">Populer</string>
     <string name="anime_ongoing">Anime Ongoing</string>
+    <string name="anime_completed">Completed</string>
+<string name="anime_all">All Anime</string>
     <string name="search_hint_empty">Cari anime favorit kamu</string>
     <string name="play_latest_episode">Putar Episode Terbaru</string>
     <string name="skip_opening">Skip Opening</string>

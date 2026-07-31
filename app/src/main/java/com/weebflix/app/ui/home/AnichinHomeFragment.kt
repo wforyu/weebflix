@@ -33,24 +33,36 @@ class AnichinHomeFragment : Fragment() {
     private lateinit var scrollView: androidx.core.widget.NestedScrollView
     private lateinit var rvLatestEpisodes: RecyclerView
     private lateinit var rvOngoingAnime: RecyclerView
+    private lateinit var rvCompletedAnime: RecyclerView
+    private lateinit var rvAllAnime: RecyclerView
     private lateinit var rvContinueWatching: RecyclerView
     private lateinit var continueWatchingSection: View
 
     private lateinit var latestAdapter: LatestEpisodeAdapter
     private lateinit var ongoingAdapter: AnimeAdapter
+    private lateinit var completedAdapter: AnimeAdapter
+    private lateinit var allAnimeAdapter: AnimeAdapter
     private lateinit var continueWatchingAdapter: ContinueWatchingAdapter
 
     private val latestItems = mutableListOf<Episode>()
     private val ongoingItems = mutableListOf<Anime>()
+    private val completedItems = mutableListOf<Anime>()
+    private val allAnimeItems = mutableListOf<Anime>()
 
     private var latestPage = 1
     private var ongoingPage = 1
+    private var completedPage = 1
+    private var allAnimePage = 1
 
     private var latestLoading = false
     private var ongoingLoading = false
+    private var completedLoading = false
+    private var allAnimeLoading = false
 
     private var latestHasMore = true
     private var ongoingHasMore = true
+    private var completedHasMore = true
+    private var allAnimeHasMore = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,6 +80,8 @@ class AnichinHomeFragment : Fragment() {
         scrollView = view.findViewById(R.id.scrollView)
         rvLatestEpisodes = view.findViewById(R.id.rvLatestEpisodes)
         rvOngoingAnime = view.findViewById(R.id.rvOngoingAnime)
+        rvCompletedAnime = view.findViewById(R.id.rvCompletedAnime)
+        rvAllAnime = view.findViewById(R.id.rvAllAnime)
         rvContinueWatching = view.findViewById(R.id.rvContinueWatching)
         continueWatchingSection = view.findViewById(R.id.continueWatchingSection)
 
@@ -91,10 +105,16 @@ class AnichinHomeFragment : Fragment() {
     private fun resetAndLoad() {
         latestItems.clear()
         ongoingItems.clear()
+        completedItems.clear()
+        allAnimeItems.clear()
         latestPage = 1
         ongoingPage = 1
+        completedPage = 1
+        allAnimePage = 1
         latestHasMore = true
         ongoingHasMore = true
+        completedHasMore = true
+        allAnimeHasMore = true
         loadData()
     }
 
@@ -147,6 +167,54 @@ class AnichinHomeFragment : Fragment() {
             })
         }
 
+        completedAdapter = AnimeAdapter { anime ->
+            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
+            intent.putExtra("url", anime.url)
+            startActivity(intent)
+        }
+        rvCompletedAnime.apply {
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+            adapter = completedAdapter
+            isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
+                        val total = lm.itemCount
+                        if (lastVisible >= total - 3 && !completedLoading && completedHasMore) {
+                            loadMoreCompletedAnime()
+                        }
+                    }
+                }
+            })
+        }
+
+        allAnimeAdapter = AnimeAdapter { anime ->
+            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
+            intent.putExtra("url", anime.url)
+            startActivity(intent)
+        }
+        rvAllAnime.apply {
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+            adapter = allAnimeAdapter
+            isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
+                        val total = lm.itemCount
+                        if (lastVisible >= total - 3 && !allAnimeLoading && allAnimeHasMore) {
+                            loadMoreAllAnime()
+                        }
+                    }
+                }
+            })
+        }
+
         continueWatchingAdapter = ContinueWatchingAdapter { entry ->
             val intent = Intent(requireContext(), com.weebflix.app.ui.player.PlayerActivity::class.java)
             intent.putExtra("url", entry.episodeUrl)
@@ -176,6 +244,10 @@ class AnichinHomeFragment : Fragment() {
                         Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
                     }, cached.category1.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, cached.category2.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, cached.category3.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
                     })
                     launch(Dispatchers.IO) { refreshAnichinData(provider) }
                     return@launch
@@ -186,6 +258,10 @@ class AnichinHomeFragment : Fragment() {
                     applyAnichinData(diskCached.latestEpisodes.map {
                         Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
                     }, diskCached.category1.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, diskCached.category2.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, diskCached.category3.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
                     })
                     launch(Dispatchers.IO) { refreshAnichinData(provider) }
@@ -203,30 +279,42 @@ class AnichinHomeFragment : Fragment() {
         }
     }
 
-    private fun applyAnichinData(latest: List<Episode>, ongoing: List<Anime>) {
+    private fun applyAnichinData(latest: List<Episode>, ongoing: List<Anime>, completed: List<Anime>, allAnime: List<Anime> = emptyList()) {
         if (!isAdded) return
         loadingLayout.visibility = View.GONE
         swipeRefresh.isRefreshing = false
         latestItems.clear(); latestItems.addAll(latest)
         ongoingItems.clear(); ongoingItems.addAll(ongoing)
+        completedItems.clear(); completedItems.addAll(completed)
+        allAnimeItems.clear(); allAnimeItems.addAll(allAnime)
         latestHasMore = latest.isNotEmpty()
         ongoingHasMore = ongoing.isNotEmpty()
+        completedHasMore = completed.isNotEmpty()
+        allAnimeHasMore = allAnime.isNotEmpty()
         latestPage = 1
         ongoingPage = 1
+        completedPage = 1
+        allAnimePage = 1
         latestAdapter.submitList(latestItems.toList())
         ongoingAdapter.submitList(ongoingItems.toList())
+        completedAdapter.submitList(completedItems.toList())
+        allAnimeAdapter.submitList(allAnimeItems.toList())
         loadContinueWatching()
     }
 
     private suspend fun refreshAnichinData(provider: com.weebflix.app.data.provider.AnimeProvider) {
         val latest = withContext(Dispatchers.IO) { provider.getLatestEpisodes(1) }
         val ongoing = withContext(Dispatchers.IO) { provider.getOngoingAnime(1) }
+        val completed = withContext(Dispatchers.IO) { provider.getPopularAnime(1) }
+        val allAnime = withContext(Dispatchers.IO) {
+            if (provider is com.weebflix.app.data.scraper.AnichinScraper) provider.getAllAnime(1) else emptyList()
+        }
         if (!isAdded) return
-        withContext(Dispatchers.Main) { applyAnichinData(latest, ongoing) }
+        withContext(Dispatchers.Main) { applyAnichinData(latest, ongoing, completed, allAnime) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = emptyList(),
             latestEpisodes = latest.map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },
-            category1 = ongoing, category2 = emptyList(), category3 = emptyList(), category4 = emptyList()
+            category1 = ongoing, category2 = completed, category3 = allAnime, category4 = emptyList()
         )
         com.weebflix.app.data.model.ProviderDataCache.cacheData(ProviderFactory.ANICHIN_ID, cacheData)
         com.weebflix.app.data.model.ProviderDataCache.saveToDisk(requireContext(), ProviderFactory.ANICHIN_ID, cacheData)
@@ -294,6 +382,64 @@ class AnichinHomeFragment : Fragment() {
                 if (isAdded) {
                     ongoingHasMore = false
                     ongoingLoading = false
+                }
+            }
+        }
+    }
+
+    private fun loadMoreAllAnime() {
+        if (allAnimeLoading || !allAnimeHasMore) return
+        allAnimeLoading = true
+        val nextPage = allAnimePage + 1
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.ANICHIN_ID)
+                val newItems = withContext(Dispatchers.IO) {
+                    if (provider is com.weebflix.app.data.scraper.AnichinScraper) provider.getAllAnime(nextPage) else emptyList()
+                }
+                if (isAdded) {
+                    if (newItems.isEmpty()) {
+                        allAnimeHasMore = false
+                    } else {
+                        allAnimeItems.addAll(newItems)
+                        allAnimePage = nextPage
+                        allAnimeAdapter.submitList(allAnimeItems.toList())
+                    }
+                    allAnimeLoading = false
+                }
+            } catch (e: Exception) {
+                if (isAdded) {
+                    allAnimeHasMore = false
+                    allAnimeLoading = false
+                }
+            }
+        }
+    }
+
+    private fun loadMoreCompletedAnime() {
+        if (completedLoading || !completedHasMore) return
+        completedLoading = true
+        val nextPage = completedPage + 1
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.ANICHIN_ID)
+                val newItems = withContext(Dispatchers.IO) { provider.getPopularAnime(nextPage) }
+                if (isAdded) {
+                    if (newItems.isEmpty()) {
+                        completedHasMore = false
+                    } else {
+                        completedItems.addAll(newItems)
+                        completedPage = nextPage
+                        completedAdapter.submitList(completedItems.toList())
+                    }
+                    completedLoading = false
+                }
+            } catch (e: Exception) {
+                if (isAdded) {
+                    completedHasMore = false
+                    completedLoading = false
                 }
             }
         }
