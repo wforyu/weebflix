@@ -350,7 +350,9 @@ class SamehadakuScraper : AnimeProvider {
             val episodes = mutableListOf<Episode>()
             doc.select(".listeps ul li, .lstepsiode ul li, .eplister ul li, .elist ul li").forEach { element ->
                 try {
-                    val epTitle = element.select(".lchx a, .epl-title, .epl-name, a").text()
+                    val epTitleEl = element.select(".lchx a, .epl-title, .epl-name").firstOrNull()
+                        ?: element.select("a").firstOrNull()
+                    val epTitle = epTitleEl?.text().orEmpty().trim()
                     val epUrl = element.select("a").attr("href")
                     val epNum = element.select(".eps a, .epl-num, .epnum").text()
                     val epDate = element.select(".date, .epl-date, .newnime").text()
@@ -399,14 +401,20 @@ class SamehadakuScraper : AnimeProvider {
 
             doc.select("#server .east_player_option").forEach { element ->
                 try {
+                    val style = element.attr("style")
+                    val dataPost = element.attr("data-post")
+                    val dataNume = element.attr("data-nume")
+                    val dataType = element.attr("data-type").ifEmpty { "schtml" }
+
+                    if (style.contains("pointer-events: none") || (dataType == "schtml" && (dataPost.isEmpty() || dataNume.isEmpty()))) {
+                        Log.d("Scraper", "Skipping disabled/unavailable server: ${element.select("span").text().trim()}")
+                        return@forEach
+                    }
+
                     val name = element.select("span").text().trim()
                         .ifEmpty { element.attr("data-type") }
                         .ifEmpty { element.select("a").text() }
                     if (name.isEmpty()) return@forEach
-
-                    val dataPost = element.attr("data-post")
-                    val dataNume = element.attr("data-nume")
-                    val dataType = element.attr("data-type").ifEmpty { "schtml" }
 
                     servers.add(VideoServer(
                         name = name,
@@ -969,20 +977,34 @@ class SamehadakuScraper : AnimeProvider {
     override suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {
         try {
             val doc = fetchDocument(episodeUrl)
-            val prevUrl = doc.select(".epnav .prev a, .episodelist .prev a, a.prev").attr("href")
-            val prevTitle = doc.select(".epnav .prev a, .episodelist .prev a, a.prev").text()
-            val nextUrl = doc.select(".epnav .next a, .episodelist .next a, a.next").attr("href")
-            val nextTitle = doc.select(".epnav .next a, .episodelist .next a, a.next").text()
+            val prevEl = doc.select(".naveps .nvs a, a[rel='prev'], a.prev").firstOrNull()
+            val nextEl = doc.select(".naveps .nvs.rght a, a[rel='next'], a.next").firstOrNull()
+            val prevUrl = cleanNavUrl(prevEl?.attr("href") ?: "")
+            val nextUrl = cleanNavUrl(nextEl?.attr("href") ?: "")
+            val prevTitle = prevEl?.text().orEmpty().ifEmpty { deriveEpisodeTitle(prevUrl) }
+            val nextTitle = nextEl?.text().orEmpty().ifEmpty { deriveEpisodeTitle(nextUrl) }
 
             EpisodeNavigation(
-                prevEpisodeUrl = prevUrl,
+                prevEpisodeUrl = if (prevUrl.isNotEmpty()) normalizeUrl(prevUrl, baseUrl) else "",
                 prevEpisodeTitle = prevTitle,
-                nextEpisodeUrl = nextUrl,
+                nextEpisodeUrl = if (nextUrl.isNotEmpty()) normalizeUrl(nextUrl, baseUrl) else "",
                 nextEpisodeTitle = nextTitle
             )
         } catch (e: Exception) {
             e.printStackTrace()
             EpisodeNavigation()
         }
+    }
+
+    private fun cleanNavUrl(url: String): String {
+        if (url.isEmpty() || url == "#" || url.startsWith("javascript:")) return ""
+        return url
+    }
+
+    private fun deriveEpisodeTitle(url: String): String {
+        if (url.isEmpty()) return ""
+        val slug = url.trimEnd('/').substringAfterLast('/')
+        val match = Regex("""[-_]episode[-_](\d+)""", RegexOption.IGNORE_CASE).find(slug)
+        return if (match != null) "Episode ${match.groupValues[1]}" else slug
     }
 }

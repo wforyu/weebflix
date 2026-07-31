@@ -413,7 +413,7 @@ class OppaDramaScraper : AnimeProvider {
                     try {
                         val decodedBytes = Base64.decode(value, Base64.DEFAULT)
                         val decodedHtml = String(decodedBytes, Charsets.UTF_8)
-                        val srcRegex = Regex("""src=["']([^"']+)["']""")
+                        val srcRegex = Regex("""src=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
                         val srcMatch = srcRegex.find(decodedHtml)
                         val iframeSrc = srcMatch?.groupValues?.get(1) ?: ""
 

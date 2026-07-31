@@ -337,6 +337,7 @@ class PlayerActivity : AppCompatActivity() {
     private var skipOpeningEnd: Int = 120
     private var skipOutroStart: Int = 1270
     private var skipOutroEnd: Int = 1400
+    private var activeSkipOpeningEndMs: Long = 0L
 
     private var nextEpisodeUrl: String = ""
     private var nextEpisodeTitle: String = ""
@@ -1396,6 +1397,13 @@ class PlayerActivity : AppCompatActivity() {
                 val lower = reqUrl.lowercase()
                 if (BLOCKED_DOMAINS.any { lower.contains(it) }) {
                     return android.webkit.WebResourceResponse("text/plain", "utf-8", null)
+                }
+                if (request?.isForMainFrame == true && request?.method?.equals("GET", ignoreCase = true) == true) {
+                    val host = request.url?.host ?: ""
+                    if (host.contains("abyssplayer.com") || host.contains("rubyvidhub.com")) {
+                        Log.d(TAG, "EP-WEBVIEW intercepting player page for rewrite: $reqUrl")
+                        return rewriteAnichinPlayerPage(reqUrl)
+                    }
                 }
                 return null
             }
@@ -3374,7 +3382,8 @@ class PlayerActivity : AppCompatActivity() {
         tvError.setOnClickListener { if (servers.isNotEmpty()) showServerPickerDialog() }
 
         btnSkipOpening.setOnClickListener {
-            exoPlayer?.seekTo(skipOpeningEnd * 1000L)
+            val targetMs = if (activeSkipOpeningEndMs > 0L) activeSkipOpeningEndMs else skipOpeningEnd * 1000L
+            exoPlayer?.seekTo(targetMs)
             btnSkipOpening.visibility = View.GONE
             scheduleAutoHide()
         }
@@ -3646,17 +3655,19 @@ class PlayerActivity : AppCompatActivity() {
         val totalSec = duration / 1000f
         val currentSec = currentMs / 1000f
 
-        val smartOpeningStart: Int
-        val smartOpeningEnd: Int
-        when {
-            totalSec < 600f -> { smartOpeningStart = 60; smartOpeningEnd = 90 }
-            totalSec < 1800f -> { smartOpeningStart = 90; smartOpeningEnd = 120 }
-            else -> { smartOpeningStart = 120; smartOpeningEnd = 150 }
+        val earlyEnd = minOf(120f, totalSec * 0.12f).coerceAtLeast(60f)
+        val midStart = 210f
+        val midEnd = minOf(330f, totalSec * 0.30f).coerceAtLeast(240f)
+        val inEarly = currentSec < earlyEnd
+        val inMid = totalSec >= 660f && currentSec >= midStart && currentSec < midEnd
+        val showIntro = (inEarly || inMid) && controlsVisible
+        if (showIntro) {
+            activeSkipOpeningEndMs = ((if (inMid) midEnd else earlyEnd) * 1000).toLong()
         }
-        btnSkipOpening.visibility = if (currentSec in smartOpeningStart.toFloat()..smartOpeningEnd.toFloat() && controlsVisible) View.VISIBLE else View.GONE
+        btnSkipOpening.visibility = if (showIntro) View.VISIBLE else View.GONE
 
-        val outroWindow = (totalSec * 0.08f).coerceIn(60f, 120f)
-        val dynamicOutroStart = (totalSec - outroWindow).coerceAtLeast(smartOpeningEnd.toFloat() + 30f)
+        val outroWindow = minOf(120f, totalSec * 0.08f).coerceAtLeast(45f)
+        val dynamicOutroStart = (totalSec - outroWindow).coerceAtLeast(0f)
         btnSkipOutro.visibility = if (currentSec >= dynamicOutroStart && currentSec < totalSec && controlsVisible && nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
@@ -4229,8 +4240,9 @@ class PlayerActivity : AppCompatActivity() {
                 if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains("googlevideo.com")) {
                     resolvedUrlCache[serverIndex] = scraperUrl
                     initExoPlayer(scraperUrl)
-                } else if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID && isWebViewPlayableEmbed(scraperUrl)) {
-                    Log.d(TAG, "Anichin: playing embed page directly in WebView: $scraperUrl")
+                } else if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID ||
+                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.SAMEHADAKU_ID) && isWebViewPlayableEmbed(scraperUrl)) {
+                    Log.d(TAG, "$activeProviderId: playing embed page directly in WebView: $scraperUrl")
                     loadingPlayer.visibility = View.GONE
                     playEpisodePageViaWebView(scraperUrl, server, skipInjections = true)
                 } else {
@@ -4267,7 +4279,76 @@ class PlayerActivity : AppCompatActivity() {
         return lower.contains("dailymotion.com") || lower.contains("archive.org") ||
             lower.contains("mega.nz") || lower.contains("ok.ru") ||
             lower.contains("rumble.com") || lower.contains("anichin-player.web.id") ||
-            lower.contains("rubyvidhub") || lower.contains("vk.com")
+            lower.contains("rubyvidhub") || lower.contains("abyssplayer") ||
+            lower.contains("vk.com") || lower.contains("filedon.co")
+    }
+
+    private fun rewriteAnichinPlayerPage(url: String): android.webkit.WebResourceResponse? {
+        return try {
+            val client = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            val request = okhttp3.Request.Builder().url(url)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                .addHeader("Accept-Language", "en-US,en;q=0.9")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body ?: return@use null
+                val html = String(body.bytes(), Charsets.UTF_8)
+                var modified = html
+                val inject = StringBuilder()
+
+                if (url.contains("abyssplayer")) {
+                    val guard = "top.location == self.location && !/^(.+?)\\.abyss\\.to$/"
+                    if (modified.contains(guard)) {
+                        modified = modified.replace(guard, "false && !/^(.+?)\\.abyss\\.to$/")
+                        Log.d(TAG, "ABYSS-REWRITE: abyss.to redirect guard disabled")
+                    } else {
+                        modified = modified.replace("top.location == self.location", "false")
+                    }
+                    inject.append(
+                        "<script>(function(){try{window.open=function(){return {closed:true,focus:function(){}}};" +
+                            "document.write=function(){};" +
+                            "setTimeout(function(){var o=document.getElementById('overlay');if(o)o.remove();},600);" +
+                            "setTimeout(function(){var o=document.getElementById('overlay');if(o)o.remove();},2500);" +
+                            "}catch(e){}})();</script>"
+                    )
+                } else if (url.contains("rubyvidhub")) {
+                    inject.append(
+                        "<script>(function(){try{window.adbon=0;window.showADBOverlay=function(){};window.setADBFlag=function(){};" +
+                            "var kill=function(){var els=document.querySelectorAll('.a965058,#adbd,.overdiv');" +
+                            "for(var i=0;i<els.length;i++){var p=els[i].parentNode;if(p)p.removeChild(els[i]);}};" +
+                            "kill();setInterval(kill,1500);}catch(e){}})();</script>"
+                    )
+                }
+
+                if (inject.isNotEmpty()) {
+                    val bodyClose = Regex("(?i)</body>")
+                    val htmlClose = Regex("(?i)</html>")
+                    if (bodyClose.containsMatchIn(modified)) {
+                        modified = bodyClose.replaceFirst(modified, inject.toString() + "</body>")
+                    } else if (htmlClose.containsMatchIn(modified)) {
+                        modified = htmlClose.replaceFirst(modified, inject.toString() + "</html>")
+                    } else {
+                        modified = modified + inject.toString()
+                    }
+                }
+
+                Log.d(TAG, "ABYSS-REWRITE: rewrote ${url.take(60)} -> ${modified.length} bytes (was ${html.length})")
+                android.webkit.WebResourceResponse(
+                    "text/html", "utf-8",
+                    response.code,
+                    response.message.ifEmpty { "OK" },
+                    mutableMapOf("Access-Control-Allow-Origin" to "*"),
+                    modified.toByteArray(Charsets.UTF_8).inputStream()
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "ABYSS-REWRITE error: ${e.message}")
+            null
+        }
     }
 
     private fun resolveEmbedUrl(embedUrl: String, server: VideoServer, serverIndex: Int) {
@@ -4607,8 +4688,9 @@ class PlayerActivity : AppCompatActivity() {
                     webViewResolveMode = ResolveMode.NONE
                     webViewResolveCallback = null
                     pendingResolveServer = null
-                    if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID && isWebViewPlayableEmbed(embedUrl)) {
-                        Log.d(TAG, "Anichin: embed resolution timed out, playing embed page directly in WebView: $embedUrl")
+                    if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID ||
+                        activeProviderId == com.weebflix.app.data.provider.ProviderFactory.SAMEHADAKU_ID) && isWebViewPlayableEmbed(embedUrl)) {
+                        Log.d(TAG, "embed resolution timed out, playing embed page directly in WebView: $embedUrl")
                         playEpisodePageViaWebView(embedUrl, server, skipInjections = true)
                     } else {
                         cb?.invoke("")

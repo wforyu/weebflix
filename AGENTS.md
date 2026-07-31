@@ -84,7 +84,9 @@ WeebFlix/app/src/main/
 - Website: `https://v2.samehadaku.how`
 - Content: Anime (Latest Episodes, Ongoing, Popular)
 - Scraper: `SamehadakuScraper.kt` — CSS selectors via Jsoup
-- Key methods: `getLatestEpisodes(page)`, `getOngoingAnime(page)`, `getPopularAnime(page)`, `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)`
+- Key methods: `getLatestEpisodes(page)`, `getOngoingAnime(page)`, `getPopularAnime(page)`, `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)`, `getEpisodeNavigation(url)`
+- **Episode navigation:** `.naveps .nvs a` (prev), `.naveps .nvs.rght a` (next) — anchors are icon-only (no text), so `deriveEpisodeTitle()` builds "Episode N" from the URL slug (`-episode-N`)
+- **Movie/episode server resolution:** episode streaming pages (`/{slug}-v2/` for BluRay) expose `#server .east_player_option`; AJAX endpoint `POST {base}/wp-admin/admin-ajax.php` body `action=player_ajax&post={data-post}&nume={data-nume}&type={data-type}` → iframe HTML (e.g. filedon.co embed for VIP, mega.nz/embed for Mega). Disabled options (Wibufile/Blogspot rows with `pointer-events: none`) are skipped
 
 ### DrakorKita
 - Website: `https://drakor.kita.mobi` (also supports legacy domains: nicewap.sbs, drakorita.com/net/cyou/cfd)
@@ -92,6 +94,7 @@ WeebFlix/app/src/main/
 - Scraper: `DrakorKitaScraper.kt` — CSS selectors via Jsoup + API calls to `nonton.bid`
 - Features: Auto-rewrites dead domain URLs to current domain, trust-all SSL certs, Base64 token decoding for API access
 - Key methods: `getHomeContent()` (returns episodes + movies + series + featured), `getAllAnime(page)`, `getEpisodeServers()`, `getEpisodeNavigation()`
+- **API status (audited):** `episode.php` (episode list) still works; **`server.php` returns HTTP 500** (returns empty body with or without c/t tokens) — the old API server-resolution pipeline is dead. The path-based WebView playback (`/detail/{slug}/{tag}_{cat}/{epNum}/`) is the only working path and the page embeds its own dotted-base64 token (`var {x}='seg.seg...'`) that the page's own JS (mobl.js + hls.min.js) uses to resolve servers
 
 ### Anichin
 - Website: `https://anichin.cafe`
@@ -101,6 +104,7 @@ WeebFlix/app/src/main/
 - Key methods: `getLatestEpisodes(page)` (homepage latest, scoped to `div.releases.latesthome` to avoid Popular Today duplicates), `getOngoingAnime(page)` (`/ongoing/page/{N}/`), `getPopularAnime(page)` (`/completed/page/{N}/`), `getAllAnime(page)` (`/seri/` + `/?page={N}`, full catalog ~48 pages), `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)` (base64-decoded `<select class="mirror">`), `getEpisodeNavigation(url)` (`a[rel=prev/next]`)
 - **Detail resolution:** `getAnimeDetail()` on an *episode* URL (e.g. from a Latest Episode card) resolves to the series page via breadcrumb `.ts-breadcrumb ol li a[href*='/seri/']` — episode pages have NO episode list (`div.eplister` only exists on `/seri/{slug}/` pages)
 - **Server resolution:** Main player is `anichin.stream/?id={id}` (JWPlayer HLS) — extracted via unpacked eval'd JS for m3u8 URL or WebView `shouldInterceptRequest` `.m3u8` interception. AbyssCDN/hydrax URLs handled by existing resolution code. **Old-post embeds** (Dailymotion, Mega, archive.org, OK.ru, Rumble, `anichin-player.web.id`, rubyvidhub) are returned as-is by `resolveServerVideoUrl()` (`isBrowserPlayableEmbed()`) and played directly in the visible WebView via `playEpisodePageViaWebView(skipInjections=true)` in `PlayerActivity`
+- **Drive servers (new posts):** "Drive 1 [ADS]" → `abyssplayer.com/{id}` (iamcdn.net SoTrym lite player; has a redirect guard `if(top.location==self.location && hostname != *.abyss.to) location.href="https://abyss.to"` that kills top-level playback, plus popup-ad overlay). "Drive 2 [ADS]" → `rubyvidhub.com/embed-{id}.html` (JWPlayer 8 + streamruby.net HLS; has ad-block overlay `#adbd`/`.a965058`). Both are routed to visible-WebView playback (`isWebViewPlayableEmbed()` includes `abyssplayer` + `rubyvidhub`) and their main-frame HTML is rewritten by `PlayerActivity.rewriteAnichinPlayerPage()` via `shouldInterceptRequest`: abyssplayer → guard forced `false` + overlay removed + `window.open`/`document.write` neutralized; rubyvidhub → `setADBFlag`/`showADBOverlay` no-oped + overlay elements removed on interval. **Old-post "Google Drive [ADS]" → `archive.org/embed/...` is dead content** (item `is_dark:true`, embed 404 / download 403 — cannot be fixed app-side)
 - **Home:** Provider-specific home (`AnichinHomeFragment.kt`) with Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal scroll, infinite scroll per section)
 - **CategoryGridActivity:** Falls through to `activeProvider.getOngoingAnime(currentPage)` (generic handler)
 
@@ -124,7 +128,7 @@ WeebFlix/app/src/main/
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
-- **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), skip opening/outro, auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation
+- **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), skip opening/outro (smart windows: intro = first `min(120s, 12%)` OR mid-episode `210s–min(330s, 30%)` if episode ≥11min; outro = last `min(120s, 8%)`), auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation
 - **Settings:** Per-provider domain configuration with chip selector, validation, and reset
 - **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
 - **Domain Switching:** Change scraper base URL per provider from Settings
@@ -157,6 +161,7 @@ WeebFlix/app/src/main/
 ### Other Servers
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
+- **filedon.co (Samehadaku VIP STREAMING)**: React SPA embed (`/build/assets/app-*.js`, `/build/assets/embed-*.js`; hls.js); stream URL not in initial HTML → `isWebViewPlayableEmbed()` includes `filedon.co` so it routes to visible-WebView playback (`playEpisodePageViaWebView(skipInjections=true)`). No ad-block overlay detected. Download link uses `window.open('/embed/${e}/download')` (not blocked).
 
 ### TurboVIP / Hydrax Server (OppaDrama - PARTIAL — rate limited)
 - Server URL pattern: `emturbovid.com/t/{id}` → resolves to `https://cdn2.turboviplay.com/data3/{id}/{id}.m3u8`
@@ -243,7 +248,15 @@ WeebFlix/app/src/main/
 | Anichin latest episode card opens detail with no episode list | Episode URLs have NO `div.eplister` (only `/seri/{slug}/` pages do). `getAnimeDetail()` detects empty episode list and re-fetches the series page via breadcrumb `.ts-breadcrumb ol li a[href*='/seri/']` |
 | Anichin detail empty because breadcrumb selector missed | The breadcrumb class is `ts-breadcrumb` (NOT `breadcrumb`) — `.breadcrumb ol li a` matches nothing silently, returns empty episode list |
 | Anichin old posts can't play (Dailymotion/Mega/archive.org servers) | `resolveServerVideoUrl()` returns browser-playable embeds as-is (`isBrowserPlayableEmbed()`); `PlayerActivity` plays them in the visible WebView (`playEpisodePageViaWebView(skipInjections=true)`) instead of hidden-WebView interception that timed out and failed |
+| Anichin Drive 1 (abyssplayer.com) won't play | Page has redirect guard `if(top.location==self.location && hostname != *.abyss.to) location.href="https://abyss.to"` — kills top-level WebView playback before the player loads. Fix: `rewriteAnichinPlayerPage()` in `PlayerActivity` rewrites the main-frame HTML via `shouldInterceptRequest` (guard → `false`, popup overlay removed, `window.open`/`document.write` neutralized); `isWebViewPlayableEmbed()` now includes `abyssplayer` so it routes to visible-WebView playback |
+| Anichin Drive 2 (rubyvidhub.com) ad-block overlay blocks player | Embed page uses JWPlayer 8 + streamruby.net HLS; `noadblocker.js` can flag `adbon=1` and drop `.a965058`/`#adbd` overlay over the player. Fix: same `rewriteAnichinPlayerPage()` path no-ops `setADBFlag`/`showADBOverlay` and removes overlay elements on an interval |
+| Anichin old-post "Google Drive" (archive.org) unplayable | Server maps to `archive.org/embed/{id}` where item is **dark** (`is_dark:true`): embed returns 404, download 403. Dead content on the site's part — not fixable app-side |
 | Anichin home latest section duplicates on page 2+ | Homepage `div.listupd article.bs` matches both "Latest Release" AND "Popular Today" sections → `getLatestEpisodes()` scoped to `div.releases.latesthome`'s parent list |
+| Samehadaku movie servers all fail (Kimetsu/One Piece movies) | Episode streaming page is `/{slug}-v2/`; `#server .east_player_option` includes **disabled** Wibufile/Blogspot rows (`pointer-events: none`, no `data-post`/`data-nume`) that returned empty iframe HTML. Fix: `getEpisodeServers()` skips disabled/unavailable options; valid options resolve via `player_ajax` endpoint → filedon.co embed (VIP) played via visible WebView (`isWebViewPlayableEmbed` includes `filedon.co`), Mega via `mega.nz/embed` |
+| Samehadaku auto-next never fires | `getEpisodeNavigation()` used wrong selectors (`.epnav .prev a`/`.epnav .next a` matched nothing) — actual HTML is `.naveps .nvs a` (prev) + `.naveps .nvs.rght a` (next), icon-only anchors. Fix: correct selectors + `deriveEpisodeTitle()` from URL slug so next activity gets a non-empty `episodeTitle`/`episodeNumber` |
+| Samehadaku movie page prev/next = `#` placeholders | Movie `-v2/` pages have `.naveps` with `href="#"` links → `nextEpisodeUrl="#"` would break auto-next/buttons. Fix: `cleanNavUrl()` filters empty/`#`/`javascript:` hrefs |
+| Samehadaku episode title prepends number ("1Kimetsu...") | `epTitle = select(".lchx a, .epl-title, .epl-name, a")` — trailing broad `a` also matches `.eps a`, concatenating the number. Fix: priority-based selection (specific selectors first, then first anchor only) |
+| OppaDrama Hydrax iframe src never extracted | Hydrax options encode `<IFRAME SRC="...">` (uppercase) but regex `src=["']...` was case-sensitive → `videoUrl=""`. Fix: `RegexOption.IGNORE_CASE` → now extracts `https://abyssplayer.com/?v={id}` (played via visible WebView, abyssplayer main-frame rewrite already disables the abyss.to redirect guard for any provider) |
 
 ## Open Bugs (Still Buggy — Needs Further Investigation)
 

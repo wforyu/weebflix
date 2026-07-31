@@ -12,6 +12,7 @@ local.properties
 *.apk
 !WebFlix.apk
 !webflix.apk
+/app/release
 *.jks
 gradle/wrapper/gradle-wrapper.jar
 cookies.txt

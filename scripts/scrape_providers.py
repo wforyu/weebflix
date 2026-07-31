@@ -2,11 +2,16 @@
 """
 Pre-scrape all providers and save as JSON for fast app loading.
 Runs via GitHub Actions every 6 hours.
+
+Card structures (verified against live sites, 2026-07):
+- Samehadaku latest : ul > li[itemscope] > h2.entry-title a
+- Samehadaku grids  : .animposx a (ongoing=/daftar-anime-2/, popular=?order=popular)
+- DrakorKita        : .bungkus (link from a[href*='detail/'], img.poster)
+- OppaDrama         : article.bs .bsx
 """
 
 import json
 import time
-import sys
 import os
 import requests
 from datetime import datetime
@@ -18,13 +23,14 @@ PROVIDERS = {
     "samehadaku": {
         "base_url": "https://v2.samehadaku.how",
         "home_path": "/",
-        "latest_path": "/page/{page}/",
-        "ongoing_path": "/status/ongoing/page/{page}/",
-        "popular_path": "/popular/page/{page}/",
+        "ongoing_path": "/daftar-anime-2/",
+        "popular_path": "/daftar-anime-2/?order=popular",
     },
     "drakorkita": {
         "base_url": "https://drakor.kita.mobi",
         "home_path": "/",
+        "movies_path": "/all?media_type=movie",
+        "series_path": "/all?media_type=tv",
     },
     "oppadrama": {
         "base_url": "http://45.11.57.192",
@@ -56,8 +62,118 @@ def fetch_html(url, cookies=None):
         return None, cookies or {}
 
 
-def parse_cards(html):
-    """Parse article.bs .bsx cards from HTML."""
+def make_item(title, url, image_url, episode="", type_text=""):
+    return {
+        "title": title,
+        "url": url,
+        "imageUrl": image_url,
+        "episode": episode,
+        "type": type_text,
+        "status": "",
+        "score": "",
+        "studio": "",
+        "season": "",
+        "synopsis": "",
+        "totalEpisodes": "",
+        "genres": [],
+        "latestUpdate": "",
+    }
+
+
+def parse_samehadaku_latest(html):
+    """Home latest episodes: ul > li[itemscope] > h2.entry-title a."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for li in soup.select("ul > li[itemscope]"):
+        try:
+            a = li.select_one("h2.entry-title a")
+            if not a:
+                continue
+            href = a.get("href", "")
+            title = a.get_text(strip=True)
+            img = li.select_one("img.npws") or li.select_one("img")
+            image_url = img.get("src", "") if img else ""
+            if title and href:
+                items.append(make_item(title, href, image_url))
+        except Exception as e:
+            print(f"  [WARN] samehadaku latest parse error: {e}")
+    return items
+
+
+def parse_samehadaku_grid(html):
+    """Ongoing/popular grids: .animposx a."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for card in soup.select(".animposx"):
+        try:
+            a = card.select_one("a[href]")
+            if not a:
+                continue
+            href = a.get("href", "")
+            title_el = a.select_one("h2")
+            title = title_el.get_text(strip=True) if title_el else a.get("title", "")
+            img = card.select_one("img")
+            image_url = img.get("src", "") if img else ""
+            if title and href:
+                items.append(make_item(title, href, image_url))
+        except Exception as e:
+            print(f"  [WARN] samehadaku grid parse error: {e}")
+    return items
+
+
+def parse_drakorkita(html, base):
+    """.bungkus cards: title = first text node of .titit, url = a[href*='detail/']."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for card in soup.select(".bungkus"):
+        try:
+            link = None
+            parent = card.parent
+            if parent is not None:
+                parent = parent.parent
+            if parent is not None:
+                link = parent.select_one("a[href*='detail/']")
+            if link is None:
+                link = card.select_one("a[href*='detail/']")
+            if link is None:
+                continue
+            href = link.get("href", "")
+            if href.startswith("http"):
+                url = href
+            else:
+                url = base + ("/" + href if not href.startswith("/") else href)
+            titit = card.select_one(".titit")
+            title = ""
+            if titit:
+                for child in titit.contents:
+                    if child is not None and getattr(child, "strip", None) and child.strip():
+                        title = child.strip()
+                        break
+                if not title:
+                    title = titit.get_text(strip=True)
+            if not title:
+                title = link.get("title", "")
+            img = card.select_one("img.poster")
+            image_url = img.get("src", "") if img else ""
+            if not image_url and img:
+                image_url = img.get("data-src", "")
+            ep_el = card.select_one(".rate") or card.select_one(".type")
+            ep_text = ep_el.get_text(strip=True) if ep_el else ""
+            type_el = card.select_one(".type")
+            type_class = type_el.get("class", []) if type_el else []
+            type_text = "Movie" if type_class and "Movie" in type_class else ("TV" if type_class else "")
+            if title and url:
+                items.append(make_item(title, url, image_url, ep_text, type_text))
+        except Exception as e:
+            print(f"  [WARN] drakorkita parse error: {e}")
+    return items
+
+
+def parse_oppadrama(html):
+    """article.bs .bsx cards."""
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
     items = []
@@ -81,23 +197,9 @@ def parse_cards(html):
             ep_el = a.select_one(".limit .epx")
             ep_text = ep_el.get_text(strip=True) if ep_el else ""
             if title:
-                items.append({
-                    "title": title,
-                    "url": href,
-                    "imageUrl": image_url,
-                    "episode": ep_text,
-                    "type": type_text,
-                    "status": "",
-                    "score": "",
-                    "studio": "",
-                    "season": "",
-                    "synopsis": "",
-                    "totalEpisodes": "",
-                    "genres": [],
-                    "latestUpdate": "",
-                })
+                items.append(make_item(title, href, image_url, ep_text, type_text))
         except Exception as e:
-            print(f"  [WARN] parse error: {e}")
+            print(f"  [WARN] oppadrama parse error: {e}")
     return items
 
 
@@ -112,13 +214,13 @@ def scrape_samehadaku():
     if not html:
         return {"hero": [], "latest": [], "cat1": [], "cat2": [], "cat3": [], "cat4": []}
 
-    latest = parse_cards(html)
+    latest = parse_samehadaku_latest(html)
 
-    ongoing_html, cookies = fetch_html(f"{base}/status/ongoing/", cookies)
-    ongoing = parse_cards(ongoing_html) if ongoing_html else []
+    ongoing_html, cookies = fetch_html(base + config["ongoing_path"], cookies)
+    ongoing = parse_samehadaku_grid(ongoing_html) if ongoing_html else []
 
-    popular_html, cookies = fetch_html(f"{base}/popular/", cookies)
-    popular = parse_cards(popular_html) if popular_html else []
+    popular_html, cookies = fetch_html(base + config["popular_path"], cookies)
+    popular = parse_samehadaku_grid(popular_html) if popular_html else []
 
     hero = latest[:10] if latest else []
     print(f"[samehadaku] Done: hero={len(hero)}, latest={len(latest)}, ongoing={len(ongoing)}, popular={len(popular)}")
@@ -137,14 +239,22 @@ def scrape_drakorkita():
 
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
+    episodes = []
+    heading = None
+    for h in soup.select(".col-lg-8 h4.heading1"):
+        if "eps terbaru" in h.get_text(strip=True).lower():
+            heading = h
+            break
+    if heading is not None:
+        row = heading.find_next_sibling()
+        if row is not None:
+            episodes = parse_drakorkita(str(row), base)
 
-    episodes = parse_cards(html)
+    movies_html, _ = fetch_html(base + config["movies_path"], cookies)
+    movies = parse_drakorkita(movies_html, base) if movies_html else []
 
-    movies_html, _ = fetch_html(f"{base}/series/?type=Movie&order=update")
-    movies = parse_cards(movies_html) if movies_html else []
-
-    series_html, _ = fetch_html(f"{base}/series/?type=TV+Show&order=update")
-    series = parse_cards(series_html) if series_html else []
+    series_html, _ = fetch_html(base + config["series_path"], cookies)
+    series = parse_drakorkita(series_html, base) if series_html else []
 
     hero = episodes[:10] if episodes else []
     print(f"[drakorkita] Done: hero={len(hero)}, episodes={len(episodes)}, movies={len(movies)}, series={len(series)}")
@@ -158,23 +268,23 @@ def scrape_oppadrama():
     base = config["base_url"]
 
     cookies = {}
-    html, cookies = fetch_html(f"{base}/?verify_human=1")
+    html, cookies = fetch_html(base + config["home_path"], cookies)
     if not html:
         return {"hero": [], "latest": [], "cat1": [], "cat2": [], "cat3": [], "cat4": []}
 
-    episodes = parse_cards(html)
+    episodes = parse_oppadrama(html)
 
-    dk_html, cookies = fetch_html(f"{base}{config['drama_korea_path']}", cookies)
-    drama_korea = parse_cards(dk_html) if dk_html else []
+    dk_html, cookies = fetch_html(base + config["drama_korea_path"], cookies)
+    drama_korea = parse_oppadrama(dk_html) if dk_html else []
 
-    dc_html, cookies = fetch_html(f"{base}{config['drama_china_path']}", cookies)
-    drama_china = parse_cards(dc_html) if dc_html else []
+    dc_html, cookies = fetch_html(base + config["drama_china_path"], cookies)
+    drama_china = parse_oppadrama(dc_html) if dc_html else []
 
-    fk_html, cookies = fetch_html(f"{base}{config['film_korea_path']}", cookies)
-    film_korea = parse_cards(fk_html) if fk_html else []
+    fk_html, cookies = fetch_html(base + config["film_korea_path"], cookies)
+    film_korea = parse_oppadrama(fk_html) if fk_html else []
 
-    nf_html, cookies = fetch_html(f"{base}{config['netflix_path']}", cookies)
-    netflix = parse_cards(nf_html) if nf_html else []
+    nf_html, cookies = fetch_html(base + config["netflix_path"], cookies)
+    netflix = parse_oppadrama(nf_html) if nf_html else []
 
     hero = episodes[:10] if episodes else []
     print(f"[oppadrama] Done: hero={len(hero)}, episodes={len(episodes)}, dk={len(drama_korea)}, dc={len(drama_china)}, fk={len(film_korea)}, nf={len(netflix)}")
