@@ -293,6 +293,10 @@ def scrape_oppadrama():
 
 def save_json(provider_id, data):
     """Save scraped data as JSON."""
+    total = sum(len(v) for k, v in data.items() if isinstance(v, list))
+    if not data.get("latest") or total == 0:
+        print(f"  [SKIP] {provider_id}: scraped data empty (latest={len(data.get('latest', []))}), keeping existing file")
+        return
     os.makedirs(DATA_DIR, exist_ok=True)
     data["timestamp"] = int(time.time() * 1000)
     filepath = os.path.join(DATA_DIR, f"{provider_id}_home.json")

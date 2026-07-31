@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Movie Body of Lies (2008) BluRay",
+      "url": "http://45.11.57.192/movie-body-of-lies-2008-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Body-of-Lies-2008.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Bloody Game X Episode 6",
       "url": "http://45.11.57.192/bloody-game-x-episode-6/",
       "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Bloody-Game-X-2026.jpg?resize=246,350",
@@ -134,13 +149,15 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kenzo Kitakata: SUIKODEN Episode 7 END",
-      "url": "http://45.11.57.192/kenzo-kitakata-suikoden-episode-7-end/",
-      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Kenzo-Kitakata-SUIKODEN-2026.jpg?resize=246,350",
-      "episode": "Ep 7 END",
-      "type": "Drama",
+      "title": "Movie Body of Lies (2008) BluRay",
+      "url": "http://45.11.57.192/movie-body-of-lies-2008-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Body-of-Lies-2008.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Bloody Game X Episode 6",
       "url": "http://45.11.57.192/bloody-game-x-episode-6/",
@@ -428,21 +443,6 @@
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/06/Lets-End-Our-Friendship-Now-2026.jpg?resize=246,350",
       "episode": "Ep 6",
       "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie Wild Sing (2026) WEBDL",
-      "url": "http://45.11.57.192/movie-wild-sing-2026-webdl/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Wild-Sing-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1785495810866
+  "timestamp": 1785495970149
 }
