@@ -176,6 +176,12 @@ class PlayerActivity : AppCompatActivity() {
                                 request.addHeader("Referer", "https://turbovidhls.com/")
                                     .addHeader("Origin", "https://turbovidhls.com")
                                 request.addHeader("Cache-Control", "no-cache")
+                            } else if (chain.request().url.host.contains("cloudflarestorage.com")) {
+                                request.addHeader("Referer", "https://filedon.co/")
+                                    .addHeader("Origin", "https://filedon.co")
+                            } else if (chain.request().url.host.contains("anichin.stream") || chain.request().url.host.contains("1a-1791.com")) {
+                                request.addHeader("Referer", "https://anichin.stream/")
+                                    .addHeader("Origin", "https://anichin.stream")
                             }
                             chain.proceed(request.build())
                         }
@@ -3128,6 +3134,16 @@ class PlayerActivity : AppCompatActivity() {
                         "Referer" to "https://turbovidhls.com/",
                         "Origin" to "https://turbovidhls.com"
                     ))
+                } else if (videoUrl.contains("cloudflarestorage.com")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://filedon.co/",
+                        "Origin" to "https://filedon.co"
+                    ))
+                } else if (videoUrl.contains("anichin.stream") || videoUrl.contains("1a-1791.com")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://anichin.stream/",
+                        "Origin" to "https://anichin.stream"
+                    ))
                 }
             }
         }
@@ -3959,7 +3975,9 @@ class PlayerActivity : AppCompatActivity() {
         val cachedUrl = resolvedUrlCache[serverIndex]
         if (cachedUrl != null && cachedUrl.isNotEmpty() && !cachedUrl.contains("\\u00") && !cachedUrl.contains("\\=") && !cachedUrl.contains("\\&")) {
             val isRealVideo = cachedUrl.contains(".mp4") || cachedUrl.contains(".m3u8") ||
-                cachedUrl.contains(".mpd") || cachedUrl.contains("googlevideo.com") ||
+                cachedUrl.contains(".mpd") || cachedUrl.contains(".mkv") ||
+                cachedUrl.contains(".webm") || cachedUrl.contains(".m4v") ||
+                cachedUrl.contains("googlevideo.com") ||
                 cachedUrl.contains("videoplayback") || cachedUrl.contains("turboviplay") ||
                 cachedUrl.contains("turbovid") || cachedUrl.contains("abysscdn") ||
                 cachedUrl.contains("hydrax") || cachedUrl.contains("wibufile") ||
@@ -3982,7 +4000,9 @@ class PlayerActivity : AppCompatActivity() {
 
         if (server.videoUrl.isNotEmpty()) {
             val isDirectVideo = server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") ||
-                server.videoUrl.contains(".mpd") || server.videoUrl.contains("googlevideo.com")
+                server.videoUrl.contains(".mpd") || server.videoUrl.contains(".mkv") ||
+                server.videoUrl.contains(".webm") || server.videoUrl.contains(".m4v") ||
+                server.videoUrl.contains("googlevideo.com")
             if (isDirectVideo) {
                 Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
                 resolvedUrlCache[serverIndex] = server.videoUrl
@@ -3998,7 +4018,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         val url = server.url
-        if (url.isNotEmpty() && (url.contains(".mp4") || url.contains(".m3u8") || url.contains(".mpd") || url.contains("googlevideo.com"))) {
+        if (url.isNotEmpty() && (url.contains(".mp4") || url.contains(".m3u8") || url.contains(".mpd") || url.contains(".mkv") || url.contains(".webm") || url.contains(".m4v") || url.contains("googlevideo.com"))) {
             Log.d(TAG, "Playing direct video URL: $url")
             resolvedUrlCache[serverIndex] = url
             loadingPlayer.visibility = View.GONE
@@ -4247,7 +4267,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "Scraper resolved: $scraperUrl")
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.GONE
-                if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains("googlevideo.com")) {
+                if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains(".mkv") || scraperUrl.contains(".webm") || scraperUrl.contains(".m4v") || scraperUrl.contains("googlevideo.com")) {
                     resolvedUrlCache[serverIndex] = scraperUrl
                     initExoPlayer(scraperUrl)
                 } else if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID ||
@@ -4267,7 +4287,7 @@ class PlayerActivity : AppCompatActivity() {
                                 Log.d(TAG, "WebView resolved: $resolvedUrl")
                                 loadingPlayer.visibility = View.GONE
                                 tvError.visibility = View.GONE
-                                if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mpd") || resolvedUrl.contains("googlevideo.com") || resolvedUrl.contains("wibufile.com")) {
+                                if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mpd") || resolvedUrl.contains(".mkv") || resolvedUrl.contains(".webm") || resolvedUrl.contains(".m4v") || resolvedUrl.contains("googlevideo.com") || resolvedUrl.contains("wibufile.com")) {
                                     Log.d(TAG, "WebView resolved direct URL, playing: $resolvedUrl")
                                     resolvedUrlCache[serverIndex] = resolvedUrl
                                     initExoPlayer(resolvedUrl)

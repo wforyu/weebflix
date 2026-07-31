@@ -528,6 +528,14 @@ class SamehadakuScraper : AnimeProvider {
                 return@withContext ""
             }
 
+            if (embedUrl.contains("filedon.co")) {
+                val filedonDirect = extractFiledonDirectUrl(html)
+                if (filedonDirect.isNotEmpty()) {
+                    Log.d("Scraper", "Found filedon direct URL: ${filedonDirect.take(160)}")
+                    return@withContext filedonDirect
+                }
+            }
+
             val videoUrl = extractVideoUrlFromHtml(html, embedUrl)
             if (videoUrl.isNotEmpty()) {
                 Log.d("Scraper", "Found video in embed page: $videoUrl")
@@ -565,6 +573,22 @@ class SamehadakuScraper : AnimeProvider {
         }
     }
 
+    private fun extractFiledonDirectUrl(html: String): String {
+        return try {
+            val appDiv = Jsoup.parse(html).select("div#app[data-page]").first() ?: return ""
+            val dataPage = appDiv.attr("data-page")
+            val root = org.json.JSONObject(dataPage)
+            val props = root.optJSONObject("props") ?: return ""
+            val media = props.optJSONObject("media")
+            val hlsUrl = media?.optString("hls_url", "") ?: ""
+            if (hlsUrl.isNotEmpty()) return hlsUrl
+            props.optString("url", "")
+        } catch (e: Exception) {
+            Log.w("Scraper", "Failed to parse filedon data-page: ${e.message}")
+            ""
+        }
+    }
+
     private fun extractVideoFromEmbed(embedUrl: String): String {
         try {
             val html = fetchHtml(embedUrl)
@@ -582,27 +606,28 @@ class SamehadakuScraper : AnimeProvider {
     }
 
     private fun unpackPackedJs(html: String): String {
-        val pattern = Regex("""eval\(function\(p,a,c,k,e,d\)\s*\{.*?\}\)""", RegexOption.DOT_MATCHES_ALL)
-        val packedMatch = pattern.find(html) ?: return html
+        val pattern = Regex(
+            """eval\(function\(p,a,c,k,e,d\)\s*\{.*?\}\(\s*'((?:[^'\\]|\\.)*)',(\d+),(\d+),\s*'((?:[^'\\]|\\.)*)'(?:\.split\('[^']*'\))?,\d+,\{\}\s*\)\s*\)""",
+            RegexOption.DOT_MATCHES_ALL
+        )
+        val m = pattern.find(html) ?: return html
         return try {
-            val packed = packedMatch.value
-            val argsPattern = Regex("""\}\('(.+)',(\d+),(\d+),'([^']+)'\.split\)""")
-            val m = argsPattern.find(packed) ?: return html
             val payload = m.groupValues[1]
             val a = m.groupValues[2].toInt()
             val c = m.groupValues[3].toInt()
             val words = m.groupValues[4].split('|')
 
             val dictionary = HashMap<String, String>()
-            for (i in 0 until c) {
-                val key = if (i < words.size) words[i] else ""
-                val value = baseConvert(i, a)
-                dictionary[value] = key
+            for (i in c - 1 downTo 0) {
+                val word = if (i < words.size) words[i] else ""
+                if (word.isNotEmpty()) {
+                    dictionary[packerToken(i, a)] = word
+                }
             }
 
             var result = payload
             for ((key, value) in dictionary) {
-                result = result.replace("$key", value)
+                result = result.replace(Regex("""\b${Regex.escape(key)}\b"""), value)
             }
             result
         } catch (_: Exception) {
@@ -610,15 +635,14 @@ class SamehadakuScraper : AnimeProvider {
         }
     }
 
-    private fun baseConvert(num: Int, base: Int): String {
-        val sb = StringBuilder()
-        var n = num
-        while (n > 0) {
-            n--
-            sb.append(('a' + n % base))
-            n /= base
-        }
-        return sb.reverse().toString()
+    private fun packerToken(index: Int, base: Int): String {
+        return if (index < base) packerChar(index)
+        else packerToken(index / base, base) + packerChar(index % base)
+    }
+
+    private fun packerChar(c: Int): String {
+        return if (c > 35) (c + 29).toChar().toString()
+        else "0123456789abcdefghijklmnopqrstuvwxyz"[c].toString()
     }
 
     private fun extractVideoUrlFromHtml(html: String, embedUrl: String): String {
