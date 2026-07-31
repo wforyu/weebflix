@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Movie Leviticus (2026) WEBDL",
+      "url": "http://45.11.57.192/movie-leviticus-2026-webdl/",
+      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/Leviticus-2026.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie Ladies in Black (2018) BluRay",
+      "url": "http://45.11.57.192/movie-ladies-in-black-2018-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Ladies-in-Black-2018.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie Body of Lies (2008) BluRay",
       "url": "http://45.11.57.192/movie-body-of-lies-2008-bluray/",
       "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Body-of-Lies-2008.jpg?resize=246,350",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Pearl in Red Episode 90",
-      "url": "http://45.11.57.192/pearl-in-red-episode-90/",
-      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/03/Pearl-in-Red-2026.jpg?resize=246,350",
-      "episode": "Ep 90",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "25 Years of You Episode 3",
-      "url": "http://45.11.57.192/25-years-of-you-episode-3/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/25-Years-of-You-2026.jpg?resize=246,350",
-      "episode": "Ep 3",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Movie Leviticus (2026) WEBDL",
+      "url": "http://45.11.57.192/movie-leviticus-2026-webdl/",
+      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/Leviticus-2026.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie Ladies in Black (2018) BluRay",
+      "url": "http://45.11.57.192/movie-ladies-in-black-2018-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Ladies-in-Black-2018.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Movie Body of Lies (2008) BluRay",
       "url": "http://45.11.57.192/movie-body-of-lies-2008-bluray/",
@@ -412,36 +442,6 @@
       "url": "http://45.11.57.192/cape-fear-episode-10-end/",
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/06/Cape-Fear-2026.jpg?resize=246,350",
       "episode": "Ep 10 END",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Royal Betrothal Episode 8",
-      "url": "http://45.11.57.192/royal-betrothal-episode-8/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Royal-Betrothal-2026.jpg?resize=246,350",
-      "episode": "Ep 8",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Let’s End Our Friendship Now Episode 6",
-      "url": "http://45.11.57.192/lets-end-our-friendship-now-episode-6/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/06/Lets-End-Our-Friendship-Now-2026.jpg?resize=246,350",
-      "episode": "Ep 6",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1785495970149
+  "timestamp": 1785498915560
 }
