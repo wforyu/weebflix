@@ -448,6 +448,10 @@ class DrakorKitaScraper : AnimeProvider {
                 val cat = params["cat"] ?: "ind"
 
                 if (movieId.isNotEmpty()) {
+                    val downloadServers = resolveDownloadServers(episodeUrl, movieId, params["ep"] ?: "1", cat, epId == "movie")
+                    if (downloadServers.isNotEmpty()) {
+                        return@withContext downloadServers
+                    }
                     val doc = fetchDocument(episodeUrl.substringBefore("?"))
 
                     doc.select("#server_lists .btn-svx, .pagination .btn-svx").forEach { element ->
@@ -597,6 +601,14 @@ class DrakorKitaScraper : AnimeProvider {
 
     override suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
         try {
+            if (server.dataType == "dl" && server.dataPost.isNotEmpty()) {
+                if (server.videoUrl.isNotEmpty() && (server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8"))) {
+                    return@withContext server.videoUrl
+                }
+                val dlUrl = resolveDlFileMob(server.dataPost)
+                if (dlUrl.isNotEmpty()) return@withContext dlUrl
+            }
+
             if (server.url.isNotEmpty() && (server.url.contains(".mp4") || server.url.contains(".m3u8") || server.url.contains(".mpd"))) {
                 return@withContext server.url
             }
@@ -830,6 +842,91 @@ class DrakorKitaScraper : AnimeProvider {
         } catch (e: Exception) {
             Log.e("DrakorKita", "Abyss resolution failed: ${e.message}")
             abyssUrl
+        }
+    }
+
+    private suspend fun resolveDlFileMob(downloadId: String): String {
+        return try {
+            val url = "https://api.nonton.bid/c_api/dlfilemob.php?id=$downloadId&is_mob=1"
+            val request = Request.Builder().url(url)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .build()
+            val response = client.newCall(request).execute()
+            val body = response.use { it.body?.string() ?: "" }
+            if (response.code != 200 || body.isEmpty()) return ""
+            val json = org.json.JSONObject(body)
+            val link = json.optString("link", "")
+            Log.d("DrakorKita", "dlfilemob $downloadId -> ${link.take(90)}")
+            link
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "dlfilemob failed: ${e.message}")
+            ""
+        }
+    }
+
+    private suspend fun resolveDownloadServers(
+        episodeUrl: String,
+        movieId: String,
+        epNum: String,
+        cat: String,
+        isMovie: Boolean
+    ): List<VideoServer> {
+        try {
+            val mediaType = if (isMovie) "movie" else "tv"
+            val dlUrl = "https://api.nonton.bid/c_api/ajax_dl_all.php?media_type=$mediaType&id=$movieId&tag=$cat"
+            Log.d("DrakorKita", "Download pipeline: $dlUrl")
+            val request = Request.Builder().url(dlUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Referer", "https://drakor.kita.mobi/")
+                .build()
+            val response = client.newCall(request).execute()
+            val body = response.use { it.body?.string() ?: "" }
+            if (response.code != 200 || body.isEmpty()) return emptyList()
+
+            val doc = Jsoup.parseBodyFragment(body)
+            val targetNum = epNum.trim().toIntOrNull()
+            val servers = mutableListOf<VideoServer>()
+            var matchedAny = false
+
+            doc.select("div.card").forEach { card ->
+                val header = card.select(".card-header").text().trim()
+                val headerNum = Regex("Episode\\s*([\\d.]+)", RegexOption.IGNORE_CASE)
+                    .find(header)?.groupValues?.get(1)?.trim()
+                val cardNum = headerNum?.toIntOrNull()
+
+                val isTarget = when {
+                    isMovie -> true
+                    cardNum != null && targetNum != null -> cardNum == targetNum
+                    else -> false
+                }
+                if (!isTarget) return@forEach
+
+                card.select("a[href^='/download/']").forEach { a ->
+                    val downloadId = a.attr("href").substringAfterLast("/")
+                    if (downloadId.isEmpty()) return@forEach
+                    val label = a.text().trim()
+                    val quality = Regex("(480p|720p|1080p)").find(label)?.groupValues?.get(1) ?: "HD"
+                    val videoUrl = resolveDlFileMob(downloadId)
+                    matchedAny = true
+                    servers.add(VideoServer(
+                        name = "DrakorKita $quality",
+                        url = episodeUrl,
+                        videoUrl = videoUrl,
+                        dataPost = downloadId,
+                        dataNume = quality,
+                        dataType = "dl"
+                    ))
+                }
+            }
+
+            if (matchedAny) {
+                Log.d("DrakorKita", "Download pipeline: ${servers.size} servers for ep=$epNum")
+            }
+            return servers
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "Download pipeline failed: ${e.message}")
+            return emptyList()
         }
     }
 

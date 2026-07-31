@@ -3988,8 +3988,7 @@ class PlayerActivity : AppCompatActivity() {
             } else {
                 Log.d(TAG, "Playing cached URL: $cachedUrl")
                 loadingPlayer.visibility = View.GONE
-                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
-                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
                     playVideoViaHtml5WebView(cachedUrl)
                 } else {
                     initExoPlayer(cachedUrl)
@@ -4007,8 +4006,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
                 resolvedUrlCache[serverIndex] = server.videoUrl
                 loadingPlayer.visibility = View.GONE
-                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
-                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
                     playVideoViaHtml5WebView(server.videoUrl)
                 } else {
                     initExoPlayer(server.videoUrl)
@@ -4022,8 +4020,7 @@ class PlayerActivity : AppCompatActivity() {
             Log.d(TAG, "Playing direct video URL: $url")
             resolvedUrlCache[serverIndex] = url
             loadingPlayer.visibility = View.GONE
-            if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
-                activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
+            if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
                 playVideoViaHtml5WebView(url)
             } else {
                 initExoPlayer(url)

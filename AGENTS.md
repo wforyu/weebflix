@@ -94,7 +94,7 @@ WeebFlix/app/src/main/
 - Scraper: `DrakorKitaScraper.kt` — CSS selectors via Jsoup + API calls to `nonton.bid`
 - Features: Auto-rewrites dead domain URLs to current domain, trust-all SSL certs, Base64 token decoding for API access
 - Key methods: `getHomeContent()` (returns episodes + movies + series + featured), `getAllAnime(page)`, `getEpisodeServers()`, `getEpisodeNavigation()`
-- **API status (audited):** `episode.php` (episode list) still works; **`server.php` returns HTTP 500** (returns empty body with or without c/t tokens) — the old API server-resolution pipeline is dead. The path-based WebView playback (`/detail/{slug}/{tag}_{cat}/{epNum}/`) is the only working path and the page embeds its own dotted-base64 token (`var {x}='seg.seg...'`) that the page's own JS (mobl.js + hls.min.js) uses to resolve servers
+- **API status (audited):** `episode.php` (episode list) still works; **`server.php` returns HTTP 500** (returns empty body with or without c/t tokens) and `video.php`/`server_mob.php` → 500, `video_sb.php`/`video_hydrax.php`/`video_p2p.php` → 200 but empty — the streaming sub-API is dead. The **download pipeline is the working playback path**: `ajax_dl_all.php` (no tokens) → `/download/{dlId}` → `dlfilemob.php?id={dlId}` → direct MP4 on `dkdownload1hd.uyeshare.cc` → **ExoPlayer** (see "DrakorKita Download-Pipeline" below). Path-based WebView playback (`/detail/{slug}/{tag}_{cat}/{epNum}/`) is kept only as last-resort fallback.
 
 ### Anichin
 - Website: `https://anichin.cafe`
@@ -156,6 +156,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 | OppaDrama | FileLions | `minochinos.com/v/{id}` → packed JS → signed `{sub}.dramiyos-cdn.com / {sub}.acek-cdn.com /hls2/01/08487/{id}_,l,n,h,.urlset/master.m3u8?t=...&e=129600` | **ExoPlayer** (`extractFileLionsM3u8` unpacked eval JS in `resolveServerVideoUrl`) — segments clean MPEG-TS, no 429 |
 | OppaDrama | TurboVIP | `emturbovid.com/t/{id}` → `cdn3.turboviplay.com` → `g*.turbosplayer.com` → `lh3.googleusercontent.com/d/{gDriveId}=d` | **WebView** (`playVideoViaHtml5WebView`) — Google-drive segments **429 rate-limited** from a plain IP → NOT ExoPlayer-viable |
 | OppaDrama | Hydrax | `abyssplayer.com/?v={id}` → JWPlayer iamcdn.net | **WebView** — `abysscdn.com/api/source` 404 (old API dead); redirect-guard handled by `rewriteAnichinPlayerPage` |
+| DrakorKita | Download 480p/720p/1080p | `ajax_dl_all.php` → `/download/{dlId}` → `dlfilemob.php?id={dlId}` → `https://dkdownload1hd.uyeshare.cc/1fichier/{fileId}` | **ExoPlayer** direct MP4 (progressive, Range OK, no Referer) — see "DrakorKita Download-Pipeline" below |
 
 `SamehadakuScraper.resolveServerVideoUrl()` guards direct videos: if `server.url` already ends in a direct-video suffix → returned unchanged (no AJAX re-fetch); the AJAX `player_ajax` iframe src is also checked with `isDirectVideoUrl()` before Blogger/filedon branches.
 
@@ -182,6 +183,13 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
   - **Auto-click fallback:** After 20s, auto-clicks the matching server button (only if no video is already playing)
 - **Toggle fullscreen:** Uses CSS `position:fixed` + parent element fullscreen, not the Fullscreen API
 - **Ad blocking:** `REF_INJECT_ADBLOCK_ONLY` — ad pattern removal + MutationObserver, no CSS/layout changes
+
+### DrakorKita Download-Pipeline (WORKING — ExoPlayer direct MP4, NO tokens)
+- **Audit (2026-08):** streaming sub-API dead (`video.php`/`server_mob.php` → HTTP 500; `video_sb.php`/`video_hydrax.php`/`video_p2p.php` → 200 but `status:0` + empty URL). The **download pipeline lives and needs NO c/t tokens**:
+  - `GET https://api.nonton.bid/c_api/ajax_dl_all.php?media_type={tv|movie}&id={movieId}&tag={cat}` → HTML of `<div class="card"><div class="card-header">Download Episode {N}</div>...` with `<a class="btn btn-sm btn-success" href="/download/{dlId}">[hardsub] {quality}p WEB-DL [{size} MB]</a>` per quality. TV cards numbered per episode; **movie cards have header `Download ` (no number)**. `domain`/`tag`/`c`/`t` all optional (verified 200).
+  - `GET https://api.nonton.bid/c_api/dlfilemob.php?id={dlId}&is_mob=1` → JSON `{"download":"...","link":"https://dkdownload1hd.uyeshare.cc/1fichier/{fileId}",...}` — `link` is a **direct MP4** (byte-verified `ftypisom`, Content-Length present, **Range supported 206**, no Referer/Origin needed). Works token-free too.
+- **Code:** `DrakorKitaScraper.kt` — `resolveDownloadServers(episodeUrl, movieId, ep, cat, isMovie)` runs FIRST in `getEpisodeServers` for `?mid=..&eid=..` episode URLs; builds one `VideoServer` per quality (`name="DrakorKita {quality}p"`, `videoUrl`=direct MP4, `dataPost`=dlId, `dataType="dl"`). `resolveServerVideoUrl()` short-circuits `dataType=="dl"` → `resolveDlFileMob(dataPost)`. Streaming-API fallback (server_mob/video_hydrax) kept only if download pipeline returns empty.
+- **`PlayerActivity` routing:** direct-video branches (cached/videoUrl/direct-URL) previously forced DrakorKita → `playVideoViaHtml5WebView`; now **only OppaDrama** forces WebView, so DrakorKita `.mp4` direct URLs → `initExoPlayer`. WebView path (`isDrakorKitaServer` L4034) remains only as last-resort fallback when no `videoUrl` resolved.
 
 ### Other Servers
 - **Wibufile 720p/1080p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly via ExoPlayer. `resolveServerVideoUrl()` short-circuits (`isDirectVideoUrl`) when `server.url` is already a direct-video URL or the AJAX iframe src is.
