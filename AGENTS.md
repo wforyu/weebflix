@@ -162,6 +162,7 @@ WeebFlix/app/src/main/
 - **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
 - **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
 - **filedon.co (Samehadaku VIP STREAMING)**: React SPA embed (`/build/assets/app-*.js`, `/build/assets/embed-*.js`; hls.js); stream URL not in initial HTML → `isWebViewPlayableEmbed()` includes `filedon.co` so it routes to visible-WebView playback (`playEpisodePageViaWebView(skipInjections=true)`). No ad-block overlay detected. Download link uses `window.open('/embed/${e}/download')` (not blocked).
+- **filedon.co Referer whitelist (verified 2026-07):** filedon validates the **HTTP `Referer` header server-side** (Laravel Inertia decides which component to render). No Referer → renders `embed-forbidden` page ("This embed is not allowed on this website"). Allowed referers: `samehadaku.how`, `v2.samehadaku.how`, `winbu.net`. Fix: `playEpisodePageViaWebView()` adds `Referer` = active provider `baseUrl` header via `loadUrl(url, extraHeaders)` when URL contains `filedon.co`. There is NO client-side referrer check (whitelist config only passed for display).
 
 ### TurboVIP / Hydrax Server (OppaDrama - PARTIAL — rate limited)
 - Server URL pattern: `emturbovid.com/t/{id}` → resolves to `https://cdn2.turboviplay.com/data3/{id}/{id}.m3u8`

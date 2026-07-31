@@ -1410,7 +1410,17 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         webView?.visibility = View.VISIBLE
-        webView?.loadUrl(episodeUrl)
+        val extraHeaders = HashMap<String, String>()
+        if (episodeUrl.contains("filedon.co")) {
+            try {
+                val provider = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId)
+                extraHeaders["Referer"] = provider.baseUrl
+                Log.d(TAG, "EP-WEBVIEW: added Referer ${provider.baseUrl} for filedon embed (server-side whitelist check)")
+            } catch (e: Exception) {
+                Log.e(TAG, "EP-WEBVIEW: failed to set Referer for filedon embed", e)
+            }
+        }
+        webView?.loadUrl(episodeUrl, extraHeaders)
         Log.d(TAG, "EP-WEBVIEW: loading episode page $episodeUrl")
 
         if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
