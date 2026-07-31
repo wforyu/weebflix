@@ -450,6 +450,11 @@ class SamehadakuScraper : AnimeProvider {
             var embedUrl = server.url
             Log.d("Scraper", "Resolving server: ${server.name}, dataPost=${server.dataPost}, dataNume=${server.dataNume}, url=$embedUrl")
 
+            if (embedUrl.isNotEmpty() && isDirectVideoUrl(embedUrl)) {
+                Log.d("Scraper", "Server URL is already a direct video: $embedUrl")
+                return@withContext embedUrl
+            }
+
             if (server.dataPost.isNotEmpty() && server.dataNume.isNotEmpty() && embedUrl.isEmpty()) {
                 val body = FormBody.Builder()
                     .add("action", "player_ajax")
@@ -485,6 +490,11 @@ class SamehadakuScraper : AnimeProvider {
                 Log.d("Scraper", "AJAX iframe src: $iframeSrc")
                 if (iframeSrc.isNotEmpty()) {
                     embedUrl = normalizeUrl(iframeSrc, episodeUrl)
+
+                    if (isDirectVideoUrl(embedUrl)) {
+                        Log.d("Scraper", "Iframe src is a direct video, returning for ExoPlayer: $embedUrl")
+                        return@withContext embedUrl
+                    }
 
                     if (embedUrl.contains("blogger.com") || embedUrl.contains("bp.blogspot.com")) {
                         Log.d("Scraper", "Blogger embed detected, returning URL for WebView XHR extraction: $embedUrl")
@@ -571,6 +581,12 @@ class SamehadakuScraper : AnimeProvider {
             e.printStackTrace()
             ""
         }
+    }
+
+    private fun isDirectVideoUrl(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains(".mp4") || lower.contains(".m3u8") || lower.contains(".mpd") ||
+            lower.contains(".mkv") || lower.contains(".webm") || lower.contains(".m4v")
     }
 
     private fun extractFiledonDirectUrl(html: String): String {

@@ -104,7 +104,8 @@ WeebFlix/app/src/main/
 - Key methods: `getLatestEpisodes(page)` (homepage latest, scoped to `div.releases.latesthome` to avoid Popular Today duplicates), `getOngoingAnime(page)` (`/ongoing/page/{N}/`), `getPopularAnime(page)` (`/completed/page/{N}/`), `getAllAnime(page)` (`/seri/` + `/?page={N}`, full catalog ~48 pages), `searchAnime(query)`, `getAnimeDetail(url)`, `getEpisodeServers(url)` (base64-decoded `<select class="mirror">`), `getEpisodeNavigation(url)` (`a[rel=prev/next]`)
 - **Detail resolution:** `getAnimeDetail()` on an *episode* URL (e.g. from a Latest Episode card) resolves to the series page via breadcrumb `.ts-breadcrumb ol li a[href*='/seri/']` — episode pages have NO episode list (`div.eplister` only exists on `/seri/{slug}/` pages)
 - **Server resolution:** Main player is `anichin.stream/?id={id}` (JWPlayer HLS) — extracted via unpacked eval'd JS for m3u8 URL or WebView `shouldInterceptRequest` `.m3u8` interception. AbyssCDN/hydrax URLs handled by existing resolution code. **Old-post embeds** (Dailymotion, Mega, archive.org, OK.ru, Rumble, `anichin-player.web.id`, rubyvidhub) are returned as-is by `resolveServerVideoUrl()` (`isBrowserPlayableEmbed()`) and played directly in the visible WebView via `playEpisodePageViaWebView(skipInjections=true)` in `PlayerActivity`
-- **Drive servers (new posts):** "Drive 1 [ADS]" → `abyssplayer.com/{id}` (iamcdn.net SoTrym lite player; has a redirect guard `if(top.location==self.location && hostname != *.abyss.to) location.href="https://abyss.to"` that kills top-level playback, plus popup-ad overlay). "Drive 2 [ADS]" → `rubyvidhub.com/embed-{id}.html` (JWPlayer 8 + streamruby.net HLS; has ad-block overlay `#adbd`/`.a965058`). Both are routed to visible-WebView playback (`isWebViewPlayableEmbed()` includes `abyssplayer` + `rubyvidhub`) and their main-frame HTML is rewritten by `PlayerActivity.rewriteAnichinPlayerPage()` via `shouldInterceptRequest`: abyssplayer → guard forced `false` + overlay removed + `window.open`/`document.write` neutralized; rubyvidhub → `setADBFlag`/`showADBOverlay` no-oped + overlay elements removed on interval. **Old-post "Google Drive [ADS]" → `archive.org/embed/...` is dead content** (item `is_dark:true`, embed 404 / download 403 — cannot be fixed app-side)
+- **Drive servers (new posts):** "Drive 1 [ADS]" → `abyssplayer.com/{id}` (iamcdn.net SoTrym lite player; has a redirect guard `if(top.location==self.location && hostname != *.abyss.to) location.href="https://abyss.to"` that kills top-level playback, plus popup-ad overlay). "Drive 2 [ADS]" → `rubyvidhub.com/embed-{id}.html` (JWPlayer 8 + streamruby.net HLS; has ad-block overlay `#adbd`/`.a965058`). Both are routed to visible-WebView playback (`isWebViewPlayableEmbed()` includes `abyssplayer` + `rubyvidhub`) and their main-frame HTML is rewritten by `PlayerActivity.rewriteAnichinPlayerPage()` via `shouldInterceptRequest`: abyssplayer → guard forced `false` + overlay removed + `window.open`/`document.write` neutralized; rubyvidhub → `setADBFlag`/`showADBOverlay` no-oped + overlay elements removed on interval. **Old-post "Google Drive [ADS]" → `archive.org/embed/...` is dead content** (item `is_dark:true`, embed 404 / download 403 — cannot be fixed app-side). **Old-post "Google Drive 2 [ADS]" → `racaty.my.id/empire/{okId}` (502 Bad Gateway) and "Google Drive [ADS]" → `short.icu/{id}` (DNS dead) — both dead content at the source, auto-fail via hidden-WebView timeout**
+- **Server routing (audited 2026-08, all live episodes):** Samehadaku & Anichin server classification confirmed against live pages — see "Per-Provider Server Routing" below
 - **Home:** Provider-specific home (`AnichinHomeFragment.kt`) with Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal scroll, infinite scroll per section)
 - **CategoryGridActivity:** Falls through to `activeProvider.getOngoingAnime(currentPage)` (generic handler)
 
@@ -134,6 +135,25 @@ WeebFlix/app/src/main/
 - **Domain Switching:** Change scraper base URL per provider from Settings
 
 ## Video Server Resolution
+### Per-Provider Server Routing (audited 2026-08, verified against live episodes)
+Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contains a direct-video suffix (`.mp4/.m3u8/.mpd/.mkv/.webm/.m4v` or `googlevideo.com`) → ExoPlayer; else for `ANICHIN`/`SAMEHADAKU` providers if `isWebViewPlayableEmbed(scraperUrl)` → visible-WebView playback; else hidden-WebView interception fallback.
+
+| Provider | Server | Live URL | Path |
+|----------|--------|----------|------|
+| Samehadaku | Blogspot | `www.blogger.com/video.g?token=...` | ExoPlayer (video.g XHR intercept) |
+| Samehadaku | VIP STREAMING | filedon.co embed → signed R2 `.mkv` | ExoPlayer (Matroska, `extractFiledonDirectUrl`) |
+| Samehadaku | Wibufile 720p/1080p (enabled) | `s0.wibufile.com/video01/...mp4` | ExoPlayer direct (`isDirectVideoUrl`) |
+| Samehadaku | Wibufile 480p | disabled (no data-post) | skipped in `getEpisodeServers` |
+| Samehadaku | Mega 480p/720p/1080p | `mega.nz/embed/...` | WebView (SPA `secureboot.js`) |
+| Anichin | Premium | `anichin.stream/?id={id}` → `/hls/{id}.m3u8` | ExoPlayer (unpacked eval JS) |
+| Anichin | OK.ru / Dailymotion | `anichin-player.web.id/index.php?ok=\|url=` | WebView (host 403 to direct OkHttp) |
+| Anichin | Rumble | `rumble.com/embed/...` | WebView (host 403 to direct OkHttp) |
+| Anichin | Drive 1 [ADS] | `play.abyssplayer.com/{id}` | WebView (`rewriteAnichinPlayerPage`) |
+| Anichin | Drive 2 [ADS] | `rubyvidhub.com/embed-{id}.html` | WebView (`rewriteAnichinPlayerPage`) |
+| Anichin (old post) | Google Drive / Drive 2 | `archive.org/embed` / `racaty.my.id` / `short.icu` | DEAD at source — auto-fail |
+
+`SamehadakuScraper.resolveServerVideoUrl()` guards direct videos: if `server.url` already ends in a direct-video suffix → returned unchanged (no AJAX re-fetch); the AJAX `player_ajax` iframe src is also checked with `isDirectVideoUrl()` before Blogger/filedon branches.
+
 ### Blogspot Server (Samehadaku - WORKING)
 - Fast path: Scraper AJAX POST → get `blogger.com/video.g?token=` URL → WebView loads video.g with XHR interception
 - XHR interception injects JS into `video.g` HTML that monkey-patches `XMLHttpRequest.prototype.send` to capture batchexecute responses containing `googlevideo.com` URLs
@@ -159,8 +179,8 @@ WeebFlix/app/src/main/
 - **Ad blocking:** `REF_INJECT_ADBLOCK_ONLY` — ad pattern removal + MutationObserver, no CSS/layout changes
 
 ### Other Servers
-- **Wibufile 720p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly
-- **Wibufile 480p**: `ERR_SSL_PROTOCOL_ERROR` — device/server incompatibility, cannot fix
+- **Wibufile 720p/1080p**: AJAX iframe src IS a direct `.mp4` URL (`https://s0.wibufile.com/video01/...mp4`) — plays directly via ExoPlayer. `resolveServerVideoUrl()` short-circuits (`isDirectVideoUrl`) when `server.url` is already a direct-video URL or the AJAX iframe src is.
+- **Wibufile 480p**: disabled on live pages (row has `pointer-events: none`, no `data-post`) → skipped in `getEpisodeServers`
 - **filedon.co (Samehadaku VIP STREAMING)**: React SPA embed (`/build/assets/app-*.js`, `/build/assets/embed-*.js`; hls.js). **Playback = ExoPlayer, NOT WebView:** the embed's Inertia `data-page` JSON has `media.hls_url=null` + `transcode_status=pending`, so the player falls back to a **raw Cloudflare R2 `.mkv`** signed URL (byte-confirmed Matroska, `1A45DFA3`). WebView HTML5 cannot play MKV → blank/broken; ExoPlayer's Matroska extractor CAN. `SamehadakuScraper.resolveServerVideoUrl()` now parses `div#app[data-page]` JSON (`props.url`, preferring `props.media.hls_url` when transcode completes) and returns the direct signed R2 URL → `PlayerActivity` recognizes `.mkv` as direct video → `initExoPlayer`. Signed URLs expire ~1h (400 XML on stale ranges) — the scraper re-fetches the embed page for a fresh one on each resolve. R2 requests get `Referer`/`Origin: https://filedon.co/` via OkHttp interceptor + `defaultRequestProperties`.
 - **filedon.co Referer whitelist (verified 2026-07):** filedon validates the **HTTP `Referer` header server-side** (Laravel Inertia decides which component to render). No Referer → renders `embed-forbidden` page ("This embed is not allowed on this website"). Allowed referers: `samehadaku.how`, `v2.samehadaku.how`, `winbu.net`. Fix: `playEpisodePageViaWebView()` adds `Referer` = active provider `baseUrl` header via `loadUrl(url, extraHeaders)` when URL contains `filedon.co`. There is NO client-side referrer check (whitelist config only passed for display).
 - **Mega (Samehadaku 480p/720p/1080p)**: embed serves only a shell `<!DOCTYPE html>` + `secureboot.js` (SPA) — WebView-only, ExoPlayer CANNOT.
