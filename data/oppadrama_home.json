@@ -1,6 +1,51 @@
 {
   "hero": [
     {
+      "title": "Movie The Woman King (2022) BluRay",
+      "url": "http://45.11.57.192/movie-the-woman-king-2022-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/The-Woman-King-2022.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie Finding Neverland (2004) BluRay",
+      "url": "http://45.11.57.192/movie-finding-neverland-2004-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Finding-Neverland-2004.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Family Register Episode 13",
+      "url": "http://45.11.57.192/family-register-episode-13/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Family-Register-2026.jpg?resize=246,350",
+      "episode": "Ep 13",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie Leviticus (2026) WEBDL",
       "url": "http://45.11.57.192/movie-leviticus-2026-webdl/",
       "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/Leviticus-2026.jpg?resize=246,350",
@@ -104,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Movie Malaikat Malam (2026) WEBDL",
-      "url": "http://45.11.57.192/movie-malaikat-malam-2026-webdl/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/Malaikat-Malam-2026.jpg?resize=246,350",
+      "title": "Movie The Woman King (2022) BluRay",
+      "url": "http://45.11.57.192/movie-the-woman-king-2022-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/The-Woman-King-2022.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
       "status": "",
@@ -121,11 +168,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Stuart Fails to Save the Universe Season 1 Episode 2",
-      "url": "http://45.11.57.192/stuart-fails-to-save-the-universe-season-1-episode-2/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/Stuart-Fails-to-Save-the-Universe-Season-1-2026.jpg?resize=246,350",
-      "episode": "Ep 2",
-      "type": "Drama",
+      "title": "Movie Finding Neverland (2004) BluRay",
+      "url": "http://45.11.57.192/movie-finding-neverland-2004-bluray/",
+      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Finding-Neverland-2004.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -136,10 +183,10 @@
       "latestUpdate": ""
     },
     {
-      "title": "Silo Season 3 Episode 5",
-      "url": "http://45.11.57.192/silo-season-3-episode-5/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Silo-Season-3-2026.jpg?resize=246,350",
-      "episode": "Ep 5",
+      "title": "Family Register Episode 13",
+      "url": "http://45.11.57.192/family-register-episode-13/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Family-Register-2026.jpg?resize=246,350",
+      "episode": "Ep 13",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,9 +196,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Movie Leviticus (2026) WEBDL",
       "url": "http://45.11.57.192/movie-leviticus-2026-webdl/",
@@ -348,21 +393,6 @@
       "latestUpdate": ""
     },
     {
-      "title": "Family Register Episode 12",
-      "url": "http://45.11.57.192/family-register-episode-12/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Family-Register-2026.jpg?resize=246,350",
-      "episode": "Ep 12",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
       "title": "Whether or Not Episode 8",
       "url": "http://45.11.57.192/whether-or-not-episode-8/",
       "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/Whether-or-Not-2025.jpg?resize=246,350",
@@ -412,36 +442,6 @@
       "url": "http://45.11.57.192/smoking-behind-the-supermarket-with-you-episode-4/",
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Smoking-Behind-the-Supermarket-with-You-2026.jpg?resize=246,350",
       "episode": "Ep 4",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Chainsmoker Cat Episode 5",
-      "url": "http://45.11.57.192/chainsmoker-cat-episode-5/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/Chainsmoker-Cat-2026.jpg?resize=246,350",
-      "episode": "Ep 5",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Cape Fear Episode 10 END",
-      "url": "http://45.11.57.192/cape-fear-episode-10-end/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/06/Cape-Fear-2026.jpg?resize=246,350",
-      "episode": "Ep 10 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1785498915560
+  "timestamp": 1785506447794
 }
