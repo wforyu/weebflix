@@ -353,11 +353,16 @@ class DrakorKitaScraper : AnimeProvider {
                             val activeCat = Regex("\"active_cat\"\\s*:\\s*\"([^\"]*?)\"").find(apiBody)?.groupValues?.get(1) ?: cat
                             val activeTag = Regex("\"active_tag\"\\s*:\\s*\"([^\"]*?)\"").find(apiBody)?.groupValues?.get(1) ?: tag
 
+                            var hasMovieServerBtn = false
                             btnSvrElements.forEach { a ->
                                 val epId = a.attr("data-epid")
                                 val epNum = a.text().trim()
                                 val epCat = a.attr("data-cat").ifBlank { activeCat }
                                 val epTag = a.attr("data-tag").ifBlank { activeTag }
+                                if (epNum.equals("unnamed", ignoreCase = true) ||
+                                    a.classNames().any { it.contains("unnamed", ignoreCase = true) }) {
+                                    hasMovieServerBtn = true
+                                }
                                 if (epId.isNotEmpty() && epNum.isNotEmpty()) {
                                     val encodedUrl = "$fixedUrl?mid=$movieId&eid=$epId&tag=$epTag&cat=$epCat&ep=$epNum&sv=$epTag"
                                     episodes.add(Episode(
@@ -366,6 +371,18 @@ class DrakorKitaScraper : AnimeProvider {
                                         episodeNumber = epNum
                                     ))
                                 }
+                            }
+                            if (hasMovieServerBtn) {
+                                android.util.Log.e("DEBUG_DRAKOR", "Movie detected via unnamed server button, using eid=movie download pipeline")
+                                val firstBtn = btnSvrElements.firstOrNull()
+                                val mTag = firstBtn?.attr("data-tag")?.ifBlank { tag } ?: tag
+                                val mCat = firstBtn?.attr("data-cat")?.ifBlank { cat } ?: cat
+                                episodes.clear()
+                                episodes.add(Episode(
+                                    title = title,
+                                    url = "$fixedUrl?mid=$movieId&eid=movie&tag=$mTag&cat=$mCat&ep=1&sv=$mTag",
+                                    episodeNumber = "1"
+                                ))
                             }
                             android.util.Log.e("DEBUG_DRAKOR", "Parsed ${episodes.size} episodes from API")
                         }
@@ -886,6 +903,7 @@ class DrakorKitaScraper : AnimeProvider {
 
             val doc = Jsoup.parseBodyFragment(body)
             val targetNum = epNum.trim().toIntOrNull()
+            val cardCount = doc.select("div.card").size
             val servers = mutableListOf<VideoServer>()
             var matchedAny = false
 
@@ -898,6 +916,7 @@ class DrakorKitaScraper : AnimeProvider {
                 val isTarget = when {
                     isMovie -> true
                     cardNum != null && targetNum != null -> cardNum == targetNum
+                    cardNum == null && cardCount == 1 -> true
                     else -> false
                 }
                 if (!isTarget) return@forEach
@@ -922,6 +941,8 @@ class DrakorKitaScraper : AnimeProvider {
 
             if (matchedAny) {
                 Log.d("DrakorKita", "Download pipeline: ${servers.size} servers for ep=$epNum")
+                val qRank = mapOf("480p" to 0, "720p" to 1, "1080p" to 2, "HD" to 3)
+                servers.sortBy { s -> qRank[s.dataNume] ?: 4 }
             }
             return servers
         } catch (e: Exception) {

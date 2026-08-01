@@ -148,21 +148,40 @@
                     android:orientation="vertical"
                     android:layout_marginTop="20dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:id="@+id/headerLatestEpisodes"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/latest_episode"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
+                        android:paddingEnd="16dp"
+                        android:paddingVertical="4dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/latest_episode"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Lihat Semua >"
+                            android:textColor="@color/netflix_red"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvLatestEpisodes"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="8dp"
                         android:clipToPadding="false"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -177,21 +196,40 @@
                     android:orientation="vertical"
                     android:layout_marginTop="24dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:id="@+id/headerOngoingAnime"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/anime_ongoing"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
+                        android:paddingEnd="16dp"
+                        android:paddingVertical="4dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/anime_ongoing"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Lihat Semua >"
+                            android:textColor="@color/netflix_red"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvOngoingAnime"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="8dp"
                         android:clipToPadding="false"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
@@ -206,21 +244,40 @@
                     android:orientation="vertical"
                     android:layout_marginTop="24dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:id="@+id/headerPopularAnime"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/popular"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
+                        android:paddingEnd="16dp"
+                        android:paddingVertical="4dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/popular"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Lihat Semua >"
+                            android:textColor="@color/netflix_red"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvPopularAnime"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="8dp"
                         android:clipToPadding="false"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"

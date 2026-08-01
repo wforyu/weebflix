@@ -24,6 +24,7 @@ import com.weebflix.app.ui.adapter.AnimeAdapter
 import com.weebflix.app.ui.adapter.ContinueWatchingAdapter
 import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
+import com.weebflix.app.ui.detail.CategoryGridActivity
 import com.weebflix.app.ui.player.PlayerActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -40,6 +41,9 @@ class SamehadakuHomeFragment : Fragment() {
     private lateinit var rvPopularAnime: RecyclerView
     private lateinit var rvContinueWatching: RecyclerView
     private lateinit var continueWatchingSection: View
+    private lateinit var headerLatestEpisodes: View
+    private lateinit var headerOngoingAnime: View
+    private lateinit var headerPopularAnime: View
     private lateinit var ivHero: android.widget.ImageView
     private lateinit var tvHeroTitle: TextView
     private lateinit var tvHeroEpisode: TextView
@@ -87,6 +91,9 @@ class SamehadakuHomeFragment : Fragment() {
         rvPopularAnime = view.findViewById(R.id.rvPopularAnime)
         rvContinueWatching = view.findViewById(R.id.rvContinueWatching)
         continueWatchingSection = view.findViewById(R.id.continueWatchingSection)
+        headerLatestEpisodes = view.findViewById(R.id.headerLatestEpisodes)
+        headerOngoingAnime = view.findViewById(R.id.headerOngoingAnime)
+        headerPopularAnime = view.findViewById(R.id.headerPopularAnime)
         ivHero = view.findViewById(R.id.ivHero)
         tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
         tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
@@ -116,6 +123,16 @@ class SamehadakuHomeFragment : Fragment() {
                 startActivity(intent)
             }
         }
+
+        val openCategory = { cat: String, title: String ->
+            startActivity(Intent(requireContext(), CategoryGridActivity::class.java).apply {
+                putExtra(CategoryGridActivity.EXTRA_CATEGORY, cat)
+                putExtra(CategoryGridActivity.EXTRA_TITLE, title)
+            })
+        }
+        headerLatestEpisodes.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_EPISODES, "Eps Terbaru") }
+        headerOngoingAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_ONGOING, "Anime Ongoing") }
+        headerPopularAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_POPULAR, "Popular") }
 
         loadData()
     }
@@ -317,7 +334,7 @@ class SamehadakuHomeFragment : Fragment() {
 
     private fun loadContinueWatching() {
         if (!isAdded) return
-        val entries = WatchHistoryManager.getAll(requireContext())
+        val entries = WatchHistoryManager.getAllByProvider(requireContext(), ProviderFactory.SAMEHADAKU_ID)
         if (entries.isNotEmpty()) {
             continueWatchingSection.visibility = View.VISIBLE
             continueWatchingAdapter.submitList(entries)

@@ -31,6 +31,36 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
+    <!-- Loading Progress Text -->
+    <TextView
+        android:id="@+id/tvLoadingProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="72dp"
+        android:padding="12dp"
+        android:textColor="@color/white"
+        android:textSize="13sp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        tools:text="Preparing 45% (86MB / 192MB)" />
+
+    <!-- Loading Progress Hint -->
+    <TextView
+        android:id="@+id/tvLoadingHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="128dp"
+        android:padding="12dp"
+        android:text="Sabar bro masih proses tunggu sambil siapin cemilan atau kopi"
+        android:textColor="@color/netflix_text_secondary"
+        android:textSize="12sp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        tools:text="Sabar bro masih proses tunggu sambil siapin cemilan atau kopi" />
+
+
     <!-- Error Text -->
     <TextView
         android:id="@+id/tvError"

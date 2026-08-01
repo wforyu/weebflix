@@ -310,7 +310,7 @@ class DrakorKitaHomeFragment : Fragment() {
 
     private fun loadContinueWatching() {
         if (!isAdded) return
-        val entries = WatchHistoryManager.getAll(requireContext())
+        val entries = WatchHistoryManager.getAllByProvider(requireContext(), ProviderFactory.DRAKORKITA_ID)
         if (entries.isNotEmpty()) {
             continueWatchingSection.visibility = View.VISIBLE
             continueWatchingAdapter.submitList(entries)

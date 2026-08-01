@@ -21,6 +21,7 @@ import com.weebflix.app.ui.adapter.AnimeAdapter
 import com.weebflix.app.ui.adapter.ContinueWatchingAdapter
 import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
+import com.weebflix.app.ui.detail.CategoryGridActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -37,6 +38,10 @@ class AnichinHomeFragment : Fragment() {
     private lateinit var rvAllAnime: RecyclerView
     private lateinit var rvContinueWatching: RecyclerView
     private lateinit var continueWatchingSection: View
+    private lateinit var headerLatestEpisodes: View
+    private lateinit var headerOngoingAnime: View
+    private lateinit var headerCompletedAnime: View
+    private lateinit var headerAllAnime: View
 
     private lateinit var latestAdapter: LatestEpisodeAdapter
     private lateinit var ongoingAdapter: AnimeAdapter
@@ -84,9 +89,24 @@ class AnichinHomeFragment : Fragment() {
         rvAllAnime = view.findViewById(R.id.rvAllAnime)
         rvContinueWatching = view.findViewById(R.id.rvContinueWatching)
         continueWatchingSection = view.findViewById(R.id.continueWatchingSection)
+        headerLatestEpisodes = view.findViewById(R.id.headerLatestEpisodes)
+        headerOngoingAnime = view.findViewById(R.id.headerOngoingAnime)
+        headerCompletedAnime = view.findViewById(R.id.headerCompletedAnime)
+        headerAllAnime = view.findViewById(R.id.headerAllAnime)
 
         swipeRefresh.setColorSchemeResources(R.color.netflix_red)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
+
+        val openCategory = { cat: String, title: String ->
+            startActivity(Intent(requireContext(), CategoryGridActivity::class.java).apply {
+                putExtra(CategoryGridActivity.EXTRA_CATEGORY, cat)
+                putExtra(CategoryGridActivity.EXTRA_TITLE, title)
+            })
+        }
+        headerLatestEpisodes.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_EPISODES, "Eps Terbaru") }
+        headerOngoingAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_ONGOING, "Anime Ongoing") }
+        headerCompletedAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_COMPLETED, "Completed") }
+        headerAllAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_ALL, "Semua Anime") }
 
         setupRecyclerViews()
 
@@ -322,7 +342,7 @@ class AnichinHomeFragment : Fragment() {
 
     private fun loadContinueWatching() {
         if (!isAdded) return
-        val entries = WatchHistoryManager.getAll(requireContext())
+        val entries = WatchHistoryManager.getAllByProvider(requireContext(), ProviderFactory.ANICHIN_ID)
         if (entries.isNotEmpty()) {
             continueWatchingSection.visibility = View.VISIBLE
             continueWatchingAdapter.submitList(entries)

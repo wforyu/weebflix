@@ -20,6 +20,7 @@ import com.bumptech.glide.Glide
 import com.weebflix.app.R
 import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.provider.ProviderFactory
+import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,9 @@ class CategoryGridActivity : AppCompatActivity() {
         const val CATEGORY_MOVIES = "movies"
         const val CATEGORY_SERIES = "series"
         const val CATEGORY_ALL = "all"
+        const val CATEGORY_ONGOING = "ongoing"
+        const val CATEGORY_POPULAR = "popular"
+        const val CATEGORY_COMPLETED = "completed"
         const val CATEGORY_DRAMA_KOREA = "drama_korea"
         const val CATEGORY_DRAMA_CHINA = "drama_china"
         const val CATEGORY_FILM_KOREA = "film_korea"
@@ -190,7 +194,18 @@ class CategoryGridActivity : AppCompatActivity() {
                             else -> provider.getAllAnime(currentPage)
                         }
                     } else {
-                        activeProvider.getOngoingAnime(currentPage)
+                        if (category == CATEGORY_ALL && activeProvider is AnichinScraper) {
+                            activeProvider.getAllAnime(currentPage)
+                        } else {
+                            when (category) {
+                                CATEGORY_EPISODES -> activeProvider.getLatestEpisodes(currentPage).map { ep ->
+                                    Anime(title = ep.title, url = ep.url, imageUrl = ep.imageUrl, episode = ep.episodeNumber, score = ep.uploadDate)
+                                }
+                                CATEGORY_ONGOING, CATEGORY_MOVIES, CATEGORY_ALL -> activeProvider.getOngoingAnime(currentPage)
+                                CATEGORY_POPULAR, CATEGORY_COMPLETED, CATEGORY_SERIES -> activeProvider.getPopularAnime(currentPage)
+                                else -> activeProvider.getOngoingAnime(currentPage)
+                            }
+                        }
                     }
                 }
 

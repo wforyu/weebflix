@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.os.SystemClock
 import android.util.Log
 import android.util.Rational
 import android.view.GestureDetector
@@ -239,6 +240,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var playerContainer: FrameLayout
     private lateinit var gestureOverlay: FrameLayout
     private lateinit var loadingPlayer: ProgressBar
+    private lateinit var tvLoadingProgress: TextView
+    private lateinit var tvLoadingHint: TextView
     private lateinit var tvError: TextView
     private lateinit var tvAnimeTitle: TextView
     private lateinit var tvEpisodeTitle: TextView
@@ -350,6 +353,36 @@ class PlayerActivity : AppCompatActivity() {
     private var autoPlayCountdown: Int = 0
     private var autoPlayActive: Boolean = false
     private var turboRetryCount: Int = 0
+    private var drakorDlFallbackTried: Boolean = false
+    private var dlTrackingActive: Boolean = false
+    private var dlProgressTotal: Long = 0L
+    private var dlProgressLoaded: Long = 0L
+    private var lastShownPct: Int = -1
+    private var dlTotalFetched: Boolean = false
+    private var lastProgressUiTime: Long = 0L
+    private val progressTransferListener = object : androidx.media3.datasource.TransferListener {
+        override fun onTransferInitializing(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) {}
+        override fun onTransferStart(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) {
+            if (isNetwork && dlTrackingActive && !dlTotalFetched) {
+                fetchDlTotalAsync()
+            }
+        }
+        override fun onBytesTransferred(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
+            if (isNetwork && dlTrackingActive) {
+                dlProgressLoaded += bytesTransferred
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastProgressUiTime >= 250L) {
+                    lastProgressUiTime = now
+                    runOnUiThread { updateLoadingProgress() }
+                }
+            }
+        }
+        override fun onTransferEnd(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) {
+            if (isNetwork && dlTrackingActive) {
+                runOnUiThread { updateLoadingProgress() }
+            }
+        }
+    }
     private var wvUserSeeking: Boolean = false
     private val autoPlayHandler = Handler(Looper.getMainLooper())
     private val autoPlayRunnable = object : Runnable {
@@ -463,6 +496,8 @@ class PlayerActivity : AppCompatActivity() {
         playerView = findViewById(R.id.playerView)
         gestureOverlay = findViewById(R.id.gestureOverlay)
         loadingPlayer = findViewById(R.id.loadingPlayer)
+        tvLoadingProgress = findViewById(R.id.tvLoadingProgress)
+        tvLoadingHint = findViewById(R.id.tvLoadingHint)
         tvError = findViewById(R.id.tvError)
         tvAnimeTitle = findViewById(R.id.tvAnimeTitle)
         tvEpisodeTitle = findViewById(R.id.tvEpisodeTitle)
@@ -2292,6 +2327,96 @@ class PlayerActivity : AppCompatActivity() {
         return activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID
     }
 
+    private fun playDrakorKitaEpisodePage(server: VideoServer) {
+        val baseUrl = server.url.substringBefore("?")
+        val qParams = parseDrakorKitaUrl(server.url)
+        val epNum = qParams["ep"] ?: "1"
+        val tag = qParams["tag"]?.takeIf { it.isNotEmpty() } ?: server.dataNume.ifEmpty { "hs" }
+        val cat = qParams["cat"]?.takeIf { it.isNotEmpty() } ?: server.dataType.ifEmpty { "ind" }
+        val episodePageUrl = "${baseUrl.trimEnd('/')}/${tag}_${cat}/$epNum/"
+        Log.d(TAG, "DrakorKita: episode page URL=$episodePageUrl")
+        val nume = server.dataNume.replace("\\", "\\\\").replace("'", "\\'")
+        val name = server.name.replace("\\", "\\\\").replace("'", "\\'")
+        playEpisodePageViaWebView(episodePageUrl, server, skipInjections = true, customCleanJs = REF_INJECT_ADBLOCK_ONLY)
+        webView?.postDelayed({
+            val dkJs = """
+                (function() {
+                    if (window._dkSetupDone) return;
+                    window._dkSetupDone = true;
+                    var fsVideo = null, fsOrig = {}, hideTimer = null;
+                    function exitFS() {
+                        if (fsVideo) {
+                            for (var k in fsOrig) fsVideo.style[k] = fsOrig[k];
+                            var p = fsVideo.parentElement; if (p) { p.style.width = ''; p.style.height = ''; }
+                            fsVideo = null; fsOrig = {};
+                        }
+                        document.body.style.overflow = ''; document.documentElement.style.overflow = '';
+                    }
+                    function enterFS(v) {
+                        exitFS();
+                        fsVideo = v;
+                        fsOrig = { position: v.style.position, top: v.style.top, left: v.style.left, width: v.style.width, height: v.style.height, zIndex: v.style.zIndex, background: v.style.background, objectFit: v.style.objectFit };
+                        v.style.position = 'fixed'; v.style.top = '0'; v.style.left = '0'; v.style.width = '100vw'; v.style.height = '100vh'; v.style.zIndex = '999999'; v.style.background = '#000'; v.style.objectFit = 'contain';
+                        var p = v.parentElement; if (p) { p.style.width = '100vw'; p.style.height = '100vh'; }
+                        document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; window.scrollTo(0, 0);
+                    }
+                    document.addEventListener('fullscreenchange', function() {
+                        if (document.fullscreenElement) { try { document.exitFullscreen(); } catch(e) {} }
+                    });
+                    window.addEventListener('resize', function() {
+                        if (fsVideo) { fsVideo.style.width = '100vw'; fsVideo.style.height = '100vh'; }
+                    });
+                    setTimeout(function() {
+                        if (window._dkBtn) return;
+                        var btn = document.createElement('div');
+                        window._dkBtn = btn;
+                        btn.textContent = '⛶';
+                        btn.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:9999999;width:48px;height:48px;border-radius:24px;background:#E50914;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);opacity:0.8;transition:opacity 0.5s;';
+                        var fs = false;
+                        function resetHide() {
+                            btn.style.opacity = '0.8';
+                            if (hideTimer) clearTimeout(hideTimer);
+                            hideTimer = setTimeout(function() { btn.style.opacity = '0.15'; }, 4000);
+                        }
+                        document.addEventListener('touchstart', resetHide);
+                        btn.onclick = function(e) {
+                            e.stopPropagation();
+                            fs = !fs;
+                            if (fs) {
+                                var v = document.querySelector('video, [class*="drakor"] video, iframe[src*="drakor"]');
+                                if (v && v.tagName === 'IFRAME') { try { var v2 = v.contentDocument ? v.contentDocument.querySelector('video') : null; if (v2) v = v2; } catch(e) {} }
+                                if (!v) v = document.querySelector('video');
+                                if (v) { enterFS(v); btn.textContent = '✕'; }
+                                else { fs = false; return; }
+                            } else { exitFS(); btn.textContent = '⛶'; }
+                            btn.style.background = fs ? '#333' : '#E50914';
+                            resetHide();
+                        };
+                        document.body.appendChild(btn);
+                        resetHide();
+                    }, 1500);
+                    setTimeout(function() {
+                        var v = document.querySelector('video');
+                        if (v && !v.paused && v.readyState >= 2) return;
+                        var el = document.querySelector('[data-nume="$nume"]');
+                        if (el) { el.click(); return; }
+                        var btns = document.querySelectorAll('.east_player_option, [data-nume], .btn-svx, button');
+                        for (var i = 0; i < btns.length; i++) {
+                            var txt = btns[i].textContent || '';
+                            if (txt.indexOf('$name') !== -1 || btns[i].getAttribute('data-nume') === '$nume') {
+                                btns[i].click(); return;
+                            }
+                        }
+                        var first = document.querySelector('#server_lists .btn-svx, .east_player_option, [data-nume]');
+                        if (first) first.click();
+                    }, 20000);
+                })();
+            """.trimIndent()
+            webView?.evaluateJavascript(dkJs, null)
+            Log.d(TAG, "DrakorKita: injected toggle + auto-click JS")
+        }, 4000)
+    }
+
     private fun parseDrakorKitaUrl(url: String): Map<String, String> {
         val params = mutableMapOf<String, String>()
         val queryString = url.substringAfter("?", "")
@@ -3114,13 +3239,14 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun initExoPlayerRemote(videoUrl: String) {
         exoPlayer?.release()
+        resetDlProgress()
 
         val isLocal = videoUrl.startsWith("file://")
 
         val cache = getSimpleCache(this)
         val okHttpClient = getOkHttpClient(cacheDir)
 
-        val upstreamFactory = OkHttpDataSource.Factory(okHttpClient).apply {
+        val rawUpstreamFactory = OkHttpDataSource.Factory(okHttpClient).apply {
             if (!isLocal) {
                 if (videoUrl.contains("googlevideo.com")) {
                     setDefaultRequestProperties(mapOf(
@@ -3148,6 +3274,14 @@ class PlayerActivity : AppCompatActivity() {
                         "Origin" to "https://anichin.stream"
                     ))
                 }
+            }
+        }
+
+        val upstreamFactory = object : androidx.media3.datasource.DataSource.Factory {
+            override fun createDataSource(): androidx.media3.datasource.DataSource {
+                val ds = rawUpstreamFactory.createDataSource()
+                (ds as? androidx.media3.datasource.BaseDataSource)?.addTransferListener(progressTransferListener)
+                return ds
             }
         }
 
@@ -3207,11 +3341,6 @@ class PlayerActivity : AppCompatActivity() {
             .also { player ->
                 playerView.player = player
 
-                val mediaItem = MediaItem.fromUri(videoUrl)
-                player.setMediaItem(mediaItem)
-                player.prepare()
-                player.playWhenReady = true
-
                 player.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(playing: Boolean) {
                         isPlaying = playing
@@ -3228,9 +3357,15 @@ class PlayerActivity : AppCompatActivity() {
                                 Player.STATE_BUFFERING -> {
                                     loadingPlayer.visibility = View.VISIBLE
                                     tvError.visibility = View.GONE
+                                    if (dlTrackingActive && dlProgressTotal > 0) {
+                                        tvLoadingProgress.visibility = View.VISIBLE
+                                        tvLoadingHint.visibility = View.VISIBLE
+                                    }
                                 }
                                 Player.STATE_READY -> {
                                     loadingPlayer.visibility = View.GONE
+                                    tvLoadingProgress.visibility = View.GONE
+                                    tvLoadingHint.visibility = View.GONE
                                     tvError.visibility = View.GONE
                                     syncByteRetryCount = 0
                                 }
@@ -3249,6 +3384,8 @@ class PlayerActivity : AppCompatActivity() {
                     override fun onPlayerError(error: PlaybackException) {
                         runOnUiThread {
                             loadingPlayer.visibility = View.GONE
+                            tvLoadingProgress.visibility = View.GONE
+                            tvLoadingHint.visibility = View.GONE
                             val errMsg = error.message ?: ""
                             val causeMsg = error.cause?.message ?: ""
                             val fullMsg = "$errMsg $causeMsg"
@@ -3280,11 +3417,29 @@ class PlayerActivity : AppCompatActivity() {
                                 }
                             } else {
                                 val serverName = if (currentServerIndex in servers.indices) servers[currentServerIndex].name else "Unknown"
-                                scheduleAutoFail(serverName)
+                                val failedServer = if (currentServerIndex in servers.indices) servers[currentServerIndex] else null
+                                if (failedServer != null &&
+                                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID &&
+                                    failedServer.dataType == "dl" &&
+                                    !drakorDlFallbackTried) {
+                                    Log.w(TAG, "DrakorKita dl ExoPlayer failed, falling back to WebView path-based playback")
+                                    drakorDlFallbackTried = true
+                                    resolvedUrlCache.remove(currentServerIndex)
+                                    pendingAutoFailRunnable?.let { autoHideHandler.removeCallbacks(it) }
+                                    loadingPlayer.visibility = View.GONE
+                                    playDrakorKitaEpisodePage(failedServer)
+                                } else {
+                                    scheduleAutoFail(serverName)
+                                }
                             }
                         }
                     }
                 })
+
+                val mediaItem = MediaItem.fromUri(videoUrl)
+                player.setMediaItem(mediaItem)
+                player.prepare()
+                player.playWhenReady = true
 
                 progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
             }
@@ -3841,6 +3996,7 @@ class PlayerActivity : AppCompatActivity() {
     // ===== Server Selection =====
 
     private fun loadServers() {
+        drakorDlFallbackTried = false
         lifecycleScope.launch {
             try {
                 servers = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).getEpisodeServers(episodeUrl)
@@ -3860,8 +4016,66 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showError(message: String) {
         loadingPlayer.visibility = View.GONE
+        tvLoadingProgress.visibility = View.GONE
+        tvLoadingHint.visibility = View.GONE
         tvError.visibility = View.VISIBLE
         tvError.text = message
+    }
+
+    private fun resetDlProgress() {
+        dlProgressTotal = 0L
+        dlProgressLoaded = 0L
+        lastShownPct = -1
+        dlTotalFetched = false
+        lastProgressUiTime = 0L
+    }
+
+    private fun fetchDlTotalAsync() {
+        val target = getActiveVideoUrl()
+        if (target.isEmpty()) return
+        dlTotalFetched = true
+        lifecycleScope.launch {
+            try {
+                val ok = getOkHttpClient(cacheDir)
+                val total = withContext(Dispatchers.IO) {
+                    val req = okhttp3.Request.Builder().url(target).method("HEAD", null).build()
+                    ok.newCall(req).execute().use { resp ->
+                        resp.header("Content-Length")?.toLongOrNull() ?: 0L
+                    }
+                }
+                if (total > 0) {
+                    dlProgressTotal = total
+                    runOnUiThread { updateLoadingProgress() }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "fetchDlTotal failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun getActiveVideoUrl(): String {
+        val cached = resolvedUrlCache[currentServerIndex]
+        if (!cached.isNullOrEmpty()) return cached
+        return if (currentServerIndex in servers.indices) servers[currentServerIndex].videoUrl else ""
+    }
+
+    private fun updateLoadingProgress() {
+        val total = dlProgressTotal
+        val loaded = dlProgressLoaded
+        if (total <= 0) return
+        val pct = ((loaded * 100) / total).toInt().coerceIn(0, 100)
+        if (pct != lastShownPct) {
+            lastShownPct = pct
+            tvLoadingProgress.text = "Preparing $pct% (${formatMb(loaded)} / ${formatMb(total)})"
+        }
+        if (dlTrackingActive && loadingPlayer.visibility == View.VISIBLE) {
+            tvLoadingProgress.visibility = View.VISIBLE
+            tvLoadingHint.visibility = View.VISIBLE
+        }
+    }
+
+    private fun formatMb(bytes: Long): String {
+        return String.format(java.util.Locale.US, "%.1fMB", bytes / 1048576.0)
     }
 
     private fun scheduleAutoFail(serverName: String) {
@@ -3978,6 +4192,7 @@ class PlayerActivity : AppCompatActivity() {
         pendingAutoFailRunnable?.let { tvError.removeCallbacks(it) }
         pendingAutoFailRunnable = null
         turboRetryCount = 0
+        dlTrackingActive = false
 
         loadingPlayer.visibility = View.VISIBLE
         tvError.visibility = View.GONE
@@ -3995,7 +4210,9 @@ class PlayerActivity : AppCompatActivity() {
                 cachedUrl.contains("videoplayback") || cachedUrl.contains("turboviplay") ||
                 cachedUrl.contains("turbovid") || cachedUrl.contains("abysscdn") ||
                 cachedUrl.contains("hydrax") || cachedUrl.contains("wibufile") ||
-                cachedUrl.contains("minochinos") || cachedUrl.contains("filelions")
+                cachedUrl.contains("minochinos") || cachedUrl.contains("filelions") ||
+                cachedUrl.contains("load.my.id") || cachedUrl.contains("uyeshare.cc") ||
+                cachedUrl.contains("/1fichier/")
             if (!isRealVideo) {
                 Log.w(TAG, "Cached URL is not a video URL, clearing: $cachedUrl")
                 resolvedUrlCache.remove(serverIndex)
@@ -4012,14 +4229,18 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (server.videoUrl.isNotEmpty()) {
-            val isDirectVideo = server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") ||
+            val isDrakorDl = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID &&
+                server.dataType == "dl"
+            dlTrackingActive = isDrakorDl
+            val isDirectVideo = isDrakorDl ||
+                server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") ||
                 server.videoUrl.contains(".mpd") || server.videoUrl.contains(".mkv") ||
                 server.videoUrl.contains(".webm") || server.videoUrl.contains(".m4v") ||
                 server.videoUrl.contains("googlevideo.com")
             if (isDirectVideo) {
                 Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
                 resolvedUrlCache[serverIndex] = server.videoUrl
-                loadingPlayer.visibility = View.GONE
+                if (!isDrakorDl) loadingPlayer.visibility = View.GONE
                 if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
                     playVideoViaHtml5WebView(server.videoUrl)
                 } else {
@@ -4045,93 +4266,7 @@ class PlayerActivity : AppCompatActivity() {
         if (isDrakorKitaServer(server)) {
             Log.d(TAG, "DrakorKita server detected: ${server.name} → path-based URL playback (no autoSelectJs)")
             loadingPlayer.visibility = View.GONE
-            val baseUrl = server.url.substringBefore("?")
-            val qParams = parseDrakorKitaUrl(server.url)
-            val epNum = qParams["ep"] ?: "1"
-            val tag = server.dataNume.ifEmpty { qParams["tag"] ?: "hs" }
-            val cat = server.dataType.ifEmpty { qParams["cat"] ?: "ind" }
-            val episodePageUrl = "${baseUrl.trimEnd('/')}/${tag}_${cat}/$epNum/"
-            Log.d(TAG, "DrakorKita: episode page URL=$episodePageUrl")
-            val nume = server.dataNume.replace("\\", "\\\\").replace("'", "\\'")
-            val name = server.name.replace("\\", "\\\\").replace("'", "\\'")
-            playEpisodePageViaWebView(episodePageUrl, server, skipInjections = true, customCleanJs = REF_INJECT_ADBLOCK_ONLY)
-            webView?.postDelayed({
-                val dkJs = """
-                    (function() {
-                        if (window._dkSetupDone) return;
-                        window._dkSetupDone = true;
-                        var fsVideo = null, fsOrig = {}, hideTimer = null;
-                        function exitFS() {
-                            if (fsVideo) {
-                                for (var k in fsOrig) fsVideo.style[k] = fsOrig[k];
-                                var p = fsVideo.parentElement; if (p) { p.style.width = ''; p.style.height = ''; }
-                                fsVideo = null; fsOrig = {};
-                            }
-                            document.body.style.overflow = ''; document.documentElement.style.overflow = '';
-                        }
-                        function enterFS(v) {
-                            exitFS();
-                            fsVideo = v;
-                            fsOrig = { position: v.style.position, top: v.style.top, left: v.style.left, width: v.style.width, height: v.style.height, zIndex: v.style.zIndex, background: v.style.background, objectFit: v.style.objectFit };
-                            v.style.position = 'fixed'; v.style.top = '0'; v.style.left = '0'; v.style.width = '100vw'; v.style.height = '100vh'; v.style.zIndex = '999999'; v.style.background = '#000'; v.style.objectFit = 'contain';
-                            var p = v.parentElement; if (p) { p.style.width = '100vw'; p.style.height = '100vh'; }
-                            document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; window.scrollTo(0, 0);
-                        }
-                        document.addEventListener('fullscreenchange', function() {
-                            if (document.fullscreenElement) { try { document.exitFullscreen(); } catch(e) {} }
-                        });
-                        window.addEventListener('resize', function() {
-                            if (fsVideo) { fsVideo.style.width = '100vw'; fsVideo.style.height = '100vh'; }
-                        });
-                        setTimeout(function() {
-                            if (window._dkBtn) return;
-                            var btn = document.createElement('div');
-                            window._dkBtn = btn;
-                            btn.textContent = '⛶';
-                            btn.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:9999999;width:48px;height:48px;border-radius:24px;background:#E50914;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);opacity:0.8;transition:opacity 0.5s;';
-                            var fs = false;
-                            function resetHide() {
-                                btn.style.opacity = '0.8';
-                                if (hideTimer) clearTimeout(hideTimer);
-                                hideTimer = setTimeout(function() { btn.style.opacity = '0.15'; }, 4000);
-                            }
-                            document.addEventListener('touchstart', resetHide);
-                            btn.onclick = function(e) {
-                                e.stopPropagation();
-                                fs = !fs;
-                                if (fs) {
-                                    var v = document.querySelector('video, [class*="drakor"] video, iframe[src*="drakor"]');
-                                    if (v && v.tagName === 'IFRAME') { try { var v2 = v.contentDocument ? v.contentDocument.querySelector('video') : null; if (v2) v = v2; } catch(e) {} }
-                                    if (!v) v = document.querySelector('video');
-                                    if (v) { enterFS(v); btn.textContent = '✕'; }
-                                    else { fs = false; return; }
-                                } else { exitFS(); btn.textContent = '⛶'; }
-                                btn.style.background = fs ? '#333' : '#E50914';
-                                resetHide();
-                            };
-                            document.body.appendChild(btn);
-                            resetHide();
-                        }, 1500);
-                        setTimeout(function() {
-                            var v = document.querySelector('video');
-                            if (v && !v.paused && v.readyState >= 2) return;
-                            var el = document.querySelector('[data-nume="$nume"]');
-                            if (el) { el.click(); return; }
-                            var btns = document.querySelectorAll('.east_player_option, [data-nume], .btn-svx, button');
-                            for (var i = 0; i < btns.length; i++) {
-                                var txt = btns[i].textContent || '';
-                                if (txt.indexOf('$name') !== -1 || btns[i].getAttribute('data-nume') === '$nume') {
-                                    btns[i].click(); return;
-                                }
-                            }
-                            var first = document.querySelector('#server_lists .btn-svx, .east_player_option, [data-nume]');
-                            if (first) first.click();
-                        }, 20000);
-                    })();
-                """.trimIndent()
-                webView?.evaluateJavascript(dkJs, null)
-                Log.d(TAG, "DrakorKita: injected toggle + auto-click JS")
-            }, 4000)
+            playDrakorKitaEpisodePage(server)
             return
         }
 
@@ -5617,6 +5752,7 @@ class PlayerActivity : AppCompatActivity() {
             episodeNumber = episodeNumber,
             imageUrl = imageUrl,
             animeUrl = animeUrl,
+            providerId = activeProviderId,
             progressMs = position,
             durationMs = duration
         )

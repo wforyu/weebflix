@@ -12,6 +12,7 @@ data class WatchHistoryEntry(
     val episodeNumber: String = "",
     val imageUrl: String = "",
     val animeUrl: String = "",
+    val providerId: String = "",
     val progressMs: Long = 0L,
     val durationMs: Long = 0L,
     val timestamp: Long = System.currentTimeMillis()
@@ -29,6 +30,7 @@ data class WatchHistoryEntry(
         put("episodeNumber", episodeNumber)
         put("imageUrl", imageUrl)
         put("animeUrl", animeUrl)
+        put("providerId", providerId)
         put("progressMs", progressMs)
         put("durationMs", durationMs)
         put("timestamp", timestamp)
@@ -42,6 +44,7 @@ data class WatchHistoryEntry(
             episodeNumber = json.optString("episodeNumber", ""),
             imageUrl = json.optString("imageUrl", ""),
             animeUrl = json.optString("animeUrl", ""),
+            providerId = json.optString("providerId", ""),
             progressMs = json.optLong("progressMs", 0L),
             durationMs = json.optLong("durationMs", 0L),
             timestamp = json.optLong("timestamp", 0L)
@@ -66,6 +69,7 @@ object WatchHistoryManager {
         episodeNumber: String,
         imageUrl: String,
         animeUrl: String,
+        providerId: String,
         progressMs: Long,
         durationMs: Long
     ) {
@@ -83,6 +87,7 @@ object WatchHistoryManager {
                 episodeNumber = episodeNumber,
                 imageUrl = imageUrl,
                 animeUrl = animeUrl,
+                providerId = providerId,
                 progressMs = progressMs,
                 durationMs = durationMs,
                 timestamp = System.currentTimeMillis()
@@ -107,6 +112,9 @@ object WatchHistoryManager {
             emptyList()
         }
     }
+
+    fun getAllByProvider(context: Context, providerId: String): List<WatchHistoryEntry> =
+        getAll(context).filter { it.providerId == providerId }
 
     fun remove(context: Context, episodeUrl: String) {
         val entries = getAll(context).toMutableList()
