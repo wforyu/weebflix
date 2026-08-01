@@ -358,6 +358,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - **Fix:** routed to visible-WebView playback (`playVideoViaHtml5WebView`); `rewriteAnichinPlayerPage` handles the abyss.to redirect guard + popup overlay. Google-drive segments rate-limit from plain IPs (same as TurboVIP), so ExoPlayer is not viable
 
 ## TODO / Next Session
+- **DrakorKita HLS full audit** — `source`/`cfNative` fix verified on 1 episode (hash `q5i8wa`); still needs full link audit across ALL episodes AND movies (e.g. `vh3pdm` TV ep, `palr8c` movie) to confirm the P2P HLS path is consistent (no 403, no broken init) on every title. Re-audit if behavior changes
 - **Test filedon VIP (Kimetsu movie etc.)** — `SamehadakuScraper` now returns the signed R2 `.mkv` (ExoPlayer Matroska). Needs on-device verification: VIP STREAMING server should now play in ExoPlayer instead of blank WebView
 - **Test Anichin Premium server** — `unpackPackedJs()` fixed; anichin.stream should now resolve to `https://anichin.stream/hls/{id}.m3u8` (direct, ExoPlayer). Verify with a new-post episode (e.g. `100-000-years-of-refining-qi`)
 - **Test turboviplay v5 fix** — 120ms segment delay + exponential backoff sync byte retry (5s/10s, max 2 retries)
