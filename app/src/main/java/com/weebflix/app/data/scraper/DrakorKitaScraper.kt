@@ -917,7 +917,7 @@ class DrakorKitaScraper : AnimeProvider {
             val decrypted = decryptDkP2p(hex)
             if (decrypted.isEmpty()) return ""
             val parsed = org.json.JSONObject(decrypted)
-            parsed.optString("cfNative").ifEmpty { parsed.optString("source") }
+            parsed.optString("source").ifEmpty { parsed.optString("cfNative") }
         } catch (e: Exception) {
             Log.e("DrakorKita", "resolveP2pHls failed: ${e.message}")
             ""

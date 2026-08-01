@@ -63,6 +63,8 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "PlayerActivity"
 
+        private val drakorP2pHosts: MutableSet<String> = java.util.Collections.synchronizedSet(java.util.LinkedHashSet<String>())
+
         private val BLOCKED_DOMAINS = listOf(
             "doubleclick.net", "googlesyndication.com", "googleadservices.com",
             "googletagmanager.com", "google-analytics.com", "googletagservices.com",
@@ -183,7 +185,7 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("anichin.stream") || chain.request().url.host.contains("1a-1791.com")) {
                                 request.addHeader("Referer", "https://anichin.stream/")
                                     .addHeader("Origin", "https://anichin.stream")
-                            } else if (chain.request().url.host.contains("drakorkita.stream") || chain.request().url.host.startsWith("185.237.107.")) {
+                            } else if (chain.request().url.host.contains("drakorkita.stream") || chain.request().url.host in drakorP2pHosts) {
                                 request.addHeader("Referer", "https://drakorkita.stream/")
                                     .addHeader("Origin", "https://drakorkita.stream")
                             }
@@ -3249,6 +3251,15 @@ class PlayerActivity : AppCompatActivity() {
         val cache = getSimpleCache(this)
         val okHttpClient = getOkHttpClient(cacheDir)
 
+        val isDrakorP2pHls = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID &&
+            videoUrl.contains(".m3u8") && videoUrl.startsWith("http")
+        if (isDrakorP2pHls) {
+            try {
+                val p2pHost = android.net.Uri.parse(videoUrl).host
+                if (p2pHost != null) drakorP2pHosts.add(p2pHost)
+            } catch (_: Exception) {}
+        }
+
         val rawUpstreamFactory = OkHttpDataSource.Factory(okHttpClient).apply {
             if (!isLocal) {
                 if (videoUrl.contains("googlevideo.com")) {
@@ -3276,7 +3287,7 @@ class PlayerActivity : AppCompatActivity() {
                         "Referer" to "https://anichin.stream/",
                         "Origin" to "https://anichin.stream"
                     ))
-                } else if (videoUrl.contains("drakorkita.stream")) {
+                } else if (isDrakorP2pHls) {
                     setDefaultRequestProperties(mapOf(
                         "Referer" to "https://drakorkita.stream/",
                         "Origin" to "https://drakorkita.stream"
