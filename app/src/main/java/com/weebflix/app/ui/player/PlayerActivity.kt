@@ -1433,6 +1433,9 @@ class PlayerActivity : AppCompatActivity() {
             activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID) {
             wvHideControls()
             Log.d(TAG, "EP-WEBVIEW: WebView controls hidden for provider: $activeProviderId")
+        } else {
+            wvScheduleAutoHide()
+            Log.d(TAG, "EP-WEBVIEW: WebView controls auto-hide scheduled for provider: $activeProviderId")
         }
 
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
@@ -3440,6 +3443,17 @@ class PlayerActivity : AppCompatActivity() {
 
         wvCenterControls.setOnClickListener { toggleWvControls() }
         wvBottomBar.setOnClickListener { wvScheduleAutoHide() }
+
+        webViewPlayerControls.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_UP && !wvControlsVisible && isWebViewPlayback) {
+                val isControlHidingProvider = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
+                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID
+                if (!isControlHidingProvider) {
+                    wvShowControls()
+                }
+            }
+            false
+        }
 
         wvSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
