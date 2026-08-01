@@ -20,12 +20,18 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 class DrakorKitaScraper : AnimeProvider {
 
     override val id: String = ProviderFactory.DRAKORKITA_ID
     override val name: String = "DrakorKita"
     override val defaultBaseUrl: String = "https://drakor.kita.mobi"
+
+    private val dkP2pKey = "kiemtienmua911ca".toByteArray(Charsets.UTF_8)
+    private val dkP2pIv = "1234567890oiuytr".toByteArray(Charsets.UTF_8)
 
     override var baseUrl: String
         get() = ProviderConfig.getBaseUrl(id)
@@ -862,7 +868,7 @@ class DrakorKitaScraper : AnimeProvider {
         }
     }
 
-    private suspend fun resolveDlFileMob(downloadId: String): String {
+    private fun fetchDlFileMobJson(downloadId: String): org.json.JSONObject? {
         return try {
             val url = "https://api.nonton.bid/c_api/dlfilemob.php?id=$downloadId&is_mob=1"
             val request = Request.Builder().url(url)
@@ -871,13 +877,64 @@ class DrakorKitaScraper : AnimeProvider {
                 .build()
             val response = client.newCall(request).execute()
             val body = response.use { it.body?.string() ?: "" }
-            if (response.code != 200 || body.isEmpty()) return ""
-            val json = org.json.JSONObject(body)
-            val link = json.optString("link", "")
+            if (response.code != 200 || body.isEmpty()) return null
+            org.json.JSONObject(body)
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "dlfilemob JSON failed: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun resolveDlFileMob(downloadId: String): String {
+        return try {
+            val json = fetchDlFileMobJson(downloadId)
+            val link = json?.optString("link", "") ?: ""
             Log.d("DrakorKita", "dlfilemob $downloadId -> ${link.take(90)}")
             link
         } catch (e: Exception) {
             Log.e("DrakorKita", "dlfilemob failed: ${e.message}")
+            ""
+        }
+    }
+
+    private suspend fun resolveP2pHls(downloadId: String): String {
+        return try {
+            val json = fetchDlFileMobJson(downloadId) ?: return ""
+            val linkP2p = json.optString("linkp2p", "")
+            val hash = Regex("""#([^&]+)""").find(linkP2p)?.groupValues?.get(1) ?: return ""
+            if (hash.isEmpty()) return ""
+            Log.d("DrakorKita", "P2P hash: $hash (from linkp2p=$linkP2p)")
+
+            val req = Request.Builder().url("https://drakorkita.stream/api/v1/video?id=$hash")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
+                .addHeader("Accept", "*/*")
+                .build()
+            val resp = client.newCall(req).execute()
+            val hex = resp.use { it.body?.string() ?: "" }.trim()
+            if (resp.code != 200 || hex.length < 64 || hex.length % 2 != 0) return ""
+            if (!hex.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) return ""
+
+            val decrypted = decryptDkP2p(hex)
+            if (decrypted.isEmpty()) return ""
+            val parsed = org.json.JSONObject(decrypted)
+            parsed.optString("cfNative").ifEmpty { parsed.optString("source") }
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "resolveP2pHls failed: ${e.message}")
+            ""
+        }
+    }
+
+    private fun decryptDkP2p(hex: String): String {
+        return try {
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dkP2pKey, "AES"), IvParameterSpec(dkP2pIv))
+            val data = ByteArray(hex.length / 2)
+            for (i in data.indices) {
+                data[i] = hex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+            }
+            String(cipher.doFinal(data), Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.e("DrakorKita", "P2P decrypt failed: ${e.message}")
             ""
         }
     }
@@ -943,6 +1000,22 @@ class DrakorKitaScraper : AnimeProvider {
                 Log.d("DrakorKita", "Download pipeline: ${servers.size} servers for ep=$epNum")
                 val qRank = mapOf("480p" to 0, "720p" to 1, "1080p" to 2, "HD" to 3)
                 servers.sortBy { s -> qRank[s.dataNume] ?: 4 }
+
+                val firstDlId = servers.first().dataPost
+                val hlsUrl = if (firstDlId.isNotEmpty()) resolveP2pHls(firstDlId) else ""
+                if (hlsUrl.isNotEmpty()) {
+                    servers.add(0, VideoServer(
+                        name = "DrakorKita HLS",
+                        url = episodeUrl,
+                        videoUrl = hlsUrl,
+                        dataPost = firstDlId,
+                        dataNume = "HLS",
+                        dataType = "p2p"
+                    ))
+                    Log.d("DrakorKita", "Fast HLS server added: ${hlsUrl.take(110)}")
+                } else {
+                    Log.w("DrakorKita", "Fast HLS resolution failed, keeping download servers only")
+                }
             }
             return servers
         } catch (e: Exception) {

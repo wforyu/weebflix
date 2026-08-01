@@ -183,6 +183,9 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("anichin.stream") || chain.request().url.host.contains("1a-1791.com")) {
                                 request.addHeader("Referer", "https://anichin.stream/")
                                     .addHeader("Origin", "https://anichin.stream")
+                            } else if (chain.request().url.host.contains("drakorkita.stream") || chain.request().url.host.startsWith("185.237.107.")) {
+                                request.addHeader("Referer", "https://drakorkita.stream/")
+                                    .addHeader("Origin", "https://drakorkita.stream")
                             }
                             chain.proceed(request.build())
                         }
@@ -3272,6 +3275,11 @@ class PlayerActivity : AppCompatActivity() {
                     setDefaultRequestProperties(mapOf(
                         "Referer" to "https://anichin.stream/",
                         "Origin" to "https://anichin.stream"
+                    ))
+                } else if (videoUrl.contains("drakorkita.stream")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://drakorkita.stream/",
+                        "Origin" to "https://drakorkita.stream"
                     ))
                 }
             }
