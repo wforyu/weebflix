@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Mairimashita Iruma kun Season 4",
+      "url": "https://v2.samehadaku.how/anime/mairimashita-iruma-kun-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/HonzukinoGekokujouSeason4Episode16.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Hell Mode Yarikomizuki no Gamer Season 2",
       "url": "https://v2.samehadaku.how/anime/hell-mode-yarikomizuki-no-gamer-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Hell-Mode-Yarikomizuki-no-Gamer-Season-2-Episode-5.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Lv999 no Murabito",
-      "url": "https://v2.samehadaku.how/anime/lv999-no-murabito/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/Lv999-no-Murabito-Episode-6.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Katainaka no Ossan, Kensei ni Naru S2",
-      "url": "https://v2.samehadaku.how/anime/katainaka-no-ossan-kensei-ni-naru-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/image-16.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Mairimashita Iruma kun Season 4",
+      "url": "https://v2.samehadaku.how/anime/mairimashita-iruma-kun-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/HonzukinoGekokujouSeason4Episode16.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Hell Mode Yarikomizuki no Gamer Season 2",
       "url": "https://v2.samehadaku.how/anime/hell-mode-yarikomizuki-no-gamer-season-2/",
@@ -351,36 +381,6 @@
       "title": "Clevatess Season 2",
       "url": "https://v2.samehadaku.how/anime/clevatess-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/Clevatess-Season-2-Episode-4.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Sora wa Akai Kawa no Hotori",
-      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/web-1-4.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mujikaku Seijo",
-      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/Mjks5.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1785572203891
+  "timestamp": 1785590218788
 }
