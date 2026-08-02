@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.weebflix.app.BuildConfig
 import com.weebflix.app.R
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.provider.ProviderFactory
@@ -23,6 +24,10 @@ class SettingsFragment : Fragment() {
     private lateinit var btnSave: Button
     private lateinit var btnReset: Button
     private lateinit var tvCurrentUrl: TextView
+    private lateinit var tvAppName: TextView
+    private lateinit var tvAppVersion: TextView
+    private lateinit var tvAppCommit: TextView
+    private lateinit var tvAppBuildDate: TextView
 
     private var selectedProviderId: String = ProviderConfig.activeProviderId
 
@@ -42,9 +47,14 @@ class SettingsFragment : Fragment() {
         btnSave = view.findViewById(R.id.btnSave)
         btnReset = view.findViewById(R.id.btnReset)
         tvCurrentUrl = view.findViewById(R.id.tvCurrentUrl)
+        tvAppName = view.findViewById(R.id.tvAppName)
+        tvAppVersion = view.findViewById(R.id.tvAppVersion)
+        tvAppCommit = view.findViewById(R.id.tvAppCommit)
+        tvAppBuildDate = view.findViewById(R.id.tvAppBuildDate)
 
         setupProviderChips()
         loadProviderSettings(selectedProviderId)
+        setupAppInfo()
 
         btnSave.setOnClickListener {
             val newUrl = etBaseUrl.text.toString().trim()
@@ -122,5 +132,12 @@ class SettingsFragment : Fragment() {
         tvCurrentProvider.text = provider.name
         tvCurrentUrl.text = ProviderConfig.getBaseUrl(providerId)
         etBaseUrl.setText(ProviderConfig.getBaseUrl(providerId))
+    }
+
+    private fun setupAppInfo() {
+        tvAppName.text = getString(R.string.app_name)
+        tvAppVersion.text = "${getString(R.string.version)} ${BuildConfig.VERSION_NAME} (${getString(R.string.build_type)}: ${BuildConfig.BUILD_TYPE}, ${getString(R.string.version_code)} ${BuildConfig.VERSION_CODE})"
+        tvAppCommit.text = "${getString(R.string.build_commit)} ${BuildConfig.GIT_COMMIT}"
+        tvAppBuildDate.text = "${getString(R.string.build_date)} ${BuildConfig.BUILD_DATE}"
     }
 }

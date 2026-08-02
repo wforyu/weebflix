@@ -76,4 +76,11 @@
     <string name="all_movies">Semua Movie</string>
     <string name="all_series">Semua Series</string>
     <string name="episodes_count">%1$d Episodes</string>
+    <string name="about_app">Tentang Aplikasi</string>
+    <string name="pre_release_badge">PRE-RELEASE</string>
+    <string name="version">Versi</string>
+    <string name="version_code">Kode Versi</string>
+    <string name="build_commit">Commit</string>
+    <string name="build_date">Tanggal Build</string>
+    <string name="build_type">Tipe Build</string>
 </resources>

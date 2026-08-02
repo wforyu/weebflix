@@ -1,7 +1,21 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     id("com.android.application")
     id("com.google.devtools.ksp")
 }
+
+val gitCommit: String = try {
+    providers.exec {
+        commandLine("git", "rev-parse", "--short", "HEAD")
+    }.standardOutput.asText.get().trim().ifEmpty { "dev" }
+} catch (e: Exception) {
+    "dev"
+}
+
+val buildDate: String = SimpleDateFormat("yyyy.MM.dd-HHmm", Locale.US).format(Date())
 
 android {
     namespace = "com.weebflix.app"
@@ -11,8 +25,10 @@ android {
         applicationId = "com.weebflix.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 100
+        versionName = "2.0.0-beta"
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
+        buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
     }
 
     signingConfigs {
@@ -43,6 +59,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
