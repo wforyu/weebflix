@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Futsutsuka na Akujo dewa Gozaimasu",
+      "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Futsutsuka-na-Akujo-dewa-Gozaimasu-Episode-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Saijo no Osewa",
       "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/SaijonoOsewaEpisode5.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Honzuki no Gekokujou Season 4",
-      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/HonzukinoGekokujouSeason4Episode16.jpg",
+      "title": "Futsutsuka na Akujo dewa Gozaimasu",
+      "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Futsutsuka-na-Akujo-dewa-Gozaimasu-Episode-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Saijo no Osewa",
       "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
@@ -366,21 +381,6 @@
       "title": "Mebius Dust",
       "url": "https://v2.samehadaku.how/anime/mebius-dust/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/image-3-1.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Tensei Juukishi wa Game",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/07/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-5.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1785658870317
+  "timestamp": 1785676553982
 }
