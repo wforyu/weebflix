@@ -289,7 +289,7 @@ class DrakorKitaScraper : AnimeProvider {
 
             val html = doc.html()
 
-            val loadEpisodeRegex = Regex("loadEpisode\\('([^']+)'\\s*,\\s*'([^']*)'\\s*,\\s*'([^']*)'\\)")
+            val loadEpisodeRegex = LOAD_EPISODE_REGEX
 
             val loadEpisodeMatches = mutableListOf<Triple<String, String, String>>()
 
@@ -297,7 +297,7 @@ class DrakorKitaScraper : AnimeProvider {
                 val onclick = el.attr("onclick")
                 val match = loadEpisodeRegex.find(onclick)
                 if (match != null) {
-                    loadEpisodeMatches.add(Triple(match.groupValues[1], match.groupValues[2], match.groupValues[3]))
+                    loadEpisodeMatches.add(parseLoadEpisodeCall(match))
                 }
             }
             android.util.Log.e("DEBUG_DRAKOR", "Found ${loadEpisodeMatches.size} loadEpisode from onclick attrs")
@@ -308,7 +308,7 @@ class DrakorKitaScraper : AnimeProvider {
                 android.util.Log.e("DEBUG_DRAKOR", "Fallback to script tag: ${loadEpisodeScript != null}")
                 if (loadEpisodeScript != null) {
                     loadEpisodeRegex.findAll(loadEpisodeScript).forEach { match ->
-                        loadEpisodeMatches.add(Triple(match.groupValues[1], match.groupValues[2], match.groupValues[3]))
+                        loadEpisodeMatches.add(parseLoadEpisodeCall(match))
                     }
                 }
             }
@@ -504,12 +504,13 @@ class DrakorKitaScraper : AnimeProvider {
                         val scripts = doc.select("script").map { it.html() }
                         val loadEpisodeScript = scripts.firstOrNull { it.contains("loadEpisode(") }
                         if (loadEpisodeScript != null) {
-                            val scriptMatches = Regex("loadEpisode\\('([^']+)'\\s*,\\s*'([^']*)'\\s*,\\s*'([^']*)'\\)").findAll(loadEpisodeScript)
+                            val scriptMatches = LOAD_EPISODE_REGEX.findAll(loadEpisodeScript)
                             val seenTypes = mutableSetOf<String>()
                             for (match in scriptMatches) {
-                                val srvMovieId = match.groupValues[1]
-                                val serverType = match.groupValues[2]
-                                val lang = match.groupValues[3]
+                                val parsed = parseLoadEpisodeCall(match)
+                                val srvMovieId = parsed.first
+                                val serverType = parsed.second
+                                val lang = parsed.third
                                 val key = "$serverType|$lang"
                                 if (key in seenTypes) continue
                                 seenTypes.add(key)
@@ -568,12 +569,13 @@ class DrakorKitaScraper : AnimeProvider {
                 val scripts = doc.select("script").map { it.html() }
                 val loadEpisodeScript = scripts.firstOrNull { it.contains("loadEpisode(") }
                 if (loadEpisodeScript != null) {
-                    val matches = Regex("loadEpisode\\('([^']+)'\\s*,\\s*'([^']*)'\\s*,\\s*'([^']*)'\\)").findAll(loadEpisodeScript)
+                    val matches = LOAD_EPISODE_REGEX.findAll(loadEpisodeScript)
                     val seenTypes = mutableSetOf<String>()
                     for (match in matches) {
-                        val movieId = match.groupValues[1]
-                        val serverType = match.groupValues[2]
-                        val lang = match.groupValues[3]
+                        val parsed = parseLoadEpisodeCall(match)
+                        val movieId = parsed.first
+                        val serverType = parsed.second
+                        val lang = parsed.third
                         val key = "$serverType|$lang"
                         if (key in seenTypes) continue
                         seenTypes.add(key)
@@ -1025,9 +1027,18 @@ class DrakorKitaScraper : AnimeProvider {
     }
 
     companion object {
+        private val LOAD_EPISODE_REGEX = Regex("loadEpisode\\('([^']+)'\\s*,\\s*'([^']*)'\\s*(?:,\\s*'([^']*)'\\s*)?\\)")
+
         fun isDrakorKitaUrl(url: String): Boolean {
             return url.contains("drakor.kita.mobi") || url.contains("drakor.kita") || url.contains("nicewap.sbs")
         }
+    }
+
+    private fun parseLoadEpisodeCall(match: MatchResult): Triple<String, String, String> {
+        val id = match.groupValues[1]
+        val tag = match.groupValues[2]
+        val cat = match.groupValues.getOrElse(3) { "" }.ifEmpty { tag }
+        return Triple(id, tag, cat)
     }
 
     override suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {

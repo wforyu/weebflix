@@ -16,6 +16,7 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.net.URLEncoder
@@ -468,12 +469,17 @@ class OppaDramaScraper : AnimeProvider {
 
             if (server.videoUrl.isNotEmpty() && server.videoUrl.contains("http")) {
                 val embedHtml = try {
+                    val embedReferer = if (episodeUrl.startsWith("http")) episodeUrl else baseUrl
+                    val embedOrigin = try {
+                        val u = java.net.URL(embedReferer)
+                        "${u.protocol}://${u.host}"
+                    } catch (e: Exception) { baseUrl }
                     val embedReq = Request.Builder()
                         .url(server.videoUrl)
                         .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
                         .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                        .addHeader("Referer", "https://turbovidhls.com/")
-                        .addHeader("Origin", "https://turbovidhls.com")
+                        .addHeader("Referer", embedReferer)
+                        .addHeader("Origin", embedOrigin)
                         .build()
                     val embedResp = client.newCall(embedReq).execute()
                     embedResp.use { it.body?.string() ?: "" }
@@ -483,6 +489,15 @@ class OppaDramaScraper : AnimeProvider {
                 }
 
                 if (embedHtml.isNotEmpty()) {
+                    val isHydrax = server.videoUrl.contains("abyssplayer.com") || server.name.contains("Hydrax", ignoreCase = true)
+                    if (isHydrax) {
+                        val hydraxUrl = extractHydraxMp4(embedHtml)
+                        if (hydraxUrl.isNotEmpty()) {
+                            Log.d("OppaDrama", "Hydrax resolved to encrypted MP4 (ExoPlayer): $hydraxUrl")
+                            return@withContext hydraxUrl
+                        }
+                    }
+
                     val m3u8Patterns = listOf(
                         Regex("""var\s+urlPlay\s*=\s*['"](https?://[^'"]+\.m3u8[^'"]*)['"]"""),
                         Regex("""data-hash=["'](https?://[^'"]+\.m3u8[^'"]*)["']"""),
@@ -601,6 +616,70 @@ class OppaDramaScraper : AnimeProvider {
             return Regex("""https?://[^\s"'`]+\.m3u8[^\s"'`]*""").find(data)?.value ?: ""
         } catch (e: Exception) {
             Log.d("OppaDrama", "FileLions unpack failed: ${e.message}")
+            return ""
+        }
+    }
+
+    private fun md5Hex(input: String): String {
+        val digest = java.security.MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun aesCtrDecrypt(key: ByteArray, data: ByteArray): ByteArray {
+        val cipher = javax.crypto.Cipher.getInstance("AES/CTR/NoPadding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            javax.crypto.spec.SecretKeySpec(key, "AES"),
+            javax.crypto.spec.IvParameterSpec(key.copyOfRange(0, 16))
+        )
+        return cipher.doFinal(data)
+    }
+
+    /**
+     * Hydrax (abyssplayer.com) embeds a SoTrym player whose `const datas` base64 blob
+     * decrypts (AES-256-CTR, key = md5hex("user_id:slug:md5_id"), counter = key[:16]) to a
+     * JSON with `mp4.sources` (each `{url, path, size}`) + `mp4.fristDatas`. Each source is an
+     * AES-CTR-encrypted progressive MP4 on *.sssrr.org keyed by `md5hex(filename)`. We pick the
+     * smallest source and return a `hydrax://` URI that HydraxDataSource decrypts on-the-fly.
+     */
+    private fun extractHydraxMp4(embedHtml: String): String {
+        try {
+            val datasMatch = Regex("""const\s+datas\s*=\s*"([^"]+)""").find(embedHtml) ?: return ""
+            val cfgJson = JSONObject(String(Base64.decode(datasMatch.groupValues[1], Base64.DEFAULT), Charsets.ISO_8859_1))
+            val slug = cfgJson.optString("slug")
+            val md5Id = cfgJson.optString("md5_id")
+            val userId = cfgJson.optString("user_id")
+            val mediaStr = cfgJson.optString("media")
+            if (slug.isEmpty() || md5Id.isEmpty() || mediaStr.isEmpty()) return ""
+
+            val mediaKey = md5Hex("$userId:$slug:$md5Id").toByteArray(Charsets.US_ASCII)
+            val mediaBytes = ByteArray(mediaStr.length) { (mediaStr[it].code and 0xFF).toByte() }
+            val mediaJson = JSONObject(String(aesCtrDecrypt(mediaKey, mediaBytes), Charsets.UTF_8))
+            val mp4 = mediaJson.optJSONObject("mp4") ?: return ""
+            val sources = mp4.optJSONArray("sources") ?: return ""
+
+            var bestSize = Long.MAX_VALUE
+            var bestUrl = ""
+            var bestPath = ""
+            for (i in 0 until sources.length()) {
+                val s = sources.optJSONObject(i) ?: continue
+                val size = s.optLong("size", Long.MAX_VALUE)
+                if (size < bestSize) {
+                    bestSize = size
+                    bestUrl = s.optString("url")
+                    bestPath = s.optString("path")
+                }
+            }
+            if (bestUrl.isEmpty() || bestPath.isEmpty() || bestSize == Long.MAX_VALUE) return ""
+
+            val fullUrl = if (bestUrl.endsWith("/") || bestPath.startsWith("/")) "$bestUrl$bestPath" else "$bestUrl/$bestPath"
+            val fileKey = md5Hex(bestPath.substringAfterLast('/'))
+            val payload = JSONObject().put("u", fullUrl).put("k", fileKey).put("s", bestSize)
+            val b64 = Base64.encodeToString(payload.toString().toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP)
+            Log.d("OppaDrama", "Hydrax: selected source size=$bestSize file=$fullUrl")
+            return "hydrax://$b64"
+        } catch (e: Exception) {
+            Log.e("OppaDrama", "extractHydraxMp4 failed", e)
             return ""
         }
     }

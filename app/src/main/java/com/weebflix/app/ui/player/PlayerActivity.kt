@@ -1300,6 +1300,7 @@ class PlayerActivity : AppCompatActivity() {
         ensureWebView()
         isWebViewPlayback = true
         webViewPlaybackUrl = episodeUrl
+        exoPlayer?.pause()
 
         loadingPlayer.visibility = View.VISIBLE
         webView?.postDelayed({
@@ -3243,6 +3244,7 @@ class PlayerActivity : AppCompatActivity() {
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun initExoPlayerRemote(videoUrl: String) {
+        showExoPlayerUi()
         exoPlayer?.release()
         resetDlProgress()
 
@@ -3298,6 +3300,9 @@ class PlayerActivity : AppCompatActivity() {
 
         val upstreamFactory = object : androidx.media3.datasource.DataSource.Factory {
             override fun createDataSource(): androidx.media3.datasource.DataSource {
+                if (videoUrl.startsWith("hydrax://")) {
+                    return HydraxDataSource(okHttpClient)
+                }
                 val ds = rawUpstreamFactory.createDataSource()
                 (ds as? androidx.media3.datasource.BaseDataSource)?.addTransferListener(progressTransferListener)
                 return ds
@@ -3323,15 +3328,31 @@ class PlayerActivity : AppCompatActivity() {
                 })
         }
 
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                5_000,     // minBufferMs (5s — minimal buffer)
-                20_000,    // maxBufferMs (20s — tight cap, fewer concurrent segment requests to avoid 429)
-                3_000,     // bufferForPlaybackMs (3s initial buffer before play)
-                2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
-            )
-            .setPrioritizeTimeOverSizeThresholds(true)
-            .build()
+        val cleanHls = videoUrl.contains("/hls2/") || videoUrl.contains(".urlset/") ||
+            videoUrl.contains("dramiyos-cdn.com") || videoUrl.contains("acek-cdn.com") ||
+            videoUrl.contains("minochinos") || videoUrl.contains("anichin.stream") ||
+            videoUrl.contains("1a-1791.com")
+        val loadControl = if (cleanHls) {
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    30_000,    // minBufferMs (30s — smooth for clean HLS, no 429 risk)
+                    120_000,   // maxBufferMs (120s)
+                    15_000,    // bufferForPlaybackMs (15s initial buffer)
+                    10_000     // bufferForPlaybackAfterRebufferMs (10s after rebuffer)
+                )
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+        } else {
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    5_000,     // minBufferMs (5s — minimal buffer)
+                    20_000,    // maxBufferMs (20s — tight cap, fewer concurrent segment requests to avoid 429)
+                    3_000,     // bufferForPlaybackMs (3s initial buffer before play)
+                    2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
+                )
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+        }
 
         val trackSelector = DefaultTrackSelector(this).apply {
             setParameters(
@@ -3830,6 +3851,25 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator.visibility = View.GONE
     }
 
+    // Restore the custom ExoPlayer UI (playerView + topBar/bottomBar/center controls).
+    // Required when switching from WebView playback (which hides these views) back to
+    // ExoPlayer — e.g. OppaDrama FileLions/Hydrax after TurboVIP ran in the WebView.
+    private fun showExoPlayerUi() {
+        isWebViewPlayback = false
+        webViewPlayerControls.visibility = View.GONE
+        webView?.stopLoading()
+        webView?.evaluateJavascript(
+            "(function(){var vs=document.querySelectorAll('video');for(var i=0;i<vs.length;i++){try{vs[i].pause();}catch(e){}}});",
+            null
+        )
+        webView?.visibility = View.GONE
+        playerView.visibility = View.VISIBLE
+        gestureOverlay.visibility = View.VISIBLE
+        showControls()
+        scheduleAutoHide()
+        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+    }
+
     private fun scheduleAutoHide() {
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoHideHandler.postDelayed(autoHideRunnable, 4000)
@@ -4222,7 +4262,8 @@ class PlayerActivity : AppCompatActivity() {
         val serverIndex = servers.indexOf(server).takeIf { it >= 0 } ?: currentServerIndex
         val cachedUrl = resolvedUrlCache[serverIndex]
         if (cachedUrl != null && cachedUrl.isNotEmpty() && !cachedUrl.contains("\\u00") && !cachedUrl.contains("\\=") && !cachedUrl.contains("\\&")) {
-            val isRealVideo = cachedUrl.contains(".mp4") || cachedUrl.contains(".m3u8") ||
+            val isRealVideo = cachedUrl.startsWith("hydrax://") ||
+                cachedUrl.contains(".mp4") || cachedUrl.contains(".m3u8") ||
                 cachedUrl.contains(".mpd") || cachedUrl.contains(".mkv") ||
                 cachedUrl.contains(".webm") || cachedUrl.contains(".m4v") ||
                 cachedUrl.contains("googlevideo.com") ||
@@ -4238,7 +4279,9 @@ class PlayerActivity : AppCompatActivity() {
             } else {
                 Log.d(TAG, "Playing cached URL: $cachedUrl")
                 loadingPlayer.visibility = View.GONE
-                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
+                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID &&
+                    !cachedUrl.startsWith("hydrax://") &&
+                    !(cachedUrl.contains(".urlset/") || cachedUrl.contains("/hls2/"))) {
                     playVideoViaHtml5WebView(cachedUrl)
                 } else {
                     initExoPlayer(cachedUrl)
@@ -4252,6 +4295,7 @@ class PlayerActivity : AppCompatActivity() {
                 server.dataType == "dl"
             dlTrackingActive = isDrakorDl
             val isDirectVideo = isDrakorDl ||
+                server.videoUrl.startsWith("hydrax://") ||
                 server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") ||
                 server.videoUrl.contains(".mpd") || server.videoUrl.contains(".mkv") ||
                 server.videoUrl.contains(".webm") || server.videoUrl.contains(".m4v") ||
@@ -4260,7 +4304,8 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "Playing resolved URL: ${server.videoUrl}")
                 resolvedUrlCache[serverIndex] = server.videoUrl
                 if (!isDrakorDl) loadingPlayer.visibility = View.GONE
-                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
+                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID &&
+                    !server.videoUrl.startsWith("hydrax://")) {
                     playVideoViaHtml5WebView(server.videoUrl)
                 } else {
                     initExoPlayer(server.videoUrl)
@@ -4292,23 +4337,44 @@ class PlayerActivity : AppCompatActivity() {
         if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) {
             Log.d(TAG, "OppaDrama server detected: ${server.name}, videoUrl=${server.videoUrl}")
             if (server.videoUrl.isNotEmpty()) {
-                val isDirect = server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") || server.videoUrl.contains(".mpd")
+                val isDirect = server.videoUrl.startsWith("hydrax://") ||
+                    server.videoUrl.contains(".mp4") || server.videoUrl.contains(".m3u8") || server.videoUrl.contains(".mpd")
                 if (isDirect) {
                     resolvedUrlCache[serverIndex] = server.videoUrl
                     loadingPlayer.visibility = View.GONE
-                    if (server.videoUrl.contains(".urlset/") || server.videoUrl.contains("/hls2/")) {
-                        Log.d(TAG, "OppaDrama direct FileLions CDN URL, playing in ExoPlayer: ${server.videoUrl}")
+                    if (server.videoUrl.startsWith("hydrax://") ||
+                        server.videoUrl.contains(".urlset/") || server.videoUrl.contains("/hls2/")) {
+                        Log.d(TAG, "OppaDrama direct CDN URL, playing in ExoPlayer: ${server.videoUrl}")
                         initExoPlayer(server.videoUrl)
                     } else {
                         playVideoViaHtml5WebView(server.videoUrl)
                     }
                 } else {
-                    val isIframeEmbed = server.videoUrl.contains("hydrax") || server.name.contains("Hydrax", ignoreCase = true)
+                    val isHydrax = server.videoUrl.contains("abyssplayer.com") || server.videoUrl.contains("hydrax") || server.name.contains("Hydrax", ignoreCase = true)
                     val isTurboVip = server.videoUrl.contains("emturbovid.com") || server.name.contains("Turbo", ignoreCase = true)
-                    if (isIframeEmbed) {
-                        Log.d(TAG, "OppaDrama: loading embed URL directly in WebView (bypass iframe): ${server.videoUrl}")
-                        loadingPlayer.visibility = View.GONE
-                        playEpisodePageViaWebView(server.videoUrl, server)
+                    if (isHydrax) {
+                        Log.d(TAG, "OppaDrama Hydrax: scraping for encrypted MP4 (hydrax:// → ExoPlayer)")
+                        loadingPlayer.visibility = View.VISIBLE
+                        lifecycleScope.launch {
+                            val videoUrl = try {
+                                com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).resolveServerVideoUrl(server, episodeUrl)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "OppaDrama Hydrax scrape error: ${e.message}")
+                                ""
+                            }
+                            withContext(Dispatchers.Main) {
+                                if (!isFinishing && videoUrl.startsWith("hydrax://")) {
+                                    Log.d(TAG, "OppaDrama Hydrax resolved to encrypted MP4, playing in ExoPlayer")
+                                    loadingPlayer.visibility = View.GONE
+                                    resolvedUrlCache[serverIndex] = videoUrl
+                                    initExoPlayer(videoUrl)
+                                } else {
+                                    Log.w(TAG, "OppaDrama Hydrax scrape failed, loading embed in WebView")
+                                    loadingPlayer.visibility = View.GONE
+                                    playEpisodePageViaWebView(server.videoUrl, server)
+                                }
+                            }
+                        }
                     } else if (isTurboVip) {
                         Log.d(TAG, "OppaDrama TurboVIP: loading episode page (not embed) to preserve referrer/cookies context")
                         loadingPlayer.visibility = View.GONE
@@ -4335,13 +4401,13 @@ class PlayerActivity : AppCompatActivity() {
                                 ""
                             }
                             withContext(Dispatchers.Main) {
-                                if (!isFinishing && videoUrl.isNotEmpty() && (videoUrl.contains(".mp4") || videoUrl.contains(".m3u8") || videoUrl.contains(".mpd") || videoUrl.contains("googlevideo.com"))) {
+                                if (!isFinishing && videoUrl.isNotEmpty() && (videoUrl.startsWith("hydrax://") || videoUrl.contains(".mp4") || videoUrl.contains(".m3u8") || videoUrl.contains(".mpd") || videoUrl.contains("googlevideo.com"))) {
                                     Log.d(TAG, "OppaDrama scraped video URL: $videoUrl")
                                     loadingPlayer.visibility = View.GONE
                                     resolvedUrlCache[serverIndex] = videoUrl
                                     if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID) &&
-                                        (videoUrl.contains(".urlset/") || videoUrl.contains("/hls2/"))) {
-                                        Log.d(TAG, "OppaDrama FileLions CDN detected, playing in ExoPlayer: $videoUrl")
+                                        (videoUrl.startsWith("hydrax://") || videoUrl.contains(".urlset/") || videoUrl.contains("/hls2/"))) {
+                                        Log.d(TAG, "OppaDrama CDN detected, playing in ExoPlayer: $videoUrl")
                                         initExoPlayer(videoUrl)
                                     } else {
                                         playVideoViaHtml5WebView(videoUrl)
