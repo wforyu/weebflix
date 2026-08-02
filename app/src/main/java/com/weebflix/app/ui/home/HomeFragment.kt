@@ -12,6 +12,7 @@ import com.google.android.material.chip.ChipGroup
 import com.weebflix.app.R
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.provider.ProviderFactory
+import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
 class HomeFragment : Fragment() {
 
@@ -90,6 +91,7 @@ class HomeFragment : Fragment() {
             ProviderFactory.DRAKORKITA_ID -> DrakorKitaHomeFragment()
             ProviderFactory.OPPADRAMA_ID -> OppaDramaHomeFragment()
             ProviderFactory.ANICHIN_ID -> AnichinHomeFragment()
+            ProviderFactory.YOUTUBE_ID -> YouTubeHomeFragment()
             else -> SamehadakuHomeFragment()
         }
 

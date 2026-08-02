@@ -5,6 +5,7 @@ import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
 import com.weebflix.app.data.scraper.SamehadakuScraper
+import com.weebflix.app.data.scraper.YouTubeScraper
 
 object ProviderFactory {
 
@@ -12,6 +13,7 @@ object ProviderFactory {
     const val DRAKORKITA_ID = "drakorkita"
     const val OPPADRAMA_ID = "oppadrama"
     const val ANICHIN_ID = "anichin"
+    const val YOUTUBE_ID = "youtube"
 
     private val providers = mutableMapOf<String, AnimeProvider>()
 
@@ -28,6 +30,9 @@ object ProviderFactory {
             }
             providers[ANICHIN_ID] = AnichinScraper().also {
                 it.baseUrl = ProviderConfig.getBaseUrl(ANICHIN_ID)
+            }
+            providers[YOUTUBE_ID] = YouTubeScraper().also {
+                it.baseUrl = ProviderConfig.getBaseUrl(YOUTUBE_ID)
             }
         }
         return providers.values.toList()

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F0F"
+    android:orientation="vertical">
+
+    <!-- Search header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_back_yt"
+            android:contentDescription="Back"
+            android:scaleType="centerInside" />
+
+        <EditText
+            android:id="@+id/searchInput"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_yt"
+            android:drawableStart="@drawable/ic_search_yt"
+            android:drawablePadding="8dp"
+            android:hint="Cari di YouTube"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="12dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#909090"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- Filter chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/chipContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
+    </HorizontalScrollView>
+
+    <!-- Loading -->
+    <ProgressBar
+        android:id="@+id/ytLoading"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="32dp"
+        android:indeterminateTint="#FF0000"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/ytEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp"
+        android:text="Ketik untuk mencari video"
+        android:textColor="#B3B3B3"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- Results -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/resultsList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="12dp" />
+
+</LinearLayout>

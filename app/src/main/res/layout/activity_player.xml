@@ -519,6 +519,17 @@
                 android:visibility="gone" />
 
             <ImageView
+                android:id="@+id/btnQuality"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_player_quality"
+                android:contentDescription="Resolusi video"
+                android:scaleType="centerInside"
+                android:layout_marginStart="8dp"
+                android:visibility="gone" />
+
+            <ImageView
                 android:id="@+id/btnFullscreen"
                 android:layout_width="36dp"
                 android:layout_height="36dp"

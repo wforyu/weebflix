@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingVertical="20dp">
+
+    <ProgressBar
+        android:id="@+id/footerLoading"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:indeterminateTint="@color/netflix_red" />
+
+    <TextView
+        android:id="@+id/footerEnd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="— Akhir feed —"
+        android:textColor="#B3B3B3"
+        android:textSize="13sp"
+        android:visibility="gone" />
+</LinearLayout>

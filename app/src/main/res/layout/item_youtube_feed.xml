@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#0F0F0F"
+    android:orientation="vertical"
+    android:paddingBottom="20dp">
+
+    <FrameLayout
+        android:id="@+id/thumbFrame"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/thumb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1F1F1F"
+            android:contentDescription="Thumbnail"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/bg_card" />
+
+        <TextView
+            android:id="@+id/duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_duration_badge"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="2dp"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            tools:text="12:34" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="12dp">
+
+        <ImageView
+            android:id="@+id/channelThumb"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_circle_avatar"
+            android:contentDescription="Channel"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="Judul video YouTube yang cukup panjang bisa dua baris" />
+
+            <TextView
+                android:id="@+id/meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#AAAAAA"
+                android:textSize="12sp"
+                tools:text="Channel • 1,2 jt x ditonton • 3 hari lalu" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_more_yt"
+            android:contentDescription="More" />
+    </LinearLayout>
+</LinearLayout>

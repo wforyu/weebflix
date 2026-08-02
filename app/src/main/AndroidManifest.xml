@@ -56,6 +56,12 @@
             android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize" />
 
+        <activity
+            android:name=".ui.youtube.YouTubeSearchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.WeebFlix"
+            android:screenOrientation="portrait" />
+
     </application>
 
 </manifest>

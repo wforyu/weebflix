@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F0F"
+    android:orientation="vertical">
+
+    <!-- YouTube header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:id="@+id/ytLogo"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/ic_youtube_logo"
+            android:contentDescription="YouTube" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="YouTube"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/ytBtnSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_search_yt"
+            android:contentDescription="Search"
+            android:scaleType="centerInside" />
+
+        <ImageView
+            android:id="@+id/ytBtnCast"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_cast_yt"
+            android:contentDescription="Cast"
+            android:scaleType="centerInside" />
+
+        <ImageView
+            android:id="@+id/ytBtnNotifications"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_notif_yt"
+            android:contentDescription="Notifications"
+            android:scaleType="centerInside" />
+    </LinearLayout>
+
+    <!-- Error / empty -->
+    <TextView
+        android:id="@+id/ytError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp"
+        android:textColor="#B3B3B3"
+        android:textSize="14sp"
+        android:visibility="gone"
+        tools:text="Gagal memuat. Ketuk untuk coba lagi." />
+
+    <!-- Feed (pull-to-refresh + infinite scroll) -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/ytRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/ytFeed"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+</LinearLayout>

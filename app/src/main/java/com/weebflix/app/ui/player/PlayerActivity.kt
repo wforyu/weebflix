@@ -262,6 +262,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnBack: ImageView
     private lateinit var btnPip: ImageView
     private lateinit var btnFullscreen: ImageView
+    private lateinit var btnQuality: ImageView
     private lateinit var tvServerName: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var tvCurrentTime: TextView
@@ -313,6 +314,10 @@ class PlayerActivity : AppCompatActivity() {
     private var currentServerIndex: Int = 0
     private var isPlaying: Boolean = true
     private val resolvedUrlCache = mutableMapOf<Int, String>()
+
+    private var ytTrackSelector: androidx.media3.exoplayer.trackselection.DefaultTrackSelector? = null
+    private var ytResolutionOptions: List<Int> = emptyList()
+    private var ytCurrentResolution: Int = 0
 
     private var webView: WebView? = null
     private var webViewResolving = false
@@ -518,6 +523,7 @@ class PlayerActivity : AppCompatActivity() {
         btnBack = findViewById(R.id.btnBack)
         btnPip = findViewById(R.id.btnPip)
         btnFullscreen = findViewById(R.id.btnFullscreen)
+        btnQuality = findViewById(R.id.btnQuality)
         tvServerName = findViewById(R.id.tvServerName)
         seekBar = findViewById(R.id.seekBar)
         tvCurrentTime = findViewById(R.id.tvCurrentTime)
@@ -3602,6 +3608,9 @@ class PlayerActivity : AppCompatActivity() {
 
         btnPip.setOnClickListener { enterPipMode() }
         btnFullscreen.setOnClickListener { toggleFullscreen() }
+        btnQuality.setOnClickListener {
+            showYtResolutionDialog()
+        }
         tvServerName.setOnClickListener { showServerPickerDialog() }
         tvError.setOnClickListener { if (servers.isNotEmpty()) showServerPickerDialog() }
 
@@ -3902,6 +3911,11 @@ class PlayerActivity : AppCompatActivity() {
     // ===== Skip Opening / Outro =====
 
     private fun checkSkipButtonsVisibility() {
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            btnSkipOpening.visibility = View.GONE
+            btnSkipOutro.visibility = View.GONE
+            return
+        }
         val player = exoPlayer ?: return
         val duration = player.duration
         if (duration <= 0) return
@@ -4247,11 +4261,270 @@ class PlayerActivity : AppCompatActivity() {
         if (index in servers.indices) playServer(servers[index])
     }
 
+    private fun playYouTubeVideo(videoId: String) {
+        loadingPlayer.visibility = View.VISIBLE
+        tvError.visibility = View.GONE
+        tvLoadingProgress.visibility = View.GONE
+        tvLoadingHint.visibility = View.GONE
+        tvAnimeTitle.text = animeTitle.ifEmpty { "YouTube" }
+        lifecycleScope.launch {
+            val resolved = try {
+                withContext(Dispatchers.IO) { com.weebflix.app.data.scraper.YouTubeResolver.resolve(videoId) }
+            } catch (e: Exception) {
+                Log.e(TAG, "YouTube resolve error: ${e.message}")
+                null
+            }
+            if (isFinishing) return@launch
+            if (resolved == null || resolved.isEmpty) {
+                val msg = resolved?.blockReason?.takeIf { it.isNotEmpty() }?.let {
+                    "Video diblokir YouTube (butuh login).\n$it"
+                } ?: "Gagal memuat video. Coba lagi nanti."
+                showError(msg)
+            } else {
+                tvAnimeTitle.text = resolved.title
+                val sub = buildString {
+                    if (resolved.author.isNotEmpty()) append(resolved.author)
+                    if (resolved.views.isNotEmpty()) {
+                        if (isNotEmpty()) append(" • ")
+                        append(resolved.views).append(" x ditonton")
+                    }
+                }
+                tvEpisodeTitle.text = sub.ifEmpty { "YouTube" }
+                initExoPlayerYouTube(resolved)
+            }
+        }
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun initExoPlayerYouTube(resolved: com.weebflix.app.data.scraper.ResolvedYouTube) {
+        val video = com.weebflix.app.data.scraper.YouTubeResolver.pickVideo(resolved.videoFormats)
+        val audio = com.weebflix.app.data.scraper.YouTubeResolver.pickAudio(resolved.audioFormats)
+        if (video == null || audio == null) {
+            showError("Stream video/audio tidak tersedia")
+            return
+        }
+        Log.d(TAG, "YouTube streams: video=${video.height}p ${video.mimeType} bitrate=${video.bitrate} | audio=${audio.mimeType} bitrate=${audio.bitrate}")
+
+        showExoPlayerUi()
+        exoPlayer?.release()
+        resetDlProgress()
+
+        val okHttpClient = getOkHttpClient(cacheDir)
+        val upstreamFactory = object : androidx.media3.datasource.DataSource.Factory {
+            override fun createDataSource(): androidx.media3.datasource.DataSource {
+                val ds = OkHttpDataSource.Factory(okHttpClient)
+                    .setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://www.youtube.com/",
+                        "Origin" to "https://www.youtube.com"
+                    ))
+                    .createDataSource()
+                (ds as? androidx.media3.datasource.BaseDataSource)?.addTransferListener(progressTransferListener)
+                return ds
+            }
+        }
+
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(30_000, 120_000, 15_000, 10_000)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
+        val trackSelector = androidx.media3.exoplayer.trackselection.DefaultTrackSelector(this)
+        trackSelector.parameters = trackSelector.buildUponParameters()
+            .setPreferredVideoMimeTypes("video/avc")
+            .build()
+        ytTrackSelector = trackSelector
+        ytResolutionOptions = resolved.videoFormats
+            .map { it.height }
+            .filter { it > 0 }
+            .distinct()
+            .sortedDescending()
+        ytCurrentResolution = 0
+        btnQuality.visibility = View.VISIBLE
+
+        val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(upstreamFactory)
+
+        // ABR (YouTube-style): build an on-demand DASH manifest from all adaptive formats so
+        // ExoPlayer's DefaultTrackSelector switches resolutions with the available bandwidth
+        // (starts low on slow links, climbs automatically, drops when throttled). Falls back
+        // to a single fixed format (MergingMediaSource) when formats lack byte ranges.
+        val dashManifest = com.weebflix.app.data.scraper.YouTubeDashManifest.build(resolved)
+        val merged: androidx.media3.exoplayer.source.MediaSource = if (dashManifest != null) {
+            Log.d(TAG, "YouTube DASH ABR: video=${resolved.videoFormats.map { "${it.height}p" }.distinct().sorted()}")
+            val dataUri = "data:application/dash+xml;base64," +
+                android.util.Base64.encodeToString(dashManifest.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+            val dashFactory = androidx.media3.datasource.DefaultDataSource.Factory(this, upstreamFactory)
+            androidx.media3.exoplayer.dash.DashMediaSource.Factory(dashFactory)
+                .createMediaSource(MediaItem.fromUri(dataUri))
+        } else {
+            Log.d(TAG, "YouTube DASH unavailable (no byte ranges), falling back to fixed format")
+            val videoSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(video.url))
+            val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(audio.url))
+            androidx.media3.exoplayer.source.MergingMediaSource(videoSource, audioSource)
+        }
+
+        exoPlayer = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setLoadControl(loadControl)
+            .setTrackSelector(trackSelector)
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setAudioAttributes(
+                androidx.media3.common.AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(),
+                true
+            )
+            .build()
+            .also { player ->
+                playerView.player = player
+                player.addListener(object : Player.Listener {
+                    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                        for (g in tracks.groups) {
+                            if (g.type != C.TRACK_TYPE_VIDEO) continue
+                            for (i in 0 until g.length) {
+                                if (g.isTrackSelected(i)) {
+                                    val f = g.getTrackFormat(i)
+                                    Log.d(TAG, "YT ABR selected: ${f.width}x${f.height} codecs=${f.codecs} bitrate=${f.bitrate}")
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        isPlaying = playing
+                        runOnUiThread {
+                            val icon = if (playing) R.drawable.ic_player_pause else R.drawable.ic_player_play
+                            btnPlayPause.setImageResource(icon)
+                            btnCenterPlayPause.setImageResource(icon)
+                        }
+                    }
+
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        runOnUiThread {
+                            when (playbackState) {
+                                Player.STATE_BUFFERING -> {
+                                    loadingPlayer.visibility = View.VISIBLE
+                                    tvError.visibility = View.GONE
+                                }
+                                Player.STATE_READY -> {
+                                    loadingPlayer.visibility = View.GONE
+                                    tvError.visibility = View.GONE
+                                }
+                                Player.STATE_ENDED -> {
+                                    isPlaying = false
+                                    btnPlayPause.setImageResource(R.drawable.ic_player_play)
+                                    btnCenterPlayPause.setImageResource(R.drawable.ic_player_play)
+                                    showControls()
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        runOnUiThread {
+                            loadingPlayer.visibility = View.GONE
+                            val msg = error.message ?: ""
+                            val causeMsg = error.cause?.message ?: ""
+                            Log.e(TAG, "YouTube player error: $msg | cause: $causeMsg")
+                            if ((msg + causeMsg).contains("403")) {
+                                showError("Stream kedaluwarsa. Buka video lagi untuk stream baru.")
+                            } else {
+                                showError("Gagal memutar video: ${error.cause?.message ?: msg}")
+                            }
+                        }
+                    }
+                })
+                player.setMediaSource(merged)
+                player.prepare()
+                player.playWhenReady = true
+                progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
+            }
+    }
+
+    private fun showYtResolutionDialog() {
+        val values = mutableListOf<Int>()
+        val labels = mutableListOf<String>()
+        labels.add("Auto")
+        values.add(0)
+        for (h in ytResolutionOptions) {
+            labels.add("${h}p")
+            values.add(h)
+        }
+        if (values.size <= 1) {
+            Toast.makeText(this, "Resolusi manual tidak tersedia untuk video ini", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val checked = values.indexOf(ytCurrentResolution).coerceAtLeast(0)
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Resolusi video")
+            .setSingleChoiceItems(labels.toTypedArray(), checked) { d, which ->
+                applyYtResolution(values[which])
+                d.dismiss()
+            }
+            .show()
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun applyYtResolution(height: Int) {
+        val ts = ytTrackSelector ?: return
+        if (height <= 0) {
+            ts.parameters = ts.parameters.buildUpon()
+                .clearSelectionOverrides()
+                .build()
+            ytCurrentResolution = 0
+            Toast.makeText(this, "Resolusi: Auto", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val mapped = ts.currentMappedTrackInfo
+        if (mapped == null) {
+            Toast.makeText(this, "Track belum siap, coba beberapa detik lagi", Toast.LENGTH_SHORT).show()
+            return
+        }
+        var videoRendererIndex = -1
+        for (r in 0 until mapped.rendererCount) {
+            if (mapped.getRendererType(r) == C.TRACK_TYPE_VIDEO) {
+                videoRendererIndex = r
+                break
+            }
+        }
+        if (videoRendererIndex < 0) {
+            Toast.makeText(this, "Track video belum siap", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val groups = mapped.getTrackGroups(videoRendererIndex)
+        for (g in 0 until groups.length) {
+            val group = groups.get(g)
+            for (t in 0 until group.length) {
+                if (group.getFormat(t).height == height) {
+                    val override = androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOverride(g, t)
+                    ts.parameters = ts.parameters.buildUpon()
+                        .setSelectionOverride(videoRendererIndex, groups, override)
+                        .build()
+                    ytCurrentResolution = height
+                    Toast.makeText(this, "Resolusi: ${height}p", Toast.LENGTH_SHORT).show()
+                    return
+                }
+            }
+        }
+        Toast.makeText(this, "Resolusi ${height}p tidak tersedia di video ini", Toast.LENGTH_SHORT).show()
+    }
+
     private fun playServer(server: VideoServer) {
         pendingAutoFailRunnable?.let { tvError.removeCallbacks(it) }
         pendingAutoFailRunnable = null
         turboRetryCount = 0
         dlTrackingActive = false
+
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            val ytId = server.videoUrl.removePrefix("youtube://")
+            if (ytId.isNotEmpty() && ytId != server.videoUrl) {
+                Log.d(TAG, "YouTube provider detected, playing videoId=$ytId")
+                playYouTubeVideo(ytId)
+                return
+            }
+        }
 
         loadingPlayer.visibility = View.VISIBLE
         tvError.visibility = View.GONE

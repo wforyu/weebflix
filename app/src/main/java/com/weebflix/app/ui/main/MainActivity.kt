@@ -12,6 +12,7 @@ import com.weebflix.app.ui.home.HomeFragment
 import com.weebflix.app.ui.ongoing.OngoingFragment
 import com.weebflix.app.ui.search.SearchFragment
 import com.weebflix.app.ui.settings.SettingsFragment
+import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private var homeFragment: HomeFragment? = null
     private var searchFragment: SearchFragment? = null
     private var ongoingFragment: OngoingFragment? = null
+    private var youtubeFragment: YouTubeHomeFragment? = null
     private var settingsFragment: SettingsFragment? = null
     private var activeFragment: Fragment? = null
 
@@ -51,6 +53,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_ongoing -> {
                     showFragment(getOngoingFragment())
+                    true
+                }
+                R.id.nav_youtube -> {
+                    showFragment(getYouTubeFragment())
                     true
                 }
                 R.id.nav_settings -> {
@@ -104,6 +110,15 @@ class MainActivity : AppCompatActivity() {
             ?: OngoingFragment().also {
                 ongoingFragment = it
                 supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "ongoing").hide(it).commitNow()
+            }
+    }
+
+    private fun getYouTubeFragment(): YouTubeHomeFragment {
+        youtubeFragment?.let { return it }
+        return supportFragmentManager.findFragmentByTag("youtube") as? YouTubeHomeFragment
+            ?: YouTubeHomeFragment().also {
+                youtubeFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "youtube").hide(it).commitNow()
             }
     }
 
