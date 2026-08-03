@@ -87,6 +87,16 @@ class YouTubeFeedAdapter(
         notifyDataSetChanged()
     }
 
+    fun removeVideo(videoId: String) {
+        val idx = videos.indexOfFirst { it.videoId == videoId }
+        if (idx >= 0) {
+            videos.removeAt(idx)
+            notifyItemRemoved(idx)
+        }
+    }
+
+    fun peekFirst(): YouTubeVideo? = videos.firstOrNull()
+
     override fun getItemCount(): Int = videos.size + 1
 
     override fun getItemViewType(position: Int): Int =

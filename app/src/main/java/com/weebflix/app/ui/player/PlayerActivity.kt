@@ -46,10 +46,15 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.ParametersBuilder
 import androidx.media3.ui.PlayerView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
 import com.weebflix.app.data.model.VideoServer
 import com.weebflix.app.data.model.WatchHistoryManager
+import com.weebflix.app.data.scraper.YouTubeScraper
+import com.weebflix.app.data.scraper.YouTubeVideo
+import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -319,6 +324,24 @@ class PlayerActivity : AppCompatActivity() {
     private var ytResolutionOptions: List<Int> = emptyList()
     private var ytCurrentResolution: Int = 0
 
+    private lateinit var playerArea: FrameLayout
+    private lateinit var ytBelowArea: View
+    private lateinit var ytDetailTitle: TextView
+    private lateinit var ytDetailMeta: TextView
+    private lateinit var ytRelatedList: RecyclerView
+    private lateinit var ytRelatedAdapter: YouTubeFeedAdapter
+
+    private val ytScraper by lazy {
+        com.weebflix.app.data.provider.ProviderFactory.getProvider(com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) as YouTubeScraper
+    }
+    private var currentYtVideoId: String = ""
+    private var ytLoadingRelated = false
+    private var ytRelatedEnded = false
+    private var ytUpNext: YouTubeVideo? = null
+    private var startPositionMs: Long = 0L
+    private var pendingYtSeekMs: Long = 0L
+    private var ytFullscreen = false
+
     private var webView: WebView? = null
     private var webViewResolving = false
     private var webViewResolveCallback: ((String) -> Unit)? = null
@@ -460,12 +483,18 @@ class PlayerActivity : AppCompatActivity() {
         imageUrl = intent.getStringExtra("imageUrl") ?: ""
         animeUrl = intent.getStringExtra("animeUrl") ?: ""
         activeProviderId = intent.getStringExtra("providerId") ?: com.weebflix.app.data.provider.ProviderFactory.getActiveProvider().id
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
         skipOpeningStart = intent.getIntExtra("skipOpeningStart", 90)
         skipOpeningEnd = intent.getIntExtra("skipOpeningEnd", 120)
         nextEpisodeUrl = intent.getStringExtra("nextEpisodeUrl") ?: ""
         nextEpisodeTitle = intent.getStringExtra("nextEpisodeTitle") ?: ""
+        startPositionMs = intent.getLongExtra("startPositionMs", 0L)
 
         initViews()
+        setupYtRelatedList()
+        applyYtArea()
         setupGestureDetector()
         setupControls()
         setupSeekBar()
@@ -563,8 +592,55 @@ class PlayerActivity : AppCompatActivity() {
         seekIcon = findViewById(R.id.seekIcon)
         seekText = findViewById(R.id.seekText)
 
+        playerArea = findViewById(R.id.playerArea)
+        ytBelowArea = findViewById(R.id.ytBelowArea)
+        ytDetailTitle = findViewById(R.id.ytDetailTitle)
+        ytDetailMeta = findViewById(R.id.ytDetailMeta)
+        ytRelatedList = findViewById(R.id.ytRelatedList)
+
         playerView.useController = false
         playerView.keepScreenOn = true
+    }
+
+    private fun setupYtRelatedList() {
+        ytRelatedAdapter = YouTubeFeedAdapter { video -> playYouTubeByVideo(video) }
+        ytRelatedList.layoutManager = LinearLayoutManager(this)
+        ytRelatedList.adapter = ytRelatedAdapter
+        ytRelatedList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0) return
+                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
+                if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) {
+                    loadMoreRelated()
+                }
+            }
+        })
+    }
+
+    /** Sizes the video area: fullscreen for normal providers, 16:9 at top for YouTube
+     *  (recomputed on orientation change since the activity handles configChanges itself). */
+    private fun applyYtArea() {
+        if (!::playerArea.isInitialized) return
+        val isYt = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID
+        val lp = playerArea.layoutParams as LinearLayout.LayoutParams
+        if (isYt && !ytFullscreen) {
+            val w = resources.displayMetrics.widthPixels
+            val h = resources.displayMetrics.heightPixels
+            val videoH = minOf((w * 9f / 16f).toInt(), (h * 0.45f).toInt()).coerceAtLeast(180)
+            lp.height = videoH
+            lp.weight = 0f
+            ytBelowArea.visibility = View.VISIBLE
+        } else {
+            lp.height = 0
+            lp.weight = 1f
+            ytBelowArea.visibility = View.GONE
+        }
+        playerArea.layoutParams = lp
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyYtArea()
     }
 
     // ===== Hidden WebView for resolving video URLs (bypasses Cloudflare) =====
@@ -3792,6 +3868,10 @@ class PlayerActivity : AppCompatActivity() {
     private fun toggleFullscreen() {
         isSystemBarsHidden = !isSystemBarsHidden
         if (isSystemBarsHidden) {
+            if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+                ytFullscreen = true
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
             btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen_exit)
@@ -3807,6 +3887,10 @@ class PlayerActivity : AppCompatActivity() {
                 )
             }
         } else {
+            if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+                ytFullscreen = false
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
             btnFullscreen.setImageResource(R.drawable.ic_player_fullscreen)
@@ -3946,7 +4030,9 @@ class PlayerActivity : AppCompatActivity() {
         val duration = player.duration
         if (duration <= 0) return
         val timeRemaining = (duration - player.currentPosition) / 1000f
-        if (timeRemaining <= 10f && nextEpisodeUrl.isNotEmpty() && !autoPlayActive) {
+        val isYt = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID
+        val hasNext = if (isYt) ytUpNext != null else nextEpisodeUrl.isNotEmpty()
+        if (timeRemaining <= 10f && hasNext && !autoPlayActive) {
             startAutoPlayCountdown()
         }
     }
@@ -3955,7 +4041,11 @@ class PlayerActivity : AppCompatActivity() {
         autoPlayActive = true
         autoPlayCountdown = 10
         autoPlayOverlay.visibility = View.VISIBLE
-        tvAutoPlayTitle.text = nextEpisodeTitle.ifEmpty { "Episode Selanjutnya" }
+        tvAutoPlayTitle.text = if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            ytUpNext?.title?.takeIf { it.isNotEmpty() } ?: "Video Selanjutnya"
+        } else {
+            nextEpisodeTitle.ifEmpty { "Episode Selanjutnya" }
+        }
         tvAutoPlayCountdown.text = autoPlayCountdown.toString()
         autoPlayHandler.postDelayed(autoPlayRunnable, 1000)
     }
@@ -3969,6 +4059,15 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun navigateToNextEpisode() {
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            val next = ytUpNext
+            if (next != null) {
+                playYouTubeByVideo(next)
+            } else {
+                cancelAutoPlay()
+            }
+            return
+        }
         if (nextEpisodeUrl.isNotEmpty()) {
             val nextEpNum = Regex("""(\d+)""").find(nextEpisodeTitle)?.groupValues?.getOrElse(1) { "" } ?: ""
             val savedNextUrl = nextEpisodeUrl
@@ -4032,6 +4131,11 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun updateEpisodeNavButtons() {
+        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+            btnPrevEpisodeNav.visibility = View.GONE
+            btnNextEpisodeNav.visibility = View.GONE
+            return
+        }
         btnPrevEpisodeNav.visibility = if (animeUrl.isNotEmpty()) View.VISIBLE else View.GONE
         btnNextEpisodeNav.visibility = if (nextEpisodeUrl.isNotEmpty()) View.VISIBLE else View.GONE
     }
@@ -4261,12 +4365,16 @@ class PlayerActivity : AppCompatActivity() {
         if (index in servers.indices) playServer(servers[index])
     }
 
-    private fun playYouTubeVideo(videoId: String) {
+    private fun playYouTubeVideo(videoId: String, seekMs: Long = startPositionMs) {
+        currentYtVideoId = videoId
         loadingPlayer.visibility = View.VISIBLE
         tvError.visibility = View.GONE
         tvLoadingProgress.visibility = View.GONE
         tvLoadingHint.visibility = View.GONE
         tvAnimeTitle.text = animeTitle.ifEmpty { "YouTube" }
+        tvServerName.visibility = View.GONE
+        btnPrevEpisodeNav.visibility = View.GONE
+        btnNextEpisodeNav.visibility = View.GONE
         lifecycleScope.launch {
             val resolved = try {
                 withContext(Dispatchers.IO) { com.weebflix.app.data.scraper.YouTubeResolver.resolve(videoId) }
@@ -4290,13 +4398,20 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
                 tvEpisodeTitle.text = sub.ifEmpty { "YouTube" }
-                initExoPlayerYouTube(resolved)
+                ytDetailTitle.text = resolved.title
+                ytDetailMeta.text = sub.ifEmpty { "YouTube" }
+                initExoPlayerYouTube(resolved, seekMs)
+                if (ytRelatedAdapter.isEmpty) {
+                    ytLoadingRelated = false
+                    ytRelatedEnded = false
+                    loadMoreRelated()
+                }
             }
         }
     }
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun initExoPlayerYouTube(resolved: com.weebflix.app.data.scraper.ResolvedYouTube) {
+    private fun initExoPlayerYouTube(resolved: com.weebflix.app.data.scraper.ResolvedYouTube, seekMs: Long = 0L) {
         val video = com.weebflix.app.data.scraper.YouTubeResolver.pickVideo(resolved.videoFormats)
         val audio = com.weebflix.app.data.scraper.YouTubeResolver.pickAudio(resolved.audioFormats)
         if (video == null || audio == null) {
@@ -4304,6 +4419,7 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         Log.d(TAG, "YouTube streams: video=${video.height}p ${video.mimeType} bitrate=${video.bitrate} | audio=${audio.mimeType} bitrate=${audio.bitrate}")
+        pendingYtSeekMs = seekMs
 
         showExoPlayerUi()
         exoPlayer?.release()
@@ -4410,6 +4526,10 @@ class PlayerActivity : AppCompatActivity() {
                                 Player.STATE_READY -> {
                                     loadingPlayer.visibility = View.GONE
                                     tvError.visibility = View.GONE
+                                    if (pendingYtSeekMs > 0) {
+                                        player.seekTo(pendingYtSeekMs)
+                                        pendingYtSeekMs = 0
+                                    }
                                 }
                                 Player.STATE_ENDED -> {
                                     isPlaying = false
@@ -4441,6 +4561,51 @@ class PlayerActivity : AppCompatActivity() {
                 player.playWhenReady = true
                 progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
             }
+    }
+
+    /** Plays a video tapped from the related list (same activity, no re-launch). */
+    private fun playYouTubeByVideo(video: YouTubeVideo) {
+        if (video.videoId.isEmpty() || video.videoId == currentYtVideoId) return
+        cancelAutoPlay()
+        pendingYtSeekMs = 0
+        animeTitle = video.title
+        episodeUrl = video.url
+        imageUrl = video.thumbnail
+        animeUrl = video.url
+        episodeTitle = video.title
+        episodeNumber = "1"
+        ytUpNext = null
+        ytRelatedAdapter.removeVideo(video.videoId)
+        refreshYtUpNext()
+        playYouTubeVideo(video.videoId, 0L)
+    }
+
+    private fun loadMoreRelated() {
+        if (ytLoadingRelated || ytRelatedEnded) return
+        ytLoadingRelated = true
+        val job = lifecycleScope.launch {
+            val page = try {
+                withContext(Dispatchers.IO) { ytScraper.nextFeedPage() }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val fresh = page.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
+            if (fresh.isNotEmpty()) {
+                ytRelatedAdapter.append(fresh, endOfFeed = false)
+            } else {
+                ytRelatedEnded = true
+                ytRelatedAdapter.setLoading()
+            }
+            ytLoadingRelated = false
+            refreshYtUpNext()
+        }
+        ytRelatedList.post {
+            if (job.isActive && !isFinishing) ytRelatedAdapter.setLoading()
+        }
+    }
+
+    private fun refreshYtUpNext() {
+        ytUpNext = ytRelatedAdapter.peekFirst()
     }
 
     private fun showYtResolutionDialog() {

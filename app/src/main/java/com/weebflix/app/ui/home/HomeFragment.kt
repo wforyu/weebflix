@@ -12,6 +12,7 @@ import com.google.android.material.chip.ChipGroup
 import com.weebflix.app.R
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.provider.ProviderFactory
+import com.weebflix.app.ui.main.MainActivity
 import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
 class HomeFragment : Fragment() {
@@ -72,6 +73,7 @@ class HomeFragment : Fragment() {
     private fun selectProvider(providerId: String) {
         currentProviderId = providerId
         ProviderConfig.activeProviderId = providerId
+        (activity as? MainActivity)?.updateNavLabels()
 
         for (i in 0 until chipGroupProviders.childCount) {
             val chip = chipGroupProviders.getChildAt(i) as? Chip

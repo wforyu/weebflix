@@ -8,10 +8,13 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.weebflix.app.R
+import com.weebflix.app.data.config.ProviderConfig
+import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.ui.home.HomeFragment
 import com.weebflix.app.ui.ongoing.OngoingFragment
 import com.weebflix.app.ui.search.SearchFragment
 import com.weebflix.app.ui.settings.SettingsFragment
+import com.weebflix.app.ui.youtube.YouTubeHistoryFragment
 import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
 class MainActivity : AppCompatActivity() {
@@ -21,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private var homeFragment: HomeFragment? = null
     private var searchFragment: SearchFragment? = null
     private var ongoingFragment: OngoingFragment? = null
+    private var youtubeHistoryFragment: YouTubeHistoryFragment? = null
     private var youtubeFragment: YouTubeHomeFragment? = null
     private var settingsFragment: SettingsFragment? = null
     private var activeFragment: Fragment? = null
@@ -52,7 +56,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_ongoing -> {
-                    showFragment(getOngoingFragment())
+                    if (ProviderConfig.activeProviderId == ProviderFactory.YOUTUBE_ID) {
+                        showFragment(getYouTubeHistoryFragment())
+                    } else {
+                        showFragment(getOngoingFragment())
+                    }
                     true
                 }
                 R.id.nav_youtube -> {
@@ -71,6 +79,13 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+        updateNavLabels()
+    }
+
+    internal fun updateNavLabels() {
+        val isYt = ProviderConfig.activeProviderId == ProviderFactory.YOUTUBE_ID
+        bottomNav.menu.findItem(R.id.nav_ongoing).title =
+            if (isYt) getString(R.string.history) else getString(R.string.ongoing)
     }
 
     private fun showFragment(target: Fragment) {
@@ -119,6 +134,15 @@ class MainActivity : AppCompatActivity() {
             ?: YouTubeHomeFragment().also {
                 youtubeFragment = it
                 supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "youtube").hide(it).commitNow()
+            }
+    }
+
+    private fun getYouTubeHistoryFragment(): YouTubeHistoryFragment {
+        youtubeHistoryFragment?.let { return it }
+        return supportFragmentManager.findFragmentByTag("yt_history") as? YouTubeHistoryFragment
+            ?: YouTubeHistoryFragment().also {
+                youtubeHistoryFragment = it
+                supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, "yt_history").hide(it).commitNow()
             }
     }
 

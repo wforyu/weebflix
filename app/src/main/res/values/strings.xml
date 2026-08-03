@@ -70,6 +70,11 @@
     <string name="serie_terbaru">Serie Terbaru</string>
     <string name="provider_samehadaku">Samehadaku</string>
     <string name="youtube">YouTube</string>
+    <string name="history">Histori</string>
+    <string name="yt_related_title">Rekomendasi</string>
+    <string name="yt_history_empty">Belum ada video yang ditonton.\nPutar video dari feed atau pencarian, progres akan muncul di sini.</string>
+    <string name="yt_history_loading">Memuat histori…</string>
+    <string name="resume">Lanjut dari %1$s</string>
     <string name="provider_drakorkita">DrakorKita</string>
     <string name="provider_oppadrama">OppaDrama</string>
     <string name="trending_now">Trending Now</string>
