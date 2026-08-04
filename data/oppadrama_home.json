@@ -1,6 +1,66 @@
 {
   "hero": [
     {
+      "title": "The Shadow Sovereign Episode 15",
+      "url": "http://45.11.57.192/the-shadow-sovereign-episode-15/",
+      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/The-Shadow-Sovereign-2026.jpg?resize=246,350",
+      "episode": "Ep 15",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "GTO 2026 Episode 3",
+      "url": "http://45.11.57.192/gto-2026-episode-3/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/08/GTO-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "All or Nothing Episode 2",
+      "url": "http://45.11.57.192/all-or-nothing-episode-2/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/All-or-Nothing-2026.jpg?resize=246,350",
+      "episode": "Ep 2",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "1 Night 2 Days Season 4 Episode 337",
+      "url": "http://45.11.57.192/1-night-2-days-season-4-episode-337/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
+      "episode": "Ep 337",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie The Village (2004) WEBRip",
       "url": "http://45.11.57.192/movie-the-village-2004-webrip/",
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/08/The-Village-2004.jpg?resize=246,350",
@@ -89,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "My Bias, My Boss Episode 1",
-      "url": "http://45.11.57.192/my-bias-my-boss-episode-1/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/08/My-Bias-My-Boss-2026.jpg?resize=246,350",
-      "episode": "Ep 1",
+      "title": "The Shadow Sovereign Episode 15",
+      "url": "http://45.11.57.192/the-shadow-sovereign-episode-15/",
+      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/The-Shadow-Sovereign-2026.jpg?resize=246,350",
+      "episode": "Ep 15",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -106,10 +168,25 @@
       "latestUpdate": ""
     },
     {
-      "title": "Running Man Episode 814",
-      "url": "http://45.11.57.192/running-man-episode-814/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2021/05/Running-Man-2010-1.jpg?resize=246,350",
-      "episode": "Ep 814",
+      "title": "GTO 2026 Episode 3",
+      "url": "http://45.11.57.192/gto-2026-episode-3/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/08/GTO-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "All or Nothing Episode 2",
+      "url": "http://45.11.57.192/all-or-nothing-episode-2/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/All-or-Nothing-2026.jpg?resize=246,350",
+      "episode": "Ep 2",
       "type": "TV Show",
       "status": "",
       "score": "",
@@ -121,11 +198,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Royal Betrothal Episode 13",
-      "url": "http://45.11.57.192/royal-betrothal-episode-13/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Royal-Betrothal-2026.jpg?resize=246,350",
-      "episode": "Ep 13",
-      "type": "Drama",
+      "title": "1 Night 2 Days Season 4 Episode 337",
+      "url": "http://45.11.57.192/1-night-2-days-season-4-episode-337/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
+      "episode": "Ep 337",
+      "type": "TV Show",
       "status": "",
       "score": "",
       "studio": "",
@@ -135,23 +212,6 @@
       "genres": [],
       "latestUpdate": ""
     },
-    {
-      "title": "Overdo Episode 26",
-      "url": "http://45.11.57.192/overdo-episode-26/",
-      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/07/Overdo-2026.jpg?resize=246,350",
-      "episode": "Ep 26",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    }
-  ],
-  "latest": [
     {
       "title": "Movie The Village (2004) WEBRip",
       "url": "http://45.11.57.192/movie-the-village-2004-webrip/",
@@ -381,66 +441,6 @@
       "title": "Movie Keith (2008) WEBRip",
       "url": "http://45.11.57.192/movie-keith-2008-webrip/",
       "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/Keith-2008.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "X The League Episode 1",
-      "url": "http://45.11.57.192/x-the-league-episode-1/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/X-The-League-2026.jpg?resize=246,350",
-      "episode": "Ep 1",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie Pallichattambi (2026) WEBDL",
-      "url": "http://45.11.57.192/movie-pallichattambi-2026-webdl/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/Pallichattambi-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Knowing Bros Episode 538",
-      "url": "http://45.11.57.192/knowing-bros-episode-538/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2021/05/Knowing-Bros-2015-1.jpg?resize=246,350",
-      "episode": "Ep 538",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie HOUBA! On the Trail of the Marsupilami (2012) BluRay",
-      "url": "http://45.11.57.192/movie-houba-on-the-trail-of-the-marsupilami-2012-bluray/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/08/HOUBA-On-the-Trail-of-the-Marsupilami-2012.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
       "status": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1785810065323
+  "timestamp": 1785832386073
 }
