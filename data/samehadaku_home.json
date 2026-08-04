@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-1.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Mushoku Tensei : Isekai Ittara Honki Dasu Season 3",
-      "url": "https://v2.samehadaku.how/anime/mushoku-tensei-isekai-ittara-honki-dasu-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-8.jpg",
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
@@ -366,21 +381,6 @@
       "title": "Mao",
       "url": "https://v2.samehadaku.how/anime/mao/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Yomi no Tsugai",
-      "url": "https://v2.samehadaku.how/anime/yomi-no-tsugai/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/YominoTsugaiEpisode17.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1785852339833
+  "timestamp": 1785871702865
 }
