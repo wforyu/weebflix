@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Movie The Wrath of Becky (2023) WEBDL",
+      "url": "http://45.11.57.192/movie-the-wrath-of-becky-2023-webdl/",
+      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2023/06/The-Wrath-of-Becky-2023.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie In the Lost Lands (2025) BluRay",
+      "url": "http://45.11.57.192/movie-in-the-lost-lands-2025-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2025/04/In-the-Lost-Lands-2025.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "The Shadow Sovereign Episode 15",
       "url": "http://45.11.57.192/the-shadow-sovereign-episode-15/",
       "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/07/The-Shadow-Sovereign-2026.jpg?resize=246,350",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Dream to You Episode 7",
-      "url": "http://45.11.57.192/dream-to-you-episode-7/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/07/Dream-to-You-2026.jpg?resize=246,350",
-      "episode": "Ep 7",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mystic Nine Episode 12",
-      "url": "http://45.11.57.192/mystic-nine-episode-12/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Mystic-Nine-2026.jpg?resize=246,350",
-      "episode": "Ep 12",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Movie The Wrath of Becky (2023) WEBDL",
+      "url": "http://45.11.57.192/movie-the-wrath-of-becky-2023-webdl/",
+      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2023/06/The-Wrath-of-Becky-2023.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie In the Lost Lands (2025) BluRay",
+      "url": "http://45.11.57.192/movie-in-the-lost-lands-2025-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2025/04/In-the-Lost-Lands-2025.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "The Shadow Sovereign Episode 15",
       "url": "http://45.11.57.192/the-shadow-sovereign-episode-15/",
@@ -411,36 +441,6 @@
       "title": "Movie The 15:17 to Paris (2018) BluRay",
       "url": "http://45.11.57.192/movie-the-1517-to-paris-2018-bluray/",
       "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/08/The-1517-to-Paris-2018.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie Love Stuck (2024) WEBDL",
-      "url": "http://45.11.57.192/movie-love-stuck-2024-webdl/",
-      "imageUrl": "http://i2.wp.com/45.11.57.192/wp-content/uploads/2026/08/Love-Stuck-2024.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie Keith (2008) WEBRip",
-      "url": "http://45.11.57.192/movie-keith-2008-webrip/",
-      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/Keith-2008.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
       "status": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1785832386073
+  "timestamp": 1785852344059
 }
