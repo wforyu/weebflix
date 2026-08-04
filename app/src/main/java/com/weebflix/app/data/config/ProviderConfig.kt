@@ -26,6 +26,19 @@ object ProviderConfig {
 
     private const val KEY_BASE_URL_LEGACY = "base_url"
 
+    private const val KEY_YT_OAUTH_CLIENT_ID = "yt_oauth_client_id"
+    private const val KEY_YT_OAUTH_CLIENT_SECRET = "yt_oauth_client_secret"
+    private const val KEY_YT_OAUTH_REDIRECT = "yt_oauth_redirect"
+    private const val DEFAULT_YT_OAUTH_REDIRECT = "http://localhost:8080/callback"
+
+    // Built-in OAuth credentials (Google Cloud "Web application" client) so users can log
+    // in without touching Settings. NOTE: a client secret embedded in an APK can be
+    // extracted — acceptable for a private/friends build, NOT for public distribution
+    // (rotate + use a public "Android" OAuth client instead if the app goes public).
+    private const val BUILTIN_YT_OAUTH_CLIENT_ID =
+        "914593639860-r86nbk1r34f2eb46rl0c4l5rmqo7ijch.apps.googleusercontent.com"
+    private const val BUILTIN_YT_OAUTH_CLIENT_SECRET = "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"
+
     private lateinit var prefs: SharedPreferences
 
     private val oldDrakorDomains = listOf(
@@ -103,6 +116,33 @@ object ProviderConfig {
     var baseUrl: String
         get() = getBaseUrl(activeProviderId)
         set(value) = setBaseUrl(activeProviderId, value)
+
+    // ---- YouTube OAuth credentials (set from Settings) ----
+
+    fun getYtOAuthClientId(): String =
+        prefs.getString(KEY_YT_OAUTH_CLIENT_ID, BUILTIN_YT_OAUTH_CLIENT_ID) ?: BUILTIN_YT_OAUTH_CLIENT_ID
+
+    fun setYtOAuthClientId(value: String) {
+        val v = value.trim()
+        if (v.isEmpty()) prefs.edit().remove(KEY_YT_OAUTH_CLIENT_ID).apply()
+        else prefs.edit().putString(KEY_YT_OAUTH_CLIENT_ID, v).apply()
+    }
+
+    fun getYtOAuthClientSecret(): String =
+        prefs.getString(KEY_YT_OAUTH_CLIENT_SECRET, BUILTIN_YT_OAUTH_CLIENT_SECRET) ?: BUILTIN_YT_OAUTH_CLIENT_SECRET
+
+    fun setYtOAuthClientSecret(value: String) {
+        val v = value.trim()
+        if (v.isEmpty()) prefs.edit().remove(KEY_YT_OAUTH_CLIENT_SECRET).apply()
+        else prefs.edit().putString(KEY_YT_OAUTH_CLIENT_SECRET, v).apply()
+    }
+
+    fun getYtOAuthRedirectUri(): String =
+        prefs.getString(KEY_YT_OAUTH_REDIRECT, DEFAULT_YT_OAUTH_REDIRECT) ?: DEFAULT_YT_OAUTH_REDIRECT
+
+    fun setYtOAuthRedirectUri(value: String) {
+        prefs.edit().putString(KEY_YT_OAUTH_REDIRECT, value.trim().ifEmpty { DEFAULT_YT_OAUTH_REDIRECT }).apply()
+    }
 
     fun reset() {
         resetBaseUrl(activeProviderId)

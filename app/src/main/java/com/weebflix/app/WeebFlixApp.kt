@@ -1,6 +1,7 @@
 package com.weebflix.app
 
 import android.app.Application
+import com.weebflix.app.data.auth.YouTubeAuthManager
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.provider.AnimeProvider
 import com.weebflix.app.data.provider.ProviderFactory
@@ -15,6 +16,7 @@ class WeebFlixApp : Application() {
         super.onCreate()
         instance = this
         ProviderConfig.init(this)
+        YouTubeAuthManager.init(this)
         scraper = SamehadakuScraper()
         ProviderFactory.getAllProviders()
     }

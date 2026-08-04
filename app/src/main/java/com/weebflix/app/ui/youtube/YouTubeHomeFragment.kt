@@ -8,12 +8,15 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.weebflix.app.R
+import com.weebflix.app.data.auth.YouTubeAuthManager
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
@@ -27,12 +30,20 @@ class YouTubeHomeFragment : Fragment() {
     private lateinit var ytFeed: RecyclerView
     private lateinit var ytError: TextView
     private lateinit var ytRefresh: SwipeRefreshLayout
+    private lateinit var ytBtnLogin: TextView
     private lateinit var adapter: YouTubeFeedAdapter
 
     private val scraper by lazy { YouTubeScraper() }
     private var isLoading = false
     private var endReached = false
     private var loadJob: Job? = null
+
+    private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            updateLoginUi()
+            Toast.makeText(requireContext(), "Login berhasil: ${YouTubeAuthManager.email()}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -48,6 +59,7 @@ class YouTubeHomeFragment : Fragment() {
         ytFeed = view.findViewById(R.id.ytFeed)
         ytError = view.findViewById(R.id.ytError)
         ytRefresh = view.findViewById(R.id.ytRefresh)
+        ytBtnLogin = view.findViewById(R.id.ytBtnLogin)
 
         adapter = YouTubeFeedAdapter { video -> openVideo(video) }
         ytFeed.layoutManager = LinearLayoutManager(requireContext())
@@ -64,8 +76,11 @@ class YouTubeHomeFragment : Fragment() {
             Toast.makeText(requireContext(), "Cast belum tersedia di prototype", Toast.LENGTH_SHORT).show()
         }
         view.findViewById<ImageView>(R.id.ytBtnNotifications).setOnClickListener {
-            Toast.makeText(requireContext(), "Login diperlukan untuk notifikasi", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Notifikasi butuh login", Toast.LENGTH_SHORT).show()
         }
+        ytBtnLogin.setOnClickListener { onLoginClicked() }
+
+        updateLoginUi()
 
         ytFeed.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -139,6 +154,48 @@ class YouTubeHomeFragment : Fragment() {
         endReached = false
         ytError.visibility = View.GONE
         loadMore()
+    }
+
+    private fun onLoginClicked() {
+        if (YouTubeAuthManager.isLoggedIn()) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Akun YouTube")
+                .setMessage("Masuk sebagai ${YouTubeAuthManager.email()}\n\nKeluar dari akun?")
+                .setNegativeButton("Batal", null)
+                .setPositiveButton("Keluar") { _, _ ->
+                    YouTubeAuthManager.logout()
+                    updateLoginUi()
+                    Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        } else {
+            if (!YouTubeAuthManager.isConfigured()) {
+                Toast.makeText(
+                    requireContext(),
+                    "OAuth belum dikonfigurasi. Isi Client ID di Settings → provider YouTube.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+            loginLauncher.launch(Intent(requireContext(), YouTubeLoginActivity::class.java))
+        }
+    }
+
+    private fun updateLoginUi() {
+        if (!isAdded) return
+        if (YouTubeAuthManager.isLoggedIn()) {
+            val email = YouTubeAuthManager.email()
+            ytBtnLogin.text = email.substringBefore('@').takeIf { it.isNotEmpty() } ?: "Akun"
+            ytBtnLogin.setTextColor(0xFFB3B3B3.toInt())
+        } else {
+            ytBtnLogin.setText(R.string.yt_login)
+            ytBtnLogin.setTextColor(0xFFE50914.toInt())
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateLoginUi()
     }
 
     private fun openVideo(video: YouTubeVideo) {

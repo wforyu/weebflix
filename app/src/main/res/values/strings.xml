@@ -89,4 +89,13 @@
     <string name="build_commit">Commit</string>
     <string name="build_date">Tanggal Build</string>
     <string name="build_type">Tipe Build</string>
+    <string name="yt_login">Masuk</string>
+    <string name="yt_logout">Keluar dari akun</string>
+    <string name="check_update">Periksa Pembaruan</string>
+    <string name="update_checking">Memeriksa pembaruan…</string>
+    <string name="update_latest">Sudah versi terbaru</string>
+    <string name="update_available">Pembaruan tersedia</string>
+    <string name="update_download">Unduh</string>
+    <string name="update_failed">Gagal memeriksa pembaruan. Cek koneksi internet.</string>
+    <string name="developer_by">by github.com/wforyu/weebflix (Cw)</string>
 </resources>

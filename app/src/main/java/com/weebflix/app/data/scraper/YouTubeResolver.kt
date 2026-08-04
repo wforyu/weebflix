@@ -1,6 +1,7 @@
 package com.weebflix.app.data.scraper
 
 import android.util.Log
+import com.weebflix.app.data.auth.YouTubeAuthManager
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,6 +31,11 @@ object YouTubeResolver {
     }
 
     private val memo = ConcurrentHashMap<String, ResolvedYouTube>()
+
+    /** Drops cached resolutions (e.g. after login/logout so blocked results are re-fetched with auth). */
+    fun clearMemo() {
+        memo.clear()
+    }
 
     @Volatile private var visitorData: String? = null
     private val visitorLock = Any()
@@ -159,6 +165,15 @@ object YouTubeResolver {
             .addHeader("Content-Type", "application/json")
             .addHeader("Origin", "https://www.youtube.com")
             .apply { if (visitor != null) addHeader("X-Goog-Visitor-Id", visitor) }
+            .apply {
+                // Logged-in player requests bypass the LOGIN_REQUIRED bot-gate that blocks
+                // Content-ID / embedding-disabled videos on plain (anonymous) requests.
+                YouTubeAuthManager.getAccessToken()?.let { token ->
+                    Log.d(TAG, "player ${ctx.clientName} auth=Bearer")
+                    addHeader("Authorization", "Bearer $token")
+                    addHeader("X-Goog-AuthUser", "0")
+                }
+            }
             .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
