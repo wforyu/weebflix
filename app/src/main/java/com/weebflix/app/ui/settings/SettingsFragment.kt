@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 
 class SettingsFragment : Fragment() {
@@ -219,14 +220,18 @@ class SettingsFragment : Fragment() {
             Toast.makeText(requireContext(), getString(R.string.update_checking), Toast.LENGTH_SHORT).show()
             val release = withContext(Dispatchers.IO) {
                 try {
+                    // `releases/latest` returns 404 when all releases are pre-releases,
+                    // so fetch the newest release from the list instead.
                     val request = Request.Builder()
-                        .url("https://api.github.com/repos/wforyu/weebflix/releases/latest")
+                        .url("https://api.github.com/repos/wforyu/weebflix/releases?per_page=1")
                         .header("Accept", "application/vnd.github+json")
                         .header("User-Agent", "WeebFlix")
                         .build()
                     client.newCall(request).execute().use { resp ->
                         if (!resp.isSuccessful) return@use null
-                        val json = JSONObject(resp.body?.string() ?: "")
+                        val arr = JSONArray(resp.body?.string() ?: "")
+                        if (arr.length() == 0) return@use null
+                        val json = arr.getJSONObject(0)
                         json.optString("tag_name", "") to json.optString("html_url", "")
                     }
                 } catch (e: Exception) {
