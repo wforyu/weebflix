@@ -190,6 +190,156 @@ class YouTubeScraper : AnimeProvider {
         return best
     }
 
+    // ---- Related videos (youtubei/v1/next) ----
+
+    /** Picks the widest source URL from an innertube `sources` array. */
+    private fun pickFromSources(arr: JSONArray?): String {
+        if (arr == null || arr.length() == 0) return ""
+        var best = ""
+        var bestW = 0
+        for (i in 0 until arr.length()) {
+            val t = arr.optJSONObject(i) ?: continue
+            val w = t.optInt("width", 0)
+            if (w >= bestW) {
+                bestW = w
+                best = t.optString("url", "")
+            }
+        }
+        return best
+    }
+
+    /** The current watch-next layout uses `lockupViewModel` (not compactVideoRenderer) for
+     *  related videos. contentType distinguishes videos from Shorts shelves. */
+    private fun parseLockupViewModel(l: JSONObject): YouTubeVideo? {
+        val videoId = l.optString("contentId", "")
+        if (videoId.isEmpty()) return null
+        val contentType = l.optString("contentType", "")
+        if (contentType.isNotEmpty() && contentType != "LOCKUP_CONTENT_TYPE_VIDEO") return null
+        val md = l.optJSONObject("metadata")?.optJSONObject("lockupMetadataViewModel") ?: return null
+        val title = md.optJSONObject("title")?.optString("content", "").orEmpty()
+        if (title.isEmpty()) return null
+        val rows = md.optJSONObject("metadata")
+            ?.optJSONObject("contentMetadataViewModel")
+            ?.optJSONArray("metadataRows") ?: JSONArray()
+        fun part(row: Int, col: Int = 0): String {
+            val r = rows.optJSONObject(row) ?: return ""
+            val parts = r.optJSONArray("metadataParts") ?: return ""
+            return parts.optJSONObject(col)?.optJSONObject("text")?.optString("content", "") ?: ""
+        }
+        val channel = part(0)
+        val views = part(1)
+        val published = part(1, 1)
+        val img = l.optJSONObject("contentImage")?.optJSONObject("thumbnailViewModel")?.optJSONObject("image")
+        val thumbnail = pickFromSources(img?.optJSONArray("sources"))
+        val channelThumb = pickFromSources(md.optJSONObject("image")
+            ?.optJSONObject("decoratedAvatarViewModel")?.optJSONObject("avatar")
+            ?.optJSONObject("avatarViewModel")?.optJSONObject("image")?.optJSONArray("sources"))
+        var duration = ""
+        val overlays = img?.optJSONArray("overlays")
+        if (overlays != null && overlays.length() > 0) {
+            val badges = overlays.optJSONObject(0)
+                ?.optJSONObject("thumbnailBottomOverlayViewModel")
+                ?.optJSONArray("badges")
+            if (badges != null && badges.length() > 0) {
+                duration = badges.optJSONObject(0)
+                    ?.optJSONObject("thumbnailBadgeViewModel")
+                    ?.optString("text", "") ?: ""
+            }
+        }
+        return YouTubeVideo(
+            videoId = videoId,
+            title = title,
+            channel = channel,
+            channelThumb = channelThumb,
+            thumbnail = thumbnail,
+            duration = duration,
+            views = views,
+            published = published
+        )
+    }
+
+    /** Collects every `lockupViewModel` object anywhere in the JSON tree. */
+    private fun collectLockupViewModel(node: Any?, out: MutableList<JSONObject>) {
+        when (node) {
+            is JSONObject -> {
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    if (key == "lockupViewModel") {
+                        node.optJSONObject(key)?.let { out += it }
+                    } else {
+                        collectLockupViewModel(node.opt(key), out)
+                    }
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) collectLockupViewModel(node.opt(i), out)
+            }
+        }
+    }
+
+    /** Recursively finds the `continuationCommand.token` used to page the related feed. */
+    private fun findContinuationToken(node: Any?): String {
+        when (node) {
+            is JSONObject -> {
+                val cir = node.optJSONObject("continuationItemRenderer")
+                if (cir != null) {
+                    val tok = cir.optJSONObject("continuationEndpoint")
+                        ?.optJSONObject("continuationCommand")
+                        ?.optString("token", "").orEmpty()
+                    if (tok.isNotEmpty()) return tok
+                }
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val t = findContinuationToken(node.opt(keys.next()))
+                    if (t.isNotEmpty()) return t
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) {
+                    val t = findContinuationToken(node.opt(i))
+                    if (t.isNotEmpty()) return t
+                }
+            }
+        }
+        return ""
+    }
+
+    /** First page of real related videos for a videoId (YouTube's own "Up Next" list), so the
+     *  related feed always matches the content being played (dangdut -> dangdut, game -> game...). */
+    suspend fun relatedVideos(videoId: String): RelatedPage = withContext(Dispatchers.IO) {
+        val res = post("next") { it.put("videoId", videoId) }
+        val json = res.json ?: return@withContext RelatedPage()
+        val secondary = json.optJSONObject("contents")
+            ?.optJSONObject("twoColumnWatchNextResults")
+            ?.optJSONObject("secondaryResults")
+            ?.optJSONObject("secondaryResults")
+            ?: return@withContext RelatedPage()
+        val out = mutableListOf<JSONObject>()
+        collectLockupViewModel(secondary, out)
+        RelatedPage(
+            videos = out.mapNotNull { parseLockupViewModel(it) }.distinctBy { it.videoId },
+            continuation = findContinuationToken(secondary)
+        )
+    }
+
+    /** Next page of related videos via the continuation token from [relatedVideos]. */
+    suspend fun nextRelatedPage(continuation: String): RelatedPage = withContext(Dispatchers.IO) {
+        if (continuation.isEmpty()) return@withContext RelatedPage()
+        val res = post("next") { it.put("continuation", continuation) }
+        val json = res.json ?: return@withContext RelatedPage()
+        val items = json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
+            ?.optJSONObject("appendContinuationItemsAction")
+            ?.optJSONArray("continuationItems")
+            ?: return@withContext RelatedPage()
+        val out = mutableListOf<JSONObject>()
+        collectLockupViewModel(items, out)
+        RelatedPage(
+            videos = out.mapNotNull { parseLockupViewModel(it) }.distinctBy { it.videoId },
+            continuation = findContinuationToken(items)
+        )
+    }
+
     // ---- public API used by the YouTube UI ----
 
     private var homeCache: YouTubeHome? = null

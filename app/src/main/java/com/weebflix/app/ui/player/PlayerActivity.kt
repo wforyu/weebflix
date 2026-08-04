@@ -337,6 +337,7 @@ class PlayerActivity : AppCompatActivity() {
     private var currentYtVideoId: String = ""
     private var ytLoadingRelated = false
     private var ytRelatedEnded = false
+    private var ytRelatedContinuation: String = ""
     private var ytUpNext: YouTubeVideo? = null
     private var startPositionMs: Long = 0L
     private var pendingYtSeekMs: Long = 0L
@@ -504,7 +505,12 @@ class PlayerActivity : AppCompatActivity() {
             val statusBar = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top
             v.setPadding(v.paddingLeft, statusBar.coerceAtLeast(8), v.paddingRight, v.paddingBottom)
             val navBarHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
-            bottomBar.setPadding(bottomBar.paddingLeft, bottomBar.paddingTop, bottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
+            // The bottom bar overlays the video. In YouTube portrait it sits inside the small
+            // 16:9 strip (not at the screen bottom), so adding nav-bar padding there would push
+            // it up into the center play button — skip it. Fullscreen players keep the padding.
+            if (activeProviderId != com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID || ytFullscreen) {
+                bottomBar.setPadding(bottomBar.paddingLeft, bottomBar.paddingTop, bottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
+            }
             wvTopBar.setPadding(wvTopBar.paddingLeft, statusBar.coerceAtLeast(8), wvTopBar.paddingRight, wvTopBar.paddingBottom)
             wvBottomBar.setPadding(wvBottomBar.paddingLeft, wvBottomBar.paddingTop, wvBottomBar.paddingRight, navBarHeight.coerceAtLeast(12))
             insets
@@ -3572,6 +3578,19 @@ class PlayerActivity : AppCompatActivity() {
     private var isGestureActive: Boolean = false
     private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek
 
+    /** Bottom of the swipe/dead zone for the gesture overlay. When the bottom bar is a root-level
+     *  view that sits below the gesture area (YouTube portrait: video is a 16:9 strip at the top)
+     *  there is nothing to avoid, so the whole gesture area stays usable. In fullscreen players
+     *  the bottom bar overlaps the gesture area and its height is reserved. */
+    private fun gestureDeadZoneBottom(): Int {
+        val gh = gestureOverlay.height
+        return if (bottomBar.top >= gh) {
+            (gh - 20).coerceAtLeast(0)
+        } else {
+            (gh - bottomBar.height - 20).coerceAtLeast(0)
+        }
+    }
+
     private fun setupGestureDetector() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
@@ -3584,7 +3603,7 @@ class PlayerActivity : AppCompatActivity() {
                 val tapX = e.x
                 val centerX = viewWidth / 2f
                 val deadZoneTop = topBar.height + 20
-                val deadZoneBottom = gestureOverlay.height - bottomBar.height - 20
+                val deadZoneBottom = gestureDeadZoneBottom()
 
                 if (e.y in deadZoneTop.toFloat()..deadZoneBottom.toFloat()) {
                     if (tapX < centerX) {
@@ -3602,7 +3621,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (e1 == null) return false
 
                 val deadZoneTop = topBar.height + 10
-                val deadZoneBottom = gestureOverlay.height - bottomBar.height - 10
+                val deadZoneBottom = gestureDeadZoneBottom()
                 val startInDeadZone = e1.y < deadZoneTop || e1.y > deadZoneBottom
                 if (startInDeadZone) return false
 
@@ -4575,8 +4594,10 @@ class PlayerActivity : AppCompatActivity() {
         episodeTitle = video.title
         episodeNumber = "1"
         ytUpNext = null
-        ytRelatedAdapter.removeVideo(video.videoId)
-        refreshYtUpNext()
+        ytRelatedContinuation = ""
+        ytLoadingRelated = false
+        ytRelatedEnded = false
+        ytRelatedAdapter.clear()
         playYouTubeVideo(video.videoId, 0L)
     }
 
@@ -4584,17 +4605,34 @@ class PlayerActivity : AppCompatActivity() {
         if (ytLoadingRelated || ytRelatedEnded) return
         ytLoadingRelated = true
         val job = lifecycleScope.launch {
+            val c = ytRelatedContinuation
             val page = try {
-                withContext(Dispatchers.IO) { ytScraper.nextFeedPage() }
+                withContext(Dispatchers.IO) {
+                    if (c.isEmpty()) ytScraper.relatedVideos(currentYtVideoId)
+                    else ytScraper.nextRelatedPage(c)
+                }
             } catch (e: Exception) {
-                emptyList()
+                com.weebflix.app.data.scraper.RelatedPage()
             }
-            val fresh = page.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
+            val fresh = page.videos.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
             if (fresh.isNotEmpty()) {
                 ytRelatedAdapter.append(fresh, endOfFeed = false)
-            } else {
-                ytRelatedEnded = true
-                ytRelatedAdapter.setLoading()
+                ytRelatedContinuation = page.continuation
+            } else if (page.continuation.isEmpty()) {
+                // Related endpoint failed or returned nothing -> fall back to the generic
+                // endless feed so the list is never left stranded.
+                val fallback = try {
+                    withContext(Dispatchers.IO) { ytScraper.nextFeedPage() }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                val freshFb = fallback.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
+                if (freshFb.isNotEmpty()) {
+                    ytRelatedAdapter.append(freshFb, endOfFeed = false)
+                } else {
+                    ytRelatedEnded = true
+                    ytRelatedAdapter.setLoading()
+                }
             }
             ytLoadingRelated = false
             refreshYtUpNext()

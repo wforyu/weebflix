@@ -324,235 +324,240 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
-    <!-- Auto-play Next Episode Overlay -->
-    <LinearLayout
-        android:id="@+id/autoPlayOverlay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="80dp"
-        android:background="@drawable/bg_skip_intro"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="16dp"
-        android:visibility="gone"
-        tools:visibility="visible">
-
-        <TextView
-            android:id="@+id/tvAutoPlayTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/next_episode"
-            android:textColor="@color/netflix_red"
-            android:textSize="12sp"
-            android:textAllCaps="false"
-            tools:text="Episode 2 - The Morning" />
-
-        <TextView
-            android:id="@+id/tvAutoPlayCountdown"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp"
-            tools:text="5" />
-
+        <!-- Auto-play Next Episode Overlay (compact — sits at the bottom-right of the video area,
+             above the bottom bar, inside the small player) -->
         <LinearLayout
+            android:id="@+id/autoPlayOverlay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="80dp"
+            android:background="@drawable/bg_skip_intro"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
 
             <TextView
-                android:id="@+id/btnCancelAutoPlay"
+                android:id="@+id/tvAutoPlayTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_chip"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="6dp"
-                android:text="@string/cancel"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:textAllCaps="false" />
-
-            <TextView
-                android:id="@+id/btnPlayNow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_chip_active"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="6dp"
-                android:text="@string/play_now"
-                android:textColor="@color/white"
-                android:textSize="12sp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="240dp"
+                android:text="@string/next_episode"
+                android:textColor="@color/netflix_red"
+                android:textSize="10sp"
                 android:textAllCaps="false"
-                android:layout_marginStart="8dp" />
+                tools:text="Episode 2 - The Morning" />
+
+            <TextView
+                android:id="@+id/tvAutoPlayCountdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="5" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnCancelAutoPlay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_chip"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
+                    android:text="@string/cancel"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textAllCaps="false" />
+
+                <TextView
+                    android:id="@+id/btnPlayNow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_chip_active"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
+                    android:text="@string/play_now"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textAllCaps="false" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- Netflix-style Bottom Controls Bar -->
-    <LinearLayout
-        android:id="@+id/bottomBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@drawable/bg_gradient_bottom"
-        android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="12dp"
-        android:paddingTop="32dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="visible">
-
-        <!-- Current time / Seek bar / Duration -->
+        <!-- Netflix-style Bottom Controls Bar (compact — overlays the bottom of the video area.
+             In YouTube portrait the video is a 16:9 strip, so this compact bar stays below the
+             center play/pause and never collides with it) -->
         <LinearLayout
+            android:id="@+id/bottomBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_gradient_bottom"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingBottom="6dp"
+            android:paddingTop="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="visible">
 
-            <TextView
-                android:id="@+id/tvCurrentTime"
-                android:layout_width="wrap_content"
+            <!-- Current time / Seek bar / Duration -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:text="00:00" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <SeekBar
-                android:id="@+id/seekBar"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_weight="1"
-                android:layout_marginHorizontal="8dp"
-                android:max="100"
-                android:progressDrawable="@drawable/seekbar_progress"
-                android:thumbTint="@color/netflix_red"
-                android:progressTint="@color/netflix_red"
-                android:splitTrack="false" />
+                <TextView
+                    android:id="@+id/tvCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:text="00:00" />
 
-            <TextView
-                android:id="@+id/tvTotalTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:text="00:00" />
+                <SeekBar
+                    android:id="@+id/seekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="22dp"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="8dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/seekbar_progress"
+                    android:thumbTint="@color/netflix_red"
+                    android:progressTint="@color/netflix_red"
+                    android:splitTrack="false" />
+
+                <TextView
+                    android:id="@+id/tvTotalTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <!-- Control buttons row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_player_pause"
+                    android:contentDescription="Play/Pause"
+                    android:scaleType="centerInside" />
+
+                <ImageView
+                    android:id="@+id/btnPrevEp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_player_skip_backward"
+                    android:contentDescription="Rewind 10s"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="6dp" />
+
+                <ImageView
+                    android:id="@+id/btnNextEp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_player_skip_forward"
+                    android:contentDescription="Forward 10s"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="4dp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Prev Episode -->
+                <TextView
+                    android:id="@+id/btnPrevEpisode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:paddingHorizontal="8dp"
+                    android:text="← Ep"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textAllCaps="false"
+                    android:visibility="gone" />
+
+                <!-- Server selector text -->
+                <TextView
+                    android:id="@+id/tvServerName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/netflix_text_secondary"
+                    android:textSize="11sp"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:background="@drawable/bg_chip"
+                    android:layout_marginStart="6dp"
+                    tools:text="Server 1" />
+
+                <!-- Next Episode -->
+                <TextView
+                    android:id="@+id/btnNextEpisode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:background="@drawable/bg_chip_active"
+                    android:gravity="center"
+                    android:paddingHorizontal="8dp"
+                    android:text="Ep →"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textAllCaps="false"
+                    android:layout_marginStart="6dp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/btnQuality"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_player_quality"
+                    android:contentDescription="Resolusi video"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/btnFullscreen"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_player_fullscreen"
+                    android:contentDescription="Fullscreen"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="6dp" />
+
+            </LinearLayout>
         </LinearLayout>
-
-        <!-- Control buttons row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-
-            <ImageView
-                android:id="@+id/btnPlayPause"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:padding="10dp"
-                android:src="@drawable/ic_player_pause"
-                android:contentDescription="Play/Pause"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:id="@+id/btnPrevEp"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_player_skip_backward"
-                android:contentDescription="Rewind 10s"
-                android:scaleType="centerInside"
-                android:layout_marginStart="8dp" />
-
-            <ImageView
-                android:id="@+id/btnNextEp"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_player_skip_forward"
-                android:contentDescription="Forward 10s"
-                android:scaleType="centerInside"
-                android:layout_marginStart="4dp" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <!-- Prev Episode -->
-            <TextView
-                android:id="@+id/btnPrevEpisode"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_chip"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:text="← Ep"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textAllCaps="false"
-                android:visibility="gone" />
-
-            <!-- Server selector text -->
-            <TextView
-                android:id="@+id/tvServerName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/netflix_text_secondary"
-                android:textSize="12sp"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:background="@drawable/bg_chip"
-                android:layout_marginStart="6dp"
-                tools:text="Server 1" />
-
-            <!-- Next Episode -->
-            <TextView
-                android:id="@+id/btnNextEpisode"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_chip_active"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:text="Ep →"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textAllCaps="false"
-                android:layout_marginStart="6dp"
-                android:visibility="gone" />
-
-            <ImageView
-                android:id="@+id/btnQuality"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_player_quality"
-                android:contentDescription="Resolusi video"
-                android:scaleType="centerInside"
-                android:layout_marginStart="8dp"
-                android:visibility="gone" />
-
-            <ImageView
-                android:id="@+id/btnFullscreen"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_player_fullscreen"
-                android:contentDescription="Fullscreen"
-                android:scaleType="centerInside"
-                android:layout_marginStart="8dp" />
-
-        </LinearLayout>
-    </LinearLayout>
 
         </FrameLayout>
         <!-- /playerArea -->

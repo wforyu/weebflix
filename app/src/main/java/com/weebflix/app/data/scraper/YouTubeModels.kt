@@ -31,6 +31,12 @@ data class YouTubeHome(
     val music: List<YouTubeVideo> = emptyList()
 )
 
+/** One page of related videos (youtubei/v1/next) + the continuation token for the next page. */
+data class RelatedPage(
+    val videos: List<YouTubeVideo> = emptyList(),
+    val continuation: String = ""
+)
+
 data class YouTubeStream(
     val url: String = "",
     val mimeType: String = "",

@@ -98,6 +98,10 @@ class SamehadakuScraper : AnimeProvider {
     }
 
     private fun fetchHtml(url: String): String {
+        if (!url.startsWith("http")) {
+            Log.w("Scraper", "fetchHtml skipped non-http scheme: $url")
+            return ""
+        }
         val request = Request.Builder()
             .url(url)
             .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
@@ -554,8 +558,8 @@ class SamehadakuScraper : AnimeProvider {
 
             val doc = Jsoup.parse(html)
             doc.select("iframe[src]").firstOrNull()?.attr("src")?.let { nestedSrc ->
-                if (nestedSrc.isNotEmpty()) {
-                    val nestedUrl = normalizeUrl(nestedSrc, embedUrl)
+                val nestedUrl = normalizeUrl(nestedSrc, embedUrl)
+                if (nestedUrl.startsWith("http") && nestedUrl.isNotEmpty()) {
                     Log.d("Scraper", "Following nested iframe: $nestedUrl")
                     val nestedHtml = fetchHtml(nestedUrl)
                     if (isCloudflareChallenge(nestedHtml)) {
@@ -596,9 +600,10 @@ class SamehadakuScraper : AnimeProvider {
             val root = org.json.JSONObject(dataPage)
             val props = root.optJSONObject("props") ?: return ""
             val media = props.optJSONObject("media")
-            val hlsUrl = media?.optString("hls_url", "") ?: ""
-            if (hlsUrl.isNotEmpty()) return hlsUrl
-            props.optString("url", "")
+            val hlsVal = media?.opt("hls_url")
+            if (hlsVal is String && hlsVal.isNotEmpty()) return hlsVal
+            val urlVal = props.opt("url")
+            if (urlVal is String && urlVal.isNotEmpty()) urlVal else ""
         } catch (e: Exception) {
             Log.w("Scraper", "Failed to parse filedon data-page: ${e.message}")
             ""
