@@ -18,10 +18,11 @@ import java.util.concurrent.TimeUnit
 /**
  * Google OAuth (Authorization Code + PKCE) for the YouTube provider.
  *
- * Login flow: [buildAuthUrl] -> user signs in on accounts.google.com inside
- * YouTubeLoginActivity's WebView -> Google redirects to [redirectUri] carrying
- * `?code=..&state=..` -> [exchangeCode] swaps it for an access + refresh token
- * (loopback redirect is intercepted by the WebView; no local HTTP server needed).
+ * Login flow: [buildAuthUrl] -> user signs in on accounts.google.com in the
+ * system browser (Google blocks embedded WebViews) -> the browser redirects to
+ * [redirectUri] carrying `?code=..&state=..`, which a loopback HTTP server
+ * (LoopbackOAuthServer in YouTubeLoginActivity) captures -> [exchangeCode] swaps
+ * it for an access + refresh token.
  *
  * The access token is injected as `Authorization: Bearer` on `youtubei/v1/player`
  * requests (see YouTubeResolver.fetchPlayer). A logged-in player request does NOT
@@ -46,7 +47,7 @@ object YouTubeAuthManager {
 
     private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
     private const val AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-    private const val SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
+    private const val SCOPE = "https://www.googleapis.com/auth/youtube"
 
     private val rng = SecureRandom()
 

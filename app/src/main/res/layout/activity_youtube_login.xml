@@ -40,11 +40,16 @@
         android:textSize="12sp"
         android:text="Masuk dengan akun Google pribadi. Pastikan email didaftarkan sebagai Test User di Google Cloud Console (Testing mode) agar refresh token diberikan." />
 
-    <WebView
-        android:id="@+id/ytLoginWeb"
+    <TextView
+        android:id="@+id/ytLoginStatus"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="24dp"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:text="Menyiapkan login..." />
 
     <TextView
         android:id="@+id/ytLoginError"

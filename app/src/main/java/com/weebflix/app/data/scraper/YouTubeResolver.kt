@@ -91,27 +91,42 @@ object YouTubeResolver {
             ClientContext("WEB_EMBEDDED_PLAYER", "1.20260731.00.00", 0, embed = true, key = INNERTUBE_WEB_KEY, ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
         )
 
-        var lastError = ""
-        var blockReason = ""
-        for (i in clients.indices) {
-            val ctx = clients[i]
-            try {
-                val result = fetchPlayer(videoId, ctx)
-                if (result.flagged) break
-                if (result.blockReason.isNotEmpty()) blockReason = result.blockReason
-                if (result.streams != null && !result.streams.isEmpty) {
-                    memo[videoId] = result.streams
-                    return result.streams
+        fun tryClients(auth: Boolean): Pair<ResolvedYouTube?, String> {
+            var blockReason = ""
+            for (i in clients.indices) {
+                val ctx = clients[i]
+                try {
+                    val result = fetchPlayer(videoId, ctx, auth)
+                    if (result.flagged) return null to blockReason
+                    if (result.blockReason.isNotEmpty()) blockReason = result.blockReason
+                    if (result.streams != null && !result.streams.isEmpty) return result.streams to blockReason
+                } catch (e: Exception) {
+                    Log.w(TAG, "client ${ctx.clientName} failed: ${e.message}")
                 }
-                lastError = "empty for ${ctx.clientName}"
-            } catch (e: Exception) {
-                lastError = "${ctx.clientName}: ${e.message}"
-                Log.w(TAG, "client ${ctx.clientName} failed: ${e.message}")
+                if (i < clients.lastIndex) Thread.sleep(2500)
             }
-            if (i < clients.lastIndex) Thread.sleep(2500)
+            return null to blockReason
         }
 
-        Log.w(TAG, "innertube failed ($lastError), falling back to Invidious")
+        var blockReason = ""
+        if (YouTubeAuthManager.getAccessToken() != null) {
+            val (authed, authedBr) = tryClients(auth = true)
+            blockReason = authedBr
+            if (authed != null) {
+                memo[videoId] = authed
+                return authed
+            }
+            Log.w(TAG, "authenticated player failed (likely HTTP 400 INVALID_ARGUMENT), retrying anonymous")
+        }
+
+        val (anon, anonBr) = tryClients(auth = false)
+        if (anon != null) {
+            memo[videoId] = anon
+            return anon
+        }
+        if (anonBr.isNotEmpty()) blockReason = anonBr
+
+        Log.w(TAG, "innertube failed, falling back to Invidious")
         val invidious = fetchInvidious(videoId)
         if (invidious != null) {
             memo[videoId] = invidious
@@ -137,7 +152,7 @@ object YouTubeResolver {
 
     private data class PlayerResult(val streams: ResolvedYouTube?, val flagged: Boolean, val blockReason: String = "")
 
-    private fun fetchPlayer(videoId: String, ctx: ClientContext): PlayerResult {
+    private fun fetchPlayer(videoId: String, ctx: ClientContext, auth: Boolean): PlayerResult {
         val visitor = ensureVisitor()
         val clientJson = JSONObject()
             .put("clientName", ctx.clientName)
@@ -166,12 +181,16 @@ object YouTubeResolver {
             .addHeader("Origin", "https://www.youtube.com")
             .apply { if (visitor != null) addHeader("X-Goog-Visitor-Id", visitor) }
             .apply {
-                // Logged-in player requests bypass the LOGIN_REQUIRED bot-gate that blocks
-                // Content-ID / embedding-disabled videos on plain (anonymous) requests.
-                YouTubeAuthManager.getAccessToken()?.let { token ->
-                    Log.d(TAG, "player ${ctx.clientName} auth=Bearer")
-                    addHeader("Authorization", "Bearer $token")
-                    addHeader("X-Goog-AuthUser", "0")
+                // Logged-in requests bypass the LOGIN_REQUIRED bot-gate, but YouTube currently
+                // rejects OAuth bearer innertube calls with HTTP 400 INVALID_ARGUMENT (open
+                // YouTube.js #916/#803, affects all third-party clients). Auth is therefore a
+                // best-effort first pass only -- resolve() falls back to anonymous requests.
+                if (auth) {
+                    YouTubeAuthManager.getAccessToken()?.let { token ->
+                        Log.d(TAG, "player ${ctx.clientName} auth=Bearer")
+                        addHeader("Authorization", "Bearer $token")
+                        addHeader("X-Goog-AuthUser", "0")
+                    }
                 }
             }
             .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -180,7 +199,7 @@ object YouTubeResolver {
         val respJson = client.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful) {
                 Log.w(TAG, "player ${ctx.clientName} HTTP ${resp.code}")
-                return PlayerResult(null, flagged = resp.code == 400)
+                return PlayerResult(null, flagged = resp.code == 400 || (auth && (resp.code == 401 || resp.code == 403)))
             }
             JSONObject(resp.body?.string() ?: "")
         }
