@@ -342,6 +342,59 @@ Urutan mengikuti dependency graph (bawah dulu, atas terakhir). Item ✅ otomatis
 8. **`data/model/ProviderDataCache` + `.github/workflows/scrape-providers.yml` + `scripts/scrape_providers.py`** — opsional, hanya kalau mau pre-scrape cache GitHub untuk home provider itu.
 9. **Testing** — build: `.\gradlew.bat installDebug`; verifikasi chip muncul, home load, detail, player, settings domain-switch.
 
+## Coding Rules (di-generate dari pola existing, 2026-08)
+Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola kode yang sudah ada; verifikasi = build + on-device (tidak ada unit test: `app/src/test` & `app/src/androidTest` kosong).
+
+### Umum (Kotlin)
+- Indentasi 4 spasi; `{` di akhir baris (K&R); satu statement per baris; import diurutkan (android → androidx → com.weebflix → kotlinx → java).
+- Penamaan: camelCase untuk fungsi/variabel, PascalCase untuk class, `UPPER_SNAKE` untuk `const`/companion. Tidak ada leading underscore.
+- Komentar minim — hanya untuk konteks non-trivial (flow URL/decrypt/penjelasan situs). Jangan menambah komentar boilerplate.
+- **Jangan pernah menyimpan sekret hardcode baru** (OAuth secret sudah ada dan ditandai `⚠`; kalau nambah credential baru → dokumentasikan + pindah ke opsi aman).
+
+### Layering (wajib)
+- Scraper/`data/` **TIDAK BOLEH import `ui/`** — kalau UI butuh data, lewat `ProviderFactory`.
+- UI default akses data via `ProviderFactory.getActiveProvider()` (interface `AnimeProvider`). Import scraper **konkret** di UI hanya boleh untuk method di luar kontrak interface (`getHomeContent()`, `getAllAnime()`, `getDramaKorea()`, dll.) — pola existing di `DrakorKitaHomeFragment`/`OppaDramaHomeFragment`/`CategoryGridActivity`.
+- Tambah data class baru di `data/model/Models.kt`, jangan di file lain.
+
+### Model (Models.kt)
+- Semua field data class **wajib punya default value** (`= ""` / `= emptyList()`).
+- Angka/label seperti `episodeNumber`, `score`, `status`, `totalEpisodes` tetap `String` (bukan `Int`) — konsisten dengan seluruh UI.
+
+### Scraper baru (implement `AnimeProvider`)
+- `override val id = ProviderFactory.XXX_ID`; `override val name = "..."`; `override val defaultBaseUrl = "..."`.
+- `override var baseUrl` delegasi ke `ProviderConfig.getBaseUrl(id)` / `setBaseUrl(id, value)` — **jangan hardcode host di dalam method**, selalu baca dari `baseUrl`.
+- Satu `OkHttpClient` per scraper (`by lazy`); gunakan trust-all SSL hanya bila situs punya cert bermasalah (DrakorKita/Anichin).
+- Helper `fetchDocument(url): Document` (Jsoup) & `fetchHtml(url): String` — WAJIB set User-Agent mobile + `Accept-Language: id-ID,id;q=0.9,en;q=0.8` (+ `Referer` kalau embed butuh).
+- Semua `suspend` method dibungkus `withContext(Dispatchers.IO)`.
+- Jsoup: pakai selector **scoped** (contoh `div.releases.latesthome` → parent list, bukan `div.listupd` global) biar tidak match ganda antar-section.
+- Error handling: `try/catch` per-item (`e.printStackTrace()`) + `try/catch` luar yang return fallback (`emptyList()`, `""`, `AnimeDetail(anime = Anime(title = "Error", ...))`). **Jangan biarkan exception bocor ke UI.**
+- Logging: `Log.d("Tag", msg)` — tag pakai nama provider (`"AnichinResolve"`, `"DrakorKita"`, `"OppaDrama"`, `"Scraper"`).
+- Regex URL: daftar pattern berurutan; `match.groupValues.getOrElse(1) { match.value }`; normalisasi `//` → `https:` dan `/` → base host. Jangan pakai `first()` tanpa null-check.
+- `VideoServer.dataType` dipakai untuk routing player (`"dl"`, `"p2p"`, `"mirror"`, `"yt"`) — jangan menambah tipe baru tanpa update `PlayerActivity`.
+
+### UI (Fragment / Adapter)
+- View: `private lateinit var` + inisialisasi di `onViewCreated` via `view.findViewById(...)`. **Tidak pakai ViewBinding.**
+- Prefix view: `rv` RecyclerView, `tv` TextView, `iv` ImageView, `btn` Button, `loadingLayout`, `swipeRefresh`, `header...` (section header), `chipGroupProviders`.
+- Coroutine: `lifecycleScope.launch` (Fragment → `viewLifecycleOwner.lifecycleScope.launch`); network di `withContext(Dispatchers.IO)`; update UI lewat `withContext(Dispatchers.Main)` / `runOnUiThread`. Jangan panggil `suspend` di main thread.
+- Glide: `.centerCrop().placeholder(R.drawable.bg_card).error(R.drawable.bg_card)`.
+- Adapter: `ListAdapter` + `DiffUtil.ItemCallback` (compare URL/`id` di `areItemsTheSame`, data class di `areContentsTheSame`) + inner `ViewHolder` + `fun bind(item)` + callback `onClick: (T) -> Unit`.
+- Navigasi antar-Activity: `Intent` + `putExtra("providerId", ProviderFactory.XXX_ID)` (+ extra lain seperti `EXTRA_CATEGORY`/`EXTRA_TITLE` di `CategoryGridActivity`).
+- Feedback: `Toast` untuk pesan singkat; `AlertDialog` untuk pilihan/konfirmasi; string Indonesia boleh hardcode di Kotlin (konsisten) tapi label generik pakai `strings.xml`.
+
+### Player & routing
+- `PlayerActivity` = **satu-satunya** titik routing video. Jangan duplikasi logika player/routing di Activity lain.
+- Deteksi server: `server.name.contains(...)` / `server.url.contains(...)` (lowercase). Urutan if penting — cek paling spesifik dulu.
+- Referer/Origin dinamis: jangan pakai match host statis untuk host yang berubah-ubah — daftarkan host dinamis di set (pola `drakorP2pHosts`) supaya interceptor OkHttp + `defaultRequestProperties` tetap sinkron.
+- Tambah buffer/loadControl baru hanya di `initExoPlayerRemote` (clean HLS = buffer longgar, lainnya = ketat).
+
+### Config (ProviderConfig)
+- Provider baru = tambah `KEY_BASE_URL_*` + `DEFAULT_BASE_URL_*` + update **semua** `when` (`getBaseUrl`/`setBaseUrl`/`resetBaseUrl`/`getDefaultBaseUrl`). Kalau terlewat, domain switching di Settings akan salah fallback ke anichin.
+
+### Konvensi hasil audit yang sudah jadi "hukum"
+- Format `if (x) {` dengan brace selalu di baris yang sama; `else` di baris baru.
+- `String` kosong dipakai sebagai "null" default di seluruh model (bukan `null`).
+- Pengecualian per-item yang ter-isolasi tidak di-lempar; yang di-lempar hanya di wrapper `withContext`.
+
 ## Key Conventions
 - **App Icon:** Netflix-style ribbon "N" (#E50914 + #B20710 fold shadows) on black background
 - **Splash Screen:** Red "N" on black, Tudum-style zoom-in animation
