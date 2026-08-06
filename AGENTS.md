@@ -7,7 +7,7 @@
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=101`, `versionName=2.0.1-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=102`, `versionName=2.0.2-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
