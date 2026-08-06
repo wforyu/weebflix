@@ -274,6 +274,74 @@ flowchart TB
 - **`PlayerActivity` adalah pusat routing video** — menyentuh scraper (YouTubeScraper), model (WatchHistoryManager/VideoServer), dan UI (YouTubeFeedAdapter + HydraxDataSource).
 - **UI detail/home jarang dipanggil balik oleh data layer** — arah dependency selalu UI → Data → Platform, kecuali `WeebFlixApp` (entry) yang boleh menunjuk ke mana saja.
 
+## Folder Responsibility & Clean Architecture
+
+### Penilaian arsitektur (audit 2026-08)
+**Status: "clean-ish / pragmatic layered architecture"** — 3 layer logis (Presentation / Data / Platform) dengan **dependency rule dipatuhi**, tapi **BUKAN strict Clean Architecture** (Robert C. Martin). Tidak ada layer `domain` terpisah — ini pilihan pragmatis untuk app scraper sebesar ini.
+
+| Prinsip Clean Architecture | Status | Catatan |
+|---------------------------|--------|---------|
+| Dependency rule (UI → Data → Platform) | ✅ Dipatuhi | `data/` tidak pernah import `ui/`; `WeebFlixApp` (entry) adalah satu-satunya pengecualian yang bebas menunjuk ke mana saja |
+| Abstraction via interface (Repository pattern) | ✅ Dipatuhi | UI hanya pegang `AnimeProvider` (interface) lewat `ProviderFactory` — tidak pernah menyentuh class scraper konkret |
+| Registry / injection point | ✅ Ada | `ProviderFactory` = manual DI (tanpa framework); provider di-lazy-init sekali |
+| Platform code tersembunyi | ✅ Ada | OkHttp/Jsoup/SharedPreferences/ExoPlayer hanya dipakai di layer `data/` |
+| Layer `domain` terpisah (entities, use-cases, repository interface) | ❌ Tidak ada | `AnimeProvider` (kontrak) + `Models` (entity/DTO) + scraper (repository+data-source) semua tinggal di `data/` — digabung |
+| Presentation menahan logic | ⚠️ Berat | `PlayerActivity` ~4300 baris (routing, WebView injection, ExoPlayer config, progress) = god object; `HomeFragment.selectProvider()` masih pakai `when` untuk map provider→fragment |
+| Model murni / DTO terpisah | ⚠️ Digabung | `Anime`/`Episode` dipakai langsung sebagai entity + DTO — OK untuk skala ini |
+| Global state | ⚠️ Singleton object | `ProviderFactory`/`ProviderConfig`/`WatchHistoryManager`/`ProviderDataCache`/`GitHubDataFetcher` semuanya `object` — sulit di-test, tapi konsisten |
+
+**Kesimpulan:** jangan refactor ke domain layer penuh kecuali benar-benar dibutuhkan. Yang penting dipertahankan: (1) scraper TIDAK pernah import `ui/`, (2) UI selalu akses data lewat `ProviderFactory.getActiveProvider()` (interface), (3) tambah provider baru = ikut checklist di bawah.
+
+### Responsibility per folder
+```
+java/com/weebflix/app/
+├── WeebFlixApp.kt               # ENTRY — init ProviderConfig/ProviderFactory/scraper + auth di Application.onCreate()
+├── WeebFlixGlideModule.kt       # Glide AppGlideModule (image loading), standalone
+│
+├── data/                        # SEMUA logika non-UI (repositori + data-source + config). Boleh akses platform (OkHttp/Jsoup/prefs)
+│   ├── auth/                    # Auth eksternal: YouTubeAuthManager (OAuth PKCE + token store) + LoopbackOAuthServer (ServerSocket localhost)
+│   ├── config/                  # ProviderConfig — SEGALA konfigurasi global: base URL per-provider, provider aktif, kredensial OAuth (SharedPreferences)
+│   ├── model/                   # Entitas + cache + progress:
+│   │   ├── Models.kt            #   Anime, Episode, VideoServer, AnimeDetail, EpisodeNavigation (data class)
+│   │   ├── WatchHistoryManager  #   progress menonton per provider
+│   │   ├── ProviderDataCache    #   cache home data (memory + disk)
+│   │   └── GitHubDataFetcher    #   fallback pre-scrape dari GitHub (raw.githubusercontent.com)
+│   ├── provider/                # KONTRAK + REGISTRY:
+│   │   ├── AnimeProvider.kt     #   interface — 10 method kontrak scraper (satu-satunya "repository interface")
+│   │   └── ProviderFactory.kt   #   object registry — lazy-init semua scraper, getActiveProvider()/getAllProviders()
+│   └── scraper/                 # DATA-SOURCE (repositori + impelentasi): implementasi AnimeProvider per situs
+│       ├── SamehadakuScraper.kt #   anime
+│       ├── DrakorKitaScraper.kt #   drakor
+│       ├── AnichinScraper.kt    #   donghua
+│       ├── OppaDramaScraper.kt  #   drakor
+│       └── YouTube*             #   YouTubeScraper + YouTubeResolver + YouTubeCipher + YouTubeDashManifest + YouTubeModels
+│
+└── ui/                          # SEMUA Android views + navigasi + adapters. Boleh akses data HANYA lewat ProviderFactory/interface
+    ├── splash/                  # SplashActivity → MainActivity
+    ├── main/                    # MainActivity — bottom nav host (Home/Search/Ongoing/Settings/Histori), updateNavLabels()
+    ├── home/                    # HomeFragment (chip switcher + container) + 1 fragment home PER provider
+    ├── search/                  # SearchFragment (real-time + history)
+    ├── ongoing/                 # OngoingFragment (grid pagination) — untuk provider non-YouTube
+    ├── detail/                  # AnimeDetailActivity (parallax + episode list) + CategoryGridActivity (grid kategori)
+    ├── settings/                # SettingsFragment — domain config per provider + YouTube OAuth + About
+    ├── player/                  # PlayerActivity (ExoPlayer + WebView + routing video) + HydraxDataSource (hydrax://)
+    ├── youtube/                 # UI khusus provider YouTube: Home/History/Search/Login + adapter-nya
+    └── adapter/                 # RecyclerView adapter (Anime, Episode, Hero, ContinueWatching, Search, dll.)
+```
+
+### Checklist tambah provider baru (biar cepat)
+Urutan mengikuti dependency graph (bawah dulu, atas terakhir). Item ✅ otomatis, item manual wajib dicek:
+
+1. **`data/scraper/NewScraper.kt`** (baru) — implement `AnimeProvider` (10 method). ✅ otomatis terdaftar ke semua UI selama langkah 2-3 dikerjakan. ⚠ HANYA import `data/`, jangan pernah `ui/`.
+2. **`data/config/ProviderConfig.kt`** — tambah `KEY_BASE_URL_NEW` + `DEFAULT_BASE_URL_NEW` + cabang di `getBaseUrl`/`setBaseUrl`/`resetBaseUrl`/`getDefaultBaseUrl`. (Domain switching di Settings baca dari sini.)
+3. **`data/provider/ProviderFactory.kt`** — tambah `const val NEW_ID` + daftarkan di `providers[...]` dalam `getAllProviders()`.
+4. **Chip + home** — ✅ chip di `HomeFragment` & `SettingsFragment` otomatis muncul dari `ProviderFactory.getAllProviders()`. MANUAL: tambah case baru di `HomeFragment.selectProvider()` `when` (line ~92) → fragment home baru.
+5. **`ui/home/NewHomeFragment.kt`** (baru) — kalau layout home khas provider; untuk 3-rows generik bisa reuse pola `SamehadakuHomeFragment`. Isi pakai `ProviderFactory.getActiveProvider()` (interface), bukan scraper konkret.
+6. **`ui/detail/CategoryGridActivity.kt`** — MANUAL hanya kalau provider punya kategori khusus (bercabang ke scraper konkret Anichin/DrakorKita/OppaDrama).
+7. **`ui/player/PlayerActivity.kt`** — MANUAL hanya kalau provider punya tipe server baru (ExoPlayer vs WebView). Lihat tabel "Per-Provider Server Routing" di atas.
+8. **`data/model/ProviderDataCache` + `.github/workflows/scrape-providers.yml` + `scripts/scrape_providers.py`** — opsional, hanya kalau mau pre-scrape cache GitHub untuk home provider itu.
+9. **Testing** — build: `.\gradlew.bat installDebug`; verifikasi chip muncul, home load, detail, player, settings domain-switch.
+
 ## Key Conventions
 - **App Icon:** Netflix-style ribbon "N" (#E50914 + #B20710 fold shadows) on black background
 - **Splash Screen:** Red "N" on black, Tudum-style zoom-in animation
