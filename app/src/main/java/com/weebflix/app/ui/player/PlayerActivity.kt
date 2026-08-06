@@ -4493,6 +4493,7 @@ class PlayerActivity : AppCompatActivity() {
         if (server.dataType == "dl" || server.dataType == "p2p") return true
         val v = server.videoUrl.lowercase()
         val u = server.url.lowercase()
+        val n = server.name.lowercase()
         if (v.startsWith("hydrax://")) return true
         val directSuffixes = listOf(".mp4", ".m3u8", ".mpd", ".mkv", ".webm", ".m4v", "googlevideo.com")
         if (directSuffixes.any { v.contains(it) || u.contains(it) }) return true
@@ -4503,6 +4504,9 @@ class PlayerActivity : AppCompatActivity() {
         if (v.contains("wibufile") || u.contains("wibufile")) return true
         if ((v.contains("abyssplayer.com") || u.contains("abyssplayer.com")) &&
             server.name.contains("Hydrax", ignoreCase = true)) return true
+        if (n.contains("blogspot") || n.contains("wibufile")) return true
+        if (n.contains("vip") && n.contains("streaming")) return true
+        if (n.contains("filelions") || n.contains("hydrax")) return true
         return false
     }
 
