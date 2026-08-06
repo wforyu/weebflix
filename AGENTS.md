@@ -64,6 +64,216 @@ WeebFlix/app/src/main/
     └── menu/          # Bottom navigation menu
 ```
 
+## Dependency Graph
+Graf ketergantungan antar-kelas (di-generate dari import aktual, 2026-08). Layer bawah = lebih "dasar"/independen; anak panah `A → B` artinya `A` import/memakai `B`. Ikuti arah ini saat mengubah sesuatu: ubah layer bawah dulu (biasanya aman), lalu turunkan/dari atas baru periksa callers.
+
+### Layering (bottom → top)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ UI LAYER (adapter / home / search / ongoing / detail / settings     │
+│            / player / youtube / splash / main)                      │
+│   └─ satu-satunya yang "tahu" tentang Android views + Activity nav  │
+├─────────────────────────────────────────────────────────────────────┤
+│ DATA LAYER (scraper / provider / auth / model / config)             │
+│   ├─ scrapers: Samehadaku, DrakorKita, Anichin, OppaDrama, YouTube  │
+│   ├─ provider: AnimeProvider (interface) + ProviderFactory (registry)│
+│   ├─ auth:    YouTubeAuthManager + LoopbackOAuthServer              │
+│   ├─ model:   Models, WatchHistoryManager, ProviderDataCache,       │
+│   │           GitHubDataFetcher                                     │
+│   └─ config:  ProviderConfig (SharedPreferences)                    │
+├─────────────────────────────────────────────────────────────────────┤
+│ PLATFORM (Android SDK / media3-ExoPlayer / OkHttp / Jsoup / Glide)  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mermaid (renders di GitHub)
+```mermaid
+flowchart TB
+    %% Entry & lifecycle
+    WeebFlixApp --> ProviderConfig
+    WeebFlixApp --> ProviderFactory
+    WeebFlixApp --> SamehadakuScraper
+    WeebFlixApp --> YouTubeAuthManager
+
+    %% config
+    ProviderConfig
+
+    %% model
+    Models
+    WatchHistoryManager
+    ProviderDataCache
+    GitHubDataFetcher --> ProviderDataCache
+
+    %% provider
+    AnimeProvider --> Models
+    ProviderFactory --> ProviderConfig
+    ProviderFactory --> AnichinScraper
+    ProviderFactory --> DrakorKitaScraper
+    ProviderFactory --> OppaDramaScraper
+    ProviderFactory --> SamehadakuScraper
+    ProviderFactory --> YouTubeScraper
+
+    %% scraper
+    AnichinScraper --> ProviderConfig
+    AnichinScraper --> Models
+    AnichinScraper --> AnimeProvider
+    DrakorKitaScraper --> ProviderConfig
+    DrakorKitaScraper --> Models
+    DrakorKitaScraper --> AnimeProvider
+    OppaDramaScraper --> ProviderConfig
+    OppaDramaScraper --> Models
+    OppaDramaScraper --> AnimeProvider
+    SamehadakuScraper --> ProviderConfig
+    SamehadakuScraper --> Models
+    SamehadakuScraper --> AnimeProvider
+    YouTubeScraper --> ProviderConfig
+    YouTubeScraper --> Models
+    YouTubeScraper --> AnimeProvider
+    YouTubeScraper --> YouTubeResolver
+    YouTubeResolver --> YouTubeAuthManager
+    YouTubeResolver --> YouTubeCipher
+
+    %% auth
+    YouTubeAuthManager --> ProviderConfig
+    YouTubeAuthManager --> YouTubeResolver
+    LoopbackOAuthServer
+
+    %% UI: main / splash / home
+    SplashActivity --> MainActivity
+    MainActivity --> ProviderConfig
+    MainActivity --> ProviderFactory
+    MainActivity --> HomeFragment
+    MainActivity --> OngoingFragment
+    MainActivity --> SearchFragment
+    MainActivity --> SettingsFragment
+    MainActivity --> YouTubeHomeFragment
+    MainActivity --> YouTubeHistoryFragment
+    HomeFragment --> ProviderConfig
+    HomeFragment --> ProviderFactory
+    HomeFragment --> MainActivity
+    HomeFragment --> YouTubeHomeFragment
+
+    %% UI: home fragments -> data + detail/player/category
+    SamehadakuHomeFragment --> ProviderFactory
+    SamehadakuHomeFragment --> WatchHistoryManager
+    SamehadakuHomeFragment --> AnimeDetailActivity
+    SamehadakuHomeFragment --> CategoryGridActivity
+    SamehadakuHomeFragment --> PlayerActivity
+    DrakorKitaHomeFragment --> ProviderFactory
+    DrakorKitaHomeFragment --> DrakorKitaScraper
+    DrakorKitaHomeFragment --> WatchHistoryManager
+    DrakorKitaHomeFragment --> AnimeDetailActivity
+    DrakorKitaHomeFragment --> PlayerActivity
+    OppaDramaHomeFragment --> ProviderFactory
+    OppaDramaHomeFragment --> OppaDramaScraper
+    OppaDramaHomeFragment --> WatchHistoryManager
+    OppaDramaHomeFragment --> AnimeDetailActivity
+    OppaDramaHomeFragment --> CategoryGridActivity
+    OppaDramaHomeFragment --> PlayerActivity
+    AnichinHomeFragment --> ProviderFactory
+    AnichinHomeFragment --> WatchHistoryManager
+    AnichinHomeFragment --> ProviderDataCache
+    AnichinHomeFragment --> AnimeDetailActivity
+    AnichinHomeFragment --> CategoryGridActivity
+
+    %% UI: search / ongoing / detail / settings
+    SearchFragment --> AnimeDetailActivity
+    OngoingFragment --> ProviderFactory
+    OngoingFragment --> ProviderConfig
+    OngoingFragment --> AnimeDetailActivity
+    AnimeDetailActivity --> ProviderFactory
+    AnimeDetailActivity --> PlayerActivity
+    CategoryGridActivity --> ProviderFactory
+    CategoryGridActivity --> AnichinScraper
+    CategoryGridActivity --> DrakorKitaScraper
+    CategoryGridActivity --> OppaDramaScraper
+    SettingsFragment --> ProviderConfig
+    SettingsFragment --> ProviderFactory
+    SettingsFragment --> YouTubeAuthManager
+
+    %% UI: player + Hydrax data source
+    PlayerActivity --> WatchHistoryManager
+    PlayerActivity --> YouTubeScraper
+    PlayerActivity --> YouTubeFeedAdapter
+    PlayerActivity --> HydraxDataSource
+
+    %% UI: youtube
+    YouTubeHomeFragment --> YouTubeAuthManager
+    YouTubeHomeFragment --> ProviderFactory
+    YouTubeHomeFragment --> YouTubeScraper
+    YouTubeHomeFragment --> PlayerActivity
+    YouTubeHistoryFragment --> WatchHistoryManager
+    YouTubeHistoryFragment --> ProviderFactory
+    YouTubeHistoryFragment --> PlayerActivity
+    YouTubeSearchActivity --> ProviderFactory
+    YouTubeSearchActivity --> YouTubeScraper
+    YouTubeSearchActivity --> PlayerActivity
+    YouTubeLoginActivity --> LoopbackOAuthServer
+    YouTubeLoginActivity --> YouTubeAuthManager
+    YouTubeLoginActivity --> YouTubeResolver
+
+    %% UI: adapters -> model/scraper types
+    AnimeAdapter --> Models
+    LatestEpisodeAdapter --> Models
+    NetflixCardAdapter --> Models
+    DramaCardAdapter --> Models
+    HeroPagerAdapter --> Models
+    EpisodeListAdapter --> Models
+    SearchGridAdapter --> Models
+    ContinueWatchingAdapter --> WatchHistoryManager
+    YouTubeFeedAdapter --> YouTubeScraper
+    YouTubeSearchAdapter --> YouTubeScraper
+    YouTubeHistoryAdapter --> WatchHistoryManager
+```
+
+### Dependency table (per file → yang di-import)
+| File | Bergantung pada |
+|------|-----------------|
+| `WeebFlixApp` | ProviderConfig, ProviderFactory, SamehadakuScraper, YouTubeAuthManager |
+| `data/config/ProviderConfig` | (mandiri — SharedPreferences, titik konfigurasi global) |
+| `data/model/Models` | (mandiri — data class Anime/Episode/VideoServer/AnimeDetail) |
+| `data/model/WatchHistoryManager` | (mandiri — SharedPreferences progress) |
+| `data/model/ProviderDataCache` | (mandiri — cache memory/disk home data) |
+| `data/model/GitHubDataFetcher` | ProviderDataCache |
+| `data/provider/AnimeProvider` | Models (interface kontrak scraper) |
+| `data/provider/ProviderFactory` | ProviderConfig, 5 scraper (Samehadaku/DrakorKita/Anichin/OppaDrama/YouTube) |
+| `data/scraper/*` (4 scraper lama) | ProviderConfig, Models, AnimeProvider |
+| `data/scraper/YouTubeScraper` | ProviderConfig, Models, AnimeProvider, YouTubeResolver |
+| `data/scraper/YouTubeResolver` | YouTubeAuthManager, YouTubeCipher |
+| `data/scraper/YouTubeCipher` | (mandiri — decipher logic) |
+| `data/scraper/YouTubeDashManifest` | (mandiri — DASH manifest builder) |
+| `data/scraper/YouTubeModels` | (mandiri — YouTubeVideo/YouTubeVideoDetail/YouTubeStream) |
+| `data/auth/YouTubeAuthManager` | ProviderConfig, YouTubeResolver (⚠ circular: resolver memakai auth token, auth memakai resolver.clearMemo) |
+| `data/auth/LoopbackOAuthServer` | (mandiri — ServerSocket localhost callback) |
+| `ui/splash/SplashActivity` | MainActivity |
+| `ui/main/MainActivity` | ProviderConfig, ProviderFactory, HomeFragment, OngoingFragment, SearchFragment, SettingsFragment, YouTubeHomeFragment, YouTubeHistoryFragment |
+| `ui/home/HomeFragment` | ProviderConfig, ProviderFactory, MainActivity, YouTubeHomeFragment |
+| `ui/home/SamehadakuHomeFragment` | WeebFlixApp, Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
+| `ui/home/DrakorKitaHomeFragment` | Models, WatchHistoryManager, ProviderFactory, DrakorKitaScraper, ContinueWatchingAdapter, HeroPagerAdapter, NetflixCardAdapter, AnimeDetailActivity, PlayerActivity |
+| `ui/home/OppaDramaHomeFragment` | Models, WatchHistoryManager, ProviderFactory, OppaDramaScraper, ContinueWatchingAdapter, HeroPagerAdapter, NetflixCardAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
+| `ui/home/AnichinHomeFragment` | Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity |
+| `ui/search/SearchFragment` | WeebFlixApp, SearchGridAdapter, SearchHistoryAdapter, AnimeDetailActivity |
+| `ui/ongoing/OngoingFragment` | ProviderConfig, Models, ProviderFactory, SearchGridAdapter, AnimeDetailActivity |
+| `ui/detail/AnimeDetailActivity` | WeebFlixApp, Models, ProviderFactory, EpisodeListAdapter, PlayerActivity |
+| `ui/detail/CategoryGridActivity` | Models, ProviderFactory, AnichinScraper, DrakorKitaScraper, OppaDramaScraper |
+| `ui/settings/SettingsFragment` | BuildConfig, ProviderConfig, ProviderFactory, YouTubeAuthManager |
+| `ui/player/PlayerActivity` | WeebFlixApp, VideoServer, WatchHistoryManager, YouTubeScraper, YouTubeVideo, YouTubeFeedAdapter, HydraxDataSource |
+| `ui/player/HydraxDataSource` | (mandiri — ExoPlayer DataSource untuk `hydrax://`) |
+| `ui/youtube/YouTubeHomeFragment` | YouTubeAuthManager, ProviderFactory, YouTubeScraper, YouTubeVideo, PlayerActivity, YouTubeFeedAdapter |
+| `ui/youtube/YouTubeHistoryFragment` | WatchHistoryEntry, WatchHistoryManager, ProviderFactory, PlayerActivity, YouTubeHistoryAdapter |
+| `ui/youtube/YouTubeSearchActivity` | ProviderFactory, YouTubeScraper, YouTubeVideo, PlayerActivity, YouTubeSearchAdapter |
+| `ui/youtube/YouTubeLoginActivity` | LoopbackOAuthServer, YouTubeAuthManager, YouTubeResolver |
+| `ui/adapter/*` | Models (Anime/Episode/WatchHistoryEntry) + `R` |
+| `ui/youtube/adapter/YouTubeFeedAdapter` / `YouTubeSearchAdapter` | YouTubeVideo |
+| `ui/youtube/adapter/YouTubeHistoryAdapter` | WatchHistoryEntry |
+
+### Poin penting
+- **Semua scraper** hanya import `data/` — tidak pernah import `ui/`. Kalau UI butuh data, lewat `ProviderFactory.getActiveProvider()`.
+- **`ProviderConfig` = hub global** — hampir semua layer baca base URL / provider aktif dari sini. Ubah dengan hati-hati (banyak caller).
+- **⚠ Satu-satunya circular dependency:** `YouTubeAuthManager ↔ YouTubeResolver` (token untuk request player ↔ `clearMemo()` saat login/logout). Dibiarkan karena sama-package-free (lint OK), jangan menambah siklus baru.
+- **`PlayerActivity` adalah pusat routing video** — menyentuh scraper (YouTubeScraper), model (WatchHistoryManager/VideoServer), dan UI (YouTubeFeedAdapter + HydraxDataSource).
+- **UI detail/home jarang dipanggil balik oleh data layer** — arah dependency selalu UI → Data → Platform, kecuali `WeebFlixApp` (entry) yang boleh menunjuk ke mana saja.
+
 ## Key Conventions
 - **App Icon:** Netflix-style ribbon "N" (#E50914 + #B20710 fold shadows) on black background
 - **Splash Screen:** Red "N" on black, Tudum-style zoom-in animation
