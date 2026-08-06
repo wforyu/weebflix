@@ -50,6 +50,10 @@ class YouTubeScraper : AnimeProvider {
         YtClient("ANDROID_VR", "1.55.3", 30, "AIzaSyB9VGVgUmYc0HeBp5dHnjg1WxNb0qk2X3k", "com.google.android.youtube/19.09.37 (Linux; U; Android 13; en_US)")
     )
 
+    /** ANDROID_VR returns full `commentRenderer` content for the comments continuation,
+     *  while WEB now only returns metadata (commentViewModel). */
+    private val vrClient: YtClient = clients.first { it.name == "ANDROID_VR" }
+
     private data class YtResult(val json: JSONObject?, val flagged: Boolean)
 
     private fun context(c: YtClient) = JSONObject()
@@ -69,31 +73,41 @@ class YouTubeScraper : AnimeProvider {
      */
     private fun post(endpoint: String, fill: (JSONObject) -> Unit): YtResult {
         for (c in clients) {
-            try {
-                val body = JSONObject().put("context", context(c))
-                fill(body)
-                Log.d(TAG, "$endpoint[${c.name}] body: $body")
-                val request = Request.Builder()
-                    .url("https://www.youtube.com/youtubei/v1/$endpoint?key=${c.key}&prettyPrint=false")
-                    .addHeader("User-Agent", c.ua)
-                    .addHeader("Accept", "application/json")
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Origin", "https://www.youtube.com")
-                    .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                    .build()
-                client.newCall(request).execute().use { resp ->
-                    val bodyStr = resp.body?.string() ?: ""
-                    if (!resp.isSuccessful) {
-                        Log.w(TAG, "$endpoint[${c.name}] HTTP ${resp.code}: ${bodyStr.take(120)}")
-                        if (resp.code == 400) return YtResult(null, flagged = true)
-                        continue
-                    }
-                    Log.d(TAG, "$endpoint[${c.name}] OK len=${bodyStr.length} head=${bodyStr.take(150)}")
-                    return YtResult(JSONObject(bodyStr), flagged = false)
+            val r = postWith(c, endpoint, fill)
+            if (r.flagged) return r
+            if (r.json != null) return r
+        }
+        return YtResult(null, flagged = false)
+    }
+
+    /** Sends the request with a specific client. Used by the comments flow: the WEB client's
+     *  comment continuation no longer carries comment content (new commentViewModel format),
+     *  so comments must be fetched with ANDROID_VR which still returns full commentRenderer. */
+    private fun postWith(c: YtClient, endpoint: String, fill: (JSONObject) -> Unit): YtResult {
+        try {
+            val body = JSONObject().put("context", context(c))
+            fill(body)
+            Log.d(TAG, "$endpoint[${c.name}] body: $body")
+            val request = Request.Builder()
+                .url("https://www.youtube.com/youtubei/v1/$endpoint?key=${c.key}&prettyPrint=false")
+                .addHeader("User-Agent", c.ua)
+                .addHeader("Accept", "application/json")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Origin", "https://www.youtube.com")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            client.newCall(request).execute().use { resp ->
+                val bodyStr = resp.body?.string() ?: ""
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "$endpoint[${c.name}] HTTP ${resp.code}: ${bodyStr.take(120)}")
+                    if (resp.code == 400) return YtResult(null, flagged = true)
+                    return YtResult(null, flagged = false)
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "$endpoint[${c.name}] error: ${e.message}")
+                Log.d(TAG, "$endpoint[${c.name}] OK len=${bodyStr.length} head=${bodyStr.take(150)}")
+                return YtResult(JSONObject(bodyStr), flagged = false)
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "$endpoint[${c.name}] error: ${e.message}")
         }
         return YtResult(null, flagged = false)
     }
@@ -343,10 +357,45 @@ class YouTubeScraper : AnimeProvider {
         )
     }
 
-    // ---- Comments (same youtubei/v1/next endpoint, results column) ----
+    /** Next page of related videos, wrapped as a [WatchNextBundle] so the player can treat the
+     *  first page and continuation pages uniformly (first page also carries owner/comments). */
+    suspend fun watchNextBundleFromContinuation(continuation: String): WatchNextBundle = withContext(Dispatchers.IO) {
+        val page = nextRelatedPage(continuation)
+        WatchNextBundle(videos = page.videos, continuation = page.continuation)
+    }
 
-    /** First page of comments for a videoId. The comments live in the left column
-     *  (`results`) of the same `next` response used for related videos. */
+    /** Everything the player needs in one shot: related videos + owner + like count + the first
+     *  page of comments. Fires ONE `next` (WEB) for related/owner and, when the response exposes
+     *  a comments-section continuation, ONE ANDROID_VR continuation for the comments — instead of
+     *  two concurrent `next` calls (related + comments) that rate-limit the IP (HTTP 400 flag). */
+    suspend fun watchNextBundle(videoId: String): WatchNextBundle = withContext(Dispatchers.IO) {
+        val res = post("next") { it.put("videoId", videoId) }
+        val json = res.json ?: return@withContext WatchNextBundle()
+        val twoCol = json.optJSONObject("contents")
+            ?.optJSONObject("twoColumnWatchNextResults")
+            ?: return@withContext WatchNextBundle()
+        val results = twoCol.optJSONObject("results")?.optJSONObject("results")
+        val secondary = twoCol.optJSONObject("secondaryResults")?.optJSONObject("secondaryResults")
+        val out = mutableListOf<JSONObject>()
+        if (secondary != null) collectLockupViewModel(secondary, out)
+        val commentToken = results?.let { findCommentsSectionToken(it) } ?: ""
+        val page = if (commentToken.isNotEmpty()) fetchComments(commentToken) else CommentPage()
+        WatchNextBundle(
+            videos = out.mapNotNull { parseLockupViewModel(it) }.distinctBy { it.videoId },
+            continuation = if (secondary != null) findContinuationToken(secondary) else "",
+            channelId = results?.let { findOwnerChannelId(it) } ?: "",
+            channelName = results?.let { findOwnerChannelName(it) } ?: "",
+            likeCount = results?.let { findLikeCount(it) } ?: "",
+            comments = page.comments,
+            commentContinuation = page.continuation
+        )
+    }
+
+    // ---- Comments (youtubei/v1/next + a dedicated comments continuation) ----
+
+    /** First page of comments for a videoId. The WEB `next` response no longer inlines comment
+     *  content (new commentViewModel format) — it exposes a "comments-section" continuation
+     *  token instead, which is then fetched with ANDROID_VR to get full `commentRenderer`s. */
     suspend fun firstComments(videoId: String): CommentPage = withContext(Dispatchers.IO) {
         val res = post("next") { it.put("videoId", videoId) }
         val json = res.json ?: return@withContext CommentPage()
@@ -355,29 +404,64 @@ class YouTubeScraper : AnimeProvider {
             ?.optJSONObject("results")
             ?.optJSONObject("results")
             ?: return@withContext CommentPage()
-        val threads = mutableListOf<JSONObject>()
-        collectCommentThreads(results, threads)
-        CommentPage(
-            comments = threads.mapNotNull { parseCommentThread(it) }.take(20),
-            continuation = findContinuationToken(results)
-        )
+        val token = findCommentsSectionToken(results)
+        if (token.isEmpty()) return@withContext CommentPage()
+        fetchComments(token)
     }
 
     /** Next page of comments via the continuation token from [firstComments]. */
     suspend fun nextComments(continuation: String): CommentPage = withContext(Dispatchers.IO) {
         if (continuation.isEmpty()) return@withContext CommentPage()
-        val res = post("next") { it.put("continuation", continuation) }
-        val json = res.json ?: return@withContext CommentPage()
-        val items = json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
-            ?.optJSONObject("appendContinuationItemsAction")
-            ?.optJSONArray("continuationItems")
-            ?: return@withContext CommentPage()
+        fetchComments(continuation)
+    }
+
+    /** Fetches one page of comments from a comments continuation token using ANDROID_VR.
+     *  Response shape: `continuationContents.itemSectionContinuation` with `contents`
+     *  (commentThreadRenderers) + `continuations[0].nextContinuationData.continuation`. */
+    private suspend fun fetchComments(continuation: String): CommentPage {
+        val res = postWith(vrClient, "next") { it.put("continuation", continuation) }
+        val json = res.json ?: return CommentPage()
+        val isc = json.optJSONObject("continuationContents")
+            ?.optJSONObject("itemSectionContinuation")
+            ?: return CommentPage()
+        val contents = isc.optJSONArray("contents") ?: return CommentPage()
         val threads = mutableListOf<JSONObject>()
-        collectCommentThreads(items, threads)
-        CommentPage(
+        collectCommentThreads(contents, threads)
+        return CommentPage(
             comments = threads.mapNotNull { parseCommentThread(it) }.take(20),
-            continuation = findContinuationToken(items)
+            continuation = isc.optJSONArray("continuations")
+                ?.optJSONObject(0)
+                ?.optJSONObject("nextContinuationData")
+                ?.optString("continuation", "") ?: ""
         )
+    }
+
+    /** Finds the "comments-section" continuation token in the `next` results column. The WEB
+     *  format moved comments behind a continuationItemRenderer with `targetId="comments-section"`
+     *  (request type CONTINUATION_REQUEST_TYPE_WATCH_NEXT); the content is fetched separately. */
+    private fun findCommentsSectionToken(node: Any?): String {
+        when (node) {
+            is JSONObject -> {
+                val cir = node.optJSONObject("continuationItemRenderer")
+                if (cir != null && node.optString("targetId", "") == "comments-section") {
+                    return cir.optJSONObject("continuationEndpoint")
+                        ?.optJSONObject("continuationCommand")
+                        ?.optString("token", "") ?: ""
+                }
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val t = findCommentsSectionToken(node.opt(keys.next()))
+                    if (t.isNotEmpty()) return t
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) {
+                    val t = findCommentsSectionToken(node.opt(i))
+                    if (t.isNotEmpty()) return t
+                }
+            }
+        }
+        return ""
     }
 
     /** Collects every `commentThreadRenderer` object anywhere in the JSON tree. */

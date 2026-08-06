@@ -42,6 +42,20 @@ data class RelatedPage(
     val likeCount: String = ""
 )
 
+/** Everything the player needs from the watch page in one shot: the related/up-next list,
+ *  the owner renderer (channel id/name) + like count, AND the first page of comments.
+ *  Fetched via a single `next` (WEB) + one ANDROID_VR comments continuation, so the player
+ *  never fires two concurrent `next` requests (which rate-limits the IP). */
+data class WatchNextBundle(
+    val videos: List<YouTubeVideo> = emptyList(),
+    val continuation: String = "",
+    val channelId: String = "",
+    val channelName: String = "",
+    val likeCount: String = "",
+    val comments: List<YouTubeComment> = emptyList(),
+    val commentContinuation: String = ""
+)
+
 /** A single comment from youtubei/v1/next (commentThreadRenderer). */
 data class YouTubeComment(
     val author: String = "",

@@ -353,6 +353,7 @@ class PlayerActivity : AppCompatActivity() {
     private var ytCommentContinuation: String = ""
     private var ytLoadingComments = false
     private var ytCommentsEnded = false
+    private var ytFirstBundleLoaded = false
     private var currentChannelId: String = ""
     private var currentChannelName: String = ""
     private var isYtLiked = false
@@ -705,6 +706,7 @@ class PlayerActivity : AppCompatActivity() {
         ytCommentContinuation = ""
         ytLoadingComments = false
         ytCommentsEnded = false
+        ytFirstBundleLoaded = false
         ytCommentAdapter.submitList(emptyList())
         ytCommentHeader.visibility = View.GONE
         ytCommentList.visibility = View.GONE
@@ -712,13 +714,18 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun loadMoreComments() {
         if (ytLoadingComments || ytCommentsEnded) return
+        // First page + content come from the watchNextBundle (single `next` + one ANDROID_VR
+        // comments continuation) in loadMoreRelated. Firing a second `next` here at the same
+        // time would burst the innertube request rate and flag the IP (HTTP 400) -> defer to
+        // the bundle, and only fetch continuation pages here (scroll listener handles those).
+        if (!ytFirstBundleLoaded || ytCommentContinuation.isEmpty()) return
+        if (ytCommentAdapter.currentList.isNotEmpty()) return
         ytLoadingComments = true
         lifecycleScope.launch {
             val c = ytCommentContinuation
             val page = try {
                 withContext(Dispatchers.IO) {
-                    if (c.isEmpty()) ytScraper.firstComments(currentYtVideoId)
-                    else ytScraper.nextComments(c)
+                    ytScraper.nextComments(c)
                 }
             } catch (e: Exception) {
                 com.weebflix.app.data.scraper.CommentPage()
@@ -4837,14 +4844,17 @@ class PlayerActivity : AppCompatActivity() {
             val c = ytRelatedContinuation
             val page = try {
                 withContext(Dispatchers.IO) {
-                    if (c.isEmpty()) ytScraper.relatedVideos(currentYtVideoId)
-                    else ytScraper.nextRelatedPage(c)
+                    if (c.isEmpty()) ytScraper.watchNextBundle(currentYtVideoId)
+                    else ytScraper.watchNextBundleFromContinuation(c)
                 }
             } catch (e: Exception) {
-                com.weebflix.app.data.scraper.RelatedPage()
+                com.weebflix.app.data.scraper.WatchNextBundle()
             }
             if (c.isEmpty()) {
-                // First page carries the owner renderer + like count from the same response.
+                // The first-page bundle carries the owner renderer + like count AND the first
+                // page of comments (one `next` + one ANDROID_VR continuation), so we never fire
+                // a second concurrent `next` for comments (innertube rate-limit / IP flag).
+                ytFirstBundleLoaded = true
                 if (page.channelId.isNotEmpty()) {
                     currentChannelId = page.channelId
                     currentChannelName = page.channelName
@@ -4854,6 +4864,15 @@ class PlayerActivity : AppCompatActivity() {
                 if (page.likeCount.isNotEmpty()) {
                     ytLikeCount.text = page.likeCount
                     ytLikeCount.visibility = View.VISIBLE
+                }
+                ytCommentContinuation = page.commentContinuation
+                val comFresh = page.comments.filter { it.author.isNotEmpty() && it.text.isNotEmpty() }
+                if (comFresh.isNotEmpty()) {
+                    ytCommentAdapter.submitList(comFresh)
+                    ytCommentHeader.visibility = View.VISIBLE
+                    ytCommentList.visibility = View.VISIBLE
+                } else if (page.commentContinuation.isEmpty()) {
+                    ytCommentsEnded = true
                 }
             }
             val fresh = page.videos.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
