@@ -10,7 +10,8 @@
     app:cardElevation="0dp"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?attr/selectableItemBackground">
+    android:foreground="@drawable/selector_focus_outline"
+    android:stateListAnimator="@animator/focus_scale">
 
     <FrameLayout
         android:layout_width="match_parent"

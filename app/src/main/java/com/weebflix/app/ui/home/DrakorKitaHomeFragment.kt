@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -134,6 +135,35 @@ class DrakorKitaHomeFragment : Fragment() {
                 updateDots(position)
             }
         })
+        vpHero.isFocusable = true
+        vpHero.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && heroItems.size > 1) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem + 1) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem - 1 + heroItems.size) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        val rv = vpHero.getChildAt(0) as? RecyclerView
+                        val current = rv?.layoutManager?.findViewByPosition(vpHero.currentItem)
+                        current?.performClick()
+                        true
+                    }
+                    else -> false
+                }
+            } else false
+        }
+    }
+
+    private fun restartHeroAutoScroll() {
+        heroHandler.removeCallbacks(heroRunnable)
+        heroHandler.postDelayed(heroRunnable, 4000L)
     }
 
     private fun updateDots(position: Int) {

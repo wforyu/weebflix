@@ -23,6 +23,7 @@ import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
+import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,6 +118,7 @@ class CategoryGridActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_category_grid)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)

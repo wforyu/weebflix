@@ -55,6 +55,7 @@ import com.weebflix.app.data.model.WatchHistoryManager
 import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
 import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
+import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -245,6 +246,8 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
     }
+
+    private val isTvMode by lazy { TvUtils.isTv(this) }
 
     private lateinit var playerView: PlayerView
     private lateinit var playerContainer: FrameLayout
@@ -484,7 +487,9 @@ class PlayerActivity : AppCompatActivity() {
         imageUrl = intent.getStringExtra("imageUrl") ?: ""
         animeUrl = intent.getStringExtra("animeUrl") ?: ""
         activeProviderId = intent.getStringExtra("providerId") ?: com.weebflix.app.data.provider.ProviderFactory.getActiveProvider().id
-        if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
+        if (isTvMode) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         skipOpeningStart = intent.getIntExtra("skipOpeningStart", 90)
@@ -534,6 +539,36 @@ class PlayerActivity : AppCompatActivity() {
             loadServers()
             fetchEpisodeNavigation()
         }
+    }
+
+    /** TV D-pad / media-key handling. Only active in TV mode (phones use the gesture overlay). */
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (isTvMode && event.action == android.view.KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY,
+                android.view.KeyEvent.KEYCODE_MEDIA_PAUSE,
+                android.view.KeyEvent.KEYCODE_SPACE -> {
+                    togglePlayPause()
+                    return true
+                }
+                android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                    seekBy(10f)
+                    showSeekIndicator(true, "+10s")
+                    scheduleAutoHide()
+                    return true
+                }
+                android.view.KeyEvent.KEYCODE_MEDIA_REWIND,
+                android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                    seekBy(-10f)
+                    showSeekIndicator(false, "-10s")
+                    scheduleAutoHide()
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun initViews() {
@@ -604,7 +639,7 @@ class PlayerActivity : AppCompatActivity() {
         ytDetailMeta = findViewById(R.id.ytDetailMeta)
         ytRelatedList = findViewById(R.id.ytRelatedList)
 
-        playerView.useController = false
+        playerView.useController = isTvMode
         playerView.keepScreenOn = true
     }
 
@@ -3592,6 +3627,12 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun setupGestureDetector() {
+        if (isTvMode) {
+            gestureOverlay.isClickable = false
+            gestureOverlay.isFocusable = false
+            gestureOverlay.setOnTouchListener(null)
+            return
+        }
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 toggleControls()
@@ -3889,7 +3930,9 @@ class PlayerActivity : AppCompatActivity() {
         if (isSystemBarsHidden) {
             if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
                 ytFullscreen = true
-                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                if (!isTvMode) {
+                    requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                }
             }
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
@@ -3908,7 +3951,9 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
                 ytFullscreen = false
-                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                if (!isTvMode) {
+                    requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
             }
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())

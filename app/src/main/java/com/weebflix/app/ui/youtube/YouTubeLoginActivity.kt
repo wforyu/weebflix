@@ -13,6 +13,7 @@ import com.weebflix.app.R
 import com.weebflix.app.data.auth.LoopbackOAuthServer
 import com.weebflix.app.data.auth.YouTubeAuthManager
 import com.weebflix.app.data.scraper.YouTubeResolver
+import com.weebflix.app.ui.util.TvUtils
 
 /**
  * Google OAuth consent screen opened in the system browser (Google blocks
@@ -30,6 +31,7 @@ class YouTubeLoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_youtube_login)
 
         tvStatus = findViewById(R.id.ytLoginStatus)

@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.weebflix.app.R
 import com.weebflix.app.ui.main.MainActivity
+import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -18,6 +19,7 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_splash)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)

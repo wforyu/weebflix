@@ -14,6 +14,7 @@ import com.weebflix.app.ui.home.HomeFragment
 import com.weebflix.app.ui.ongoing.OngoingFragment
 import com.weebflix.app.ui.search.SearchFragment
 import com.weebflix.app.ui.settings.SettingsFragment
+import com.weebflix.app.ui.util.TvUtils
 import com.weebflix.app.ui.youtube.YouTubeHistoryFragment
 import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_main)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
