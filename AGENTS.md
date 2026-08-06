@@ -777,7 +777,7 @@ Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pemba
 ### ✅ Sudah tercapai (semua diverifikasi on-device)
 - **Playback ad-free** — raw DASH (video-only + audio-only via `MergingMediaSource`) → ExoPlayer, nol iklan (iklan bukan bagian stream mentah)
 - **Bot-gate bypass** — `ensureVisitor()` bootstrap visitorData (ANDROID_VR `status=OK` dari IP ter-flag); multi-client chain `android_vr → android_music → ios → mweb → web_embedded`
-- **Feed + Search** — `YouTubeHomeFragment` (Beranda/Trending/Musik/History + infinite scroll), `YouTubeSearchActivity` hasil list 16:9 + history pencarian
+- **Feed + Search** — `YouTubeHomeFragment` (Beranda/Trending/Musik/History + infinite scroll), `YouTubeSearchActivity` hasil list 16:9 + history pencarian. **Feed selalu fresh (2026-08-06):** `getHome()`/`nextFeedPage()` pakai `searchFresh()` = `fetchSearch(query, UPLOAD_THIS_YEAR)` (`sp=EgIIBQ%3D%3D` upload-date "This year") + safety-net client-side `isFresh()` yang buang video `publishedTimeText` berlabel "N years ago" (hl=en); fallback ke search tanpa filter kalau hasil sp kosong
 - **Player phase 2 (semua DONE & verified on-device):**
   - Orientasi portrait + toggle fullscreen rotasi (#1)
   - Daftar Rekomendasi/related di bawah player + infinite scroll + `ytUpNext` (#2)

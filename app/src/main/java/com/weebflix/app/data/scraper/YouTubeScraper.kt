@@ -527,6 +527,24 @@ class YouTubeScraper : AnimeProvider {
     private var homeCache: YouTubeHome? = null
     private var homeCacheTime = 0L
 
+    /** Search `sp` param for upload-date "This year" — keeps the home feed fresh instead of
+     *  surfacing 2-3 year old videos. Applies to the endless feed too. */
+    private val UPLOAD_THIS_YEAR = "EgIIBQ%3D%3D"
+
+    /** Keeps only recent uploads. `publishedTimeText` (hl=en) reads like "3 years ago" /
+     *  "5 months ago" / "3 weeks ago"; anything claiming N years is dropped. Used as a
+     *  safety net in case YouTube ignores the `sp` upload-date filter. */
+    private fun isFresh(v: YouTubeVideo): Boolean =
+        !Regex("""(\d+)\s+year""").containsMatchIn(v.published)
+
+    /** Search biased to fresh uploads: upload-date filter server-side, then client-side
+     *  re-check; falls back to an unfiltered search when the filtered one comes up empty. */
+    private fun searchFresh(query: String): List<YouTubeVideo> {
+        val filtered = fetchSearch(query, UPLOAD_THIS_YEAR).filter(::isFresh)
+        if (filtered.isNotEmpty()) return filtered
+        return fetchSearch(query).filter(::isFresh)
+    }
+
     /** Fetches the home feed with pacing: one section at a time, ~3s apart, and stops the
      *  moment YouTube flags the IP (HTTP 400) instead of hammering it. Cached for 5 min so
      *  returning to the tab never re-scrapes. Built from search rows: FEwhat_to_watch returns
@@ -536,7 +554,7 @@ class YouTubeScraper : AnimeProvider {
         val now = System.currentTimeMillis()
         homeCache?.let { if (now - homeCacheTime < 5 * 60_000) return@withContext it }
 
-        val recommended = fetchSearch("trending indonesia")
+        val recommended = searchFresh("trending indonesia")
         if (recommended.isEmpty()) {
             Log.w(TAG, "home: search empty/flagged, aborting multi-section load")
             val home = YouTubeHome(recommended = emptyList(), trending = emptyList(), music = emptyList())
@@ -545,10 +563,10 @@ class YouTubeScraper : AnimeProvider {
         }
 
         delay(3000)
-        val trending = fetchSearch("viral youtube indonesia")
+        val trending = searchFresh("viral youtube indonesia")
 
         delay(3000)
-        val music = fetchSearch("musik indonesia terbaru")
+        val music = searchFresh("musik indonesia terbaru")
 
         val home = YouTubeHome(
             recommended = recommended.take(15),
@@ -583,7 +601,7 @@ class YouTubeScraper : AnimeProvider {
     suspend fun nextFeedPage(): List<YouTubeVideo> = withContext(Dispatchers.IO) {
         repeat(3) {
             val query = feedQueries.random()
-            val fetched = fetchSearch(query)
+            val fetched = searchFresh(query)
             if (fetched.isEmpty()) return@withContext emptyList()
             val fresh = fetched.filter { seenFeedIds.add(it.videoId) }
             if (fresh.isNotEmpty()) return@withContext fresh.shuffled().take(15)
