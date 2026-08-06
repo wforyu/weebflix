@@ -338,7 +338,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnYtLike: android.widget.ImageButton
     private lateinit var btnYtDislike: android.widget.ImageButton
     private lateinit var btnYtSubscribe: TextView
-    private lateinit var ytCommentHeader: TextView
+    private lateinit var ytCommentHeader: LinearLayout
+    private lateinit var btnYtCommentToggle: android.widget.ImageButton
     private lateinit var ytCommentList: RecyclerView
     private lateinit var ytCommentAdapter: com.weebflix.app.ui.youtube.adapter.YouTubeCommentAdapter
 
@@ -354,6 +355,7 @@ class PlayerActivity : AppCompatActivity() {
     private var ytLoadingComments = false
     private var ytCommentsEnded = false
     private var ytFirstBundleLoaded = false
+    private var ytCommentsExpanded = false
     private var currentChannelId: String = ""
     private var currentChannelName: String = ""
     private var isYtLiked = false
@@ -662,6 +664,7 @@ class PlayerActivity : AppCompatActivity() {
         btnYtDislike = findViewById(R.id.btnYtDislike)
         btnYtSubscribe = findViewById(R.id.btnYtSubscribe)
         ytCommentHeader = findViewById(R.id.ytCommentHeader)
+        btnYtCommentToggle = findViewById(R.id.btnYtCommentToggle)
         ytCommentList = findViewById(R.id.ytCommentList)
 
         btnYtLike.setOnClickListener { onYtLikePressed() }
@@ -700,6 +703,29 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
         })
+        val toggle = View.OnClickListener { toggleYtComments() }
+        ytCommentHeader.setOnClickListener(toggle)
+        btnYtCommentToggle.setOnClickListener(toggle)
+    }
+
+    /** Expands/collapses the comments list so the recommendations below regain the full height. */
+    private fun toggleYtComments() {
+        ytCommentsExpanded = !ytCommentsExpanded
+        ytCommentList.visibility = if (ytCommentsExpanded) View.VISIBLE else View.GONE
+        btnYtCommentToggle.setImageResource(
+            if (ytCommentsExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+        )
+    }
+
+    /** Syncs the comments list visibility + chevron to the current [ytCommentsExpanded] state. */
+    private fun updateYtCommentsUi() {
+        if (ytCommentsExpanded) {
+            ytCommentList.visibility = View.VISIBLE
+            btnYtCommentToggle.setImageResource(R.drawable.ic_expand_less)
+        } else {
+            ytCommentList.visibility = View.GONE
+            btnYtCommentToggle.setImageResource(R.drawable.ic_expand_more)
+        }
     }
 
     private fun resetYtComments() {
@@ -707,6 +733,7 @@ class PlayerActivity : AppCompatActivity() {
         ytLoadingComments = false
         ytCommentsEnded = false
         ytFirstBundleLoaded = false
+        ytCommentsExpanded = false
         ytCommentAdapter.submitList(emptyList())
         ytCommentHeader.visibility = View.GONE
         ytCommentList.visibility = View.GONE
@@ -719,7 +746,6 @@ class PlayerActivity : AppCompatActivity() {
         // time would burst the innertube request rate and flag the IP (HTTP 400) -> defer to
         // the bundle, and only fetch continuation pages here (scroll listener handles those).
         if (!ytFirstBundleLoaded || ytCommentContinuation.isEmpty()) return
-        if (ytCommentAdapter.currentList.isNotEmpty()) return
         ytLoadingComments = true
         lifecycleScope.launch {
             val c = ytCommentContinuation
@@ -736,7 +762,7 @@ class PlayerActivity : AppCompatActivity() {
                 ytCommentAdapter.submitList(all)
                 ytCommentContinuation = page.continuation
                 ytCommentHeader.visibility = View.VISIBLE
-                ytCommentList.visibility = View.VISIBLE
+                updateYtCommentsUi()
             } else if (page.continuation.isEmpty()) {
                 ytCommentsEnded = true
                 if (ytCommentAdapter.currentList.isEmpty()) {
@@ -4870,7 +4896,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (comFresh.isNotEmpty()) {
                     ytCommentAdapter.submitList(comFresh)
                     ytCommentHeader.visibility = View.VISIBLE
-                    ytCommentList.visibility = View.VISIBLE
+                    updateYtCommentsUi()
                 } else if (page.commentContinuation.isEmpty()) {
                     ytCommentsEnded = true
                 }

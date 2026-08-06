@@ -437,14 +437,18 @@ class YouTubeScraper : AnimeProvider {
     }
 
     /** Finds the "comments-section" continuation token in the `next` results column. The WEB
-     *  format moved comments behind a continuationItemRenderer with `targetId="comments-section"`
-     *  (request type CONTINUATION_REQUEST_TYPE_WATCH_NEXT); the content is fetched separately. */
+     *  format moved comments behind an itemSectionRenderer whose own `targetId` is
+     *  "comments-section" (sectionIdentifier "comment-item-section"); its
+     *  `contents[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token`
+     *  is then fetched with ANDROID_VR to get full `commentRenderer`s. */
     private fun findCommentsSectionToken(node: Any?): String {
         when (node) {
             is JSONObject -> {
-                val cir = node.optJSONObject("continuationItemRenderer")
-                if (cir != null && node.optString("targetId", "") == "comments-section") {
-                    return cir.optJSONObject("continuationEndpoint")
+                if (node.optString("targetId", "") == "comments-section") {
+                    return node.optJSONArray("contents")
+                        ?.optJSONObject(0)
+                        ?.optJSONObject("continuationItemRenderer")
+                        ?.optJSONObject("continuationEndpoint")
                         ?.optJSONObject("continuationCommand")
                         ?.optString("token", "") ?: ""
                 }
