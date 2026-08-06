@@ -72,6 +72,13 @@
     <string name="youtube">YouTube</string>
     <string name="history">Histori</string>
     <string name="yt_related_title">Rekomendasi</string>
+    <string name="yt_comments_title">Komentar</string>
+    <string name="yt_subscribe">Subscribe</string>
+    <string name="yt_subscribed">Subscribed</string>
+    <string name="yt_no_comments">Belum ada komentar</string>
+    <string name="yt_login_required_like">Masuk dulu untuk memberi suka</string>
+    <string name="yt_login_required_subscribe">Masuk dulu untuk subscribe channel ini</string>
+    <string name="yt_engagement_failed">Tidak tersimpan — YouTube saat ini memblokir request OAuth innertube</string>
     <string name="yt_history_empty">Belum ada video yang ditonton.\nPutar video dari feed atau pencarian, progres akan muncul di sini.</string>
     <string name="yt_history_loading">Memuat histori…</string>
     <string name="resume">Lanjut dari %1$s</string>

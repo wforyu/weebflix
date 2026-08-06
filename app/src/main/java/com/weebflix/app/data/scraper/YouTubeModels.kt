@@ -31,9 +31,29 @@ data class YouTubeHome(
     val music: List<YouTubeVideo> = emptyList()
 )
 
-/** One page of related videos (youtubei/v1/next) + the continuation token for the next page. */
+/** One page of related videos (youtubei/v1/next) + the continuation token for the next page.
+ *  The first page also carries the owner renderer info (channel id/name) and the like count
+ *  so the player's action row can be populated without an extra request. */
 data class RelatedPage(
     val videos: List<YouTubeVideo> = emptyList(),
+    val continuation: String = "",
+    val channelId: String = "",
+    val channelName: String = "",
+    val likeCount: String = ""
+)
+
+/** A single comment from youtubei/v1/next (commentThreadRenderer). */
+data class YouTubeComment(
+    val author: String = "",
+    val authorThumb: String = "",
+    val text: String = "",
+    val likes: String = "",
+    val published: String = ""
+)
+
+/** One page of comments + the continuation token for the next page. */
+data class CommentPage(
+    val comments: List<YouTubeComment> = emptyList(),
     val continuation: String = ""
 )
 

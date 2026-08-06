@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
 import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme
+import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
+import androidx.security.crypto.MasterKey
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.scraper.YouTubeResolver
 import okhttp3.FormBody
@@ -32,14 +36,12 @@ import java.util.concurrent.TimeUnit
  * Credentials come from Settings (ProviderConfig): OAuth Client ID (+ optional
  * Client Secret and Redirect URI override). PKCE is always used, so a Web-app or
  * Android OAuth client works with or without a secret.
- *
- * NOTE: refresh token is stored in plain SharedPreferences (prototype). Upgrade
- * to EncryptedSharedPreferences (androidx.security) before any public release.
  */
 object YouTubeAuthManager {
 
     private const val TAG = "YouTubeAuth"
-    private const val PREF = "weebflix_yt_auth"
+    private const val PREF = "weebflix_yt_auth_enc"
+    private const val PREF_LEGACY = "weebflix_yt_auth"
     private const val KEY_REFRESH = "refresh_token"
     private const val KEY_ACCESS = "access_token"
     private const val KEY_EXPIRES_AT = "expires_at_ms"
@@ -65,7 +67,35 @@ object YouTubeAuthManager {
     private var pendingState: String? = null
 
     fun init(context: Context) {
-        prefs = context.applicationContext.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        val appContext = context.applicationContext
+        val masterKey = MasterKey.Builder(appContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        prefs = EncryptedSharedPreferences.create(
+            appContext,
+            PREF,
+            masterKey,
+            PrefKeyEncryptionScheme.AES256_SIV,
+            PrefValueEncryptionScheme.AES256_GCM
+        )
+        migrateLegacyTokens(appContext)
+    }
+
+    /** One-time copy of tokens stored by the old plain SharedPreferences (pre-EncryptedSharedPreferences),
+     *  then the plain file is wiped. */
+    private fun migrateLegacyTokens(context: Context) {
+        val legacy = context.getSharedPreferences(PREF_LEGACY, Context.MODE_PRIVATE)
+        if (!legacy.contains(KEY_REFRESH) && !legacy.contains(KEY_ACCESS) && !legacy.contains(KEY_EMAIL)) return
+        val refresh = legacy.getString(KEY_REFRESH, "") ?: ""
+        if (refresh.isNotEmpty() && (prefs.getString(KEY_REFRESH, "") ?: "").isEmpty()) {
+            prefs.edit()
+                .putString(KEY_REFRESH, refresh)
+                .putString(KEY_ACCESS, legacy.getString(KEY_ACCESS, "") ?: "")
+                .putLong(KEY_EXPIRES_AT, legacy.getLong(KEY_EXPIRES_AT, 0L))
+                .putString(KEY_EMAIL, legacy.getString(KEY_EMAIL, "") ?: "")
+                .apply()
+        }
+        legacy.edit().clear().apply()
     }
 
     val clientId: String get() = ProviderConfig.getYtOAuthClientId()

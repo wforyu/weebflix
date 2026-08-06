@@ -41,7 +41,6 @@ class YouTubeScraper : AnimeProvider {
     }
 
     private val TAG = "YouTubeScraper"
-    private val INVIOUS_INSTANCES = listOf("https://inv.nadeko.net", "https://yewtu.be", "https://invidious.nerdvpn.de")
 
     private data class YtClient(val name: String, val version: String, val sdk: Int, val key: String, val ua: String)
 
@@ -306,20 +305,24 @@ class YouTubeScraper : AnimeProvider {
     }
 
     /** First page of real related videos for a videoId (YouTube's own "Up Next" list), so the
-     *  related feed always matches the content being played (dangdut -> dangdut, game -> game...). */
+     *  related feed always matches the content being played (dangdut -> dangdut, game -> game...).
+     *  Also extracts the owner renderer (channel id/name) + like count from the same response. */
     suspend fun relatedVideos(videoId: String): RelatedPage = withContext(Dispatchers.IO) {
         val res = post("next") { it.put("videoId", videoId) }
         val json = res.json ?: return@withContext RelatedPage()
-        val secondary = json.optJSONObject("contents")
+        val twoCol = json.optJSONObject("contents")
             ?.optJSONObject("twoColumnWatchNextResults")
-            ?.optJSONObject("secondaryResults")
-            ?.optJSONObject("secondaryResults")
             ?: return@withContext RelatedPage()
+        val results = twoCol.optJSONObject("results")?.optJSONObject("results")
+        val secondary = twoCol.optJSONObject("secondaryResults")?.optJSONObject("secondaryResults")
         val out = mutableListOf<JSONObject>()
-        collectLockupViewModel(secondary, out)
+        if (secondary != null) collectLockupViewModel(secondary, out)
         RelatedPage(
             videos = out.mapNotNull { parseLockupViewModel(it) }.distinctBy { it.videoId },
-            continuation = findContinuationToken(secondary)
+            continuation = if (secondary != null) findContinuationToken(secondary) else "",
+            channelId = results?.let { findOwnerChannelId(it) } ?: "",
+            channelName = results?.let { findOwnerChannelName(it) } ?: "",
+            likeCount = results?.let { findLikeCount(it) } ?: ""
         )
     }
 
@@ -338,6 +341,185 @@ class YouTubeScraper : AnimeProvider {
             videos = out.mapNotNull { parseLockupViewModel(it) }.distinctBy { it.videoId },
             continuation = findContinuationToken(items)
         )
+    }
+
+    // ---- Comments (same youtubei/v1/next endpoint, results column) ----
+
+    /** First page of comments for a videoId. The comments live in the left column
+     *  (`results`) of the same `next` response used for related videos. */
+    suspend fun firstComments(videoId: String): CommentPage = withContext(Dispatchers.IO) {
+        val res = post("next") { it.put("videoId", videoId) }
+        val json = res.json ?: return@withContext CommentPage()
+        val results = json.optJSONObject("contents")
+            ?.optJSONObject("twoColumnWatchNextResults")
+            ?.optJSONObject("results")
+            ?.optJSONObject("results")
+            ?: return@withContext CommentPage()
+        val threads = mutableListOf<JSONObject>()
+        collectCommentThreads(results, threads)
+        CommentPage(
+            comments = threads.mapNotNull { parseCommentThread(it) }.take(20),
+            continuation = findContinuationToken(results)
+        )
+    }
+
+    /** Next page of comments via the continuation token from [firstComments]. */
+    suspend fun nextComments(continuation: String): CommentPage = withContext(Dispatchers.IO) {
+        if (continuation.isEmpty()) return@withContext CommentPage()
+        val res = post("next") { it.put("continuation", continuation) }
+        val json = res.json ?: return@withContext CommentPage()
+        val items = json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
+            ?.optJSONObject("appendContinuationItemsAction")
+            ?.optJSONArray("continuationItems")
+            ?: return@withContext CommentPage()
+        val threads = mutableListOf<JSONObject>()
+        collectCommentThreads(items, threads)
+        CommentPage(
+            comments = threads.mapNotNull { parseCommentThread(it) }.take(20),
+            continuation = findContinuationToken(items)
+        )
+    }
+
+    /** Collects every `commentThreadRenderer` object anywhere in the JSON tree. */
+    private fun collectCommentThreads(node: Any?, out: MutableList<JSONObject>) {
+        when (node) {
+            is JSONObject -> {
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    if (key == "commentThreadRenderer") {
+                        node.optJSONObject(key)?.let { out += it }
+                    } else {
+                        collectCommentThreads(node.opt(key), out)
+                    }
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) collectCommentThreads(node.opt(i), out)
+            }
+        }
+    }
+
+    private fun parseCommentThread(t: JSONObject): YouTubeComment? {
+        val c = t.optJSONObject("comment")?.optJSONObject("commentRenderer") ?: return null
+        val author = runsText(c.optJSONObject("authorText"))
+        if (author.isEmpty()) return null
+        val thumbs = c.optJSONObject("authorThumbnail")?.optJSONArray("thumbnails")
+        val thumb = if (thumbs != null && thumbs.length() > 0) thumbs.getJSONObject(thumbs.length() - 1).optString("url", "") else ""
+        return YouTubeComment(
+            author = author,
+            authorThumb = thumb,
+            text = runsText(c.optJSONObject("contentText")),
+            likes = c.optJSONObject("voteCount")?.let { runsText(it) } ?: "",
+            published = c.optJSONObject("publishedTimeText")?.let { runsText(it) } ?: ""
+        )
+    }
+
+    // ---- Owner renderer + like count (from the `next` results column) ----
+
+    /** Depth-first search for the first object with the given key. */
+    private fun findFirst(node: Any?, key: String): JSONObject? {
+        when (node) {
+            is JSONObject -> {
+                node.optJSONObject(key)?.let { return it }
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    findFirst(node.opt(keys.next()), key)?.let { return it }
+                }
+            }
+            is JSONArray -> {
+                for (i in 0 until node.length()) {
+                    findFirst(node.opt(i), key)?.let { return it }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findOwnerChannelId(results: JSONObject): String {
+        val owner = findFirst(results, "videoOwnerRenderer") ?: return ""
+        return owner.optJSONObject("navigationEndpoint")
+            ?.optJSONObject("browseEndpoint")
+            ?.optString("browseId", "") ?: ""
+    }
+
+    private fun findOwnerChannelName(results: JSONObject): String {
+        val owner = findFirst(results, "videoOwnerRenderer") ?: return ""
+        return runsText(owner.optJSONObject("title"))
+    }
+
+    /** Like count from `videoPrimaryInfoRenderer`: modern layout hides it inside
+     *  `likeButtonViewModel` (accessibilityText "12 jt suka"); older layout has `likeCount`. */
+    private fun findLikeCount(results: JSONObject): String {
+        val pri = findFirst(results, "videoPrimaryInfoRenderer") ?: return ""
+        pri.optJSONObject("likeCount")?.let { return runsText(it) }
+        val lb = pri.optJSONObject("likeButtonViewModel")
+            ?.optJSONObject("likeButtonViewModel")
+            ?.optJSONObject("toggleButtonViewModel")
+            ?.optJSONObject("toggleButtonViewModel")
+            ?: return ""
+        val bvm = lb.optJSONObject("defaultButtonViewModel")?.optJSONObject("buttonViewModel")
+        val acc = bvm?.optJSONObject("accessibilityText")?.optString("content", "").orEmpty()
+        if (acc.isNotEmpty()) return acc
+        return bvm?.optString("title", "") ?: ""
+    }
+
+    // ---- Engagement (like/dislike/subscribe) — auth-gated innertube endpoints ----
+
+    enum class YtEngageAction { LIKE, DISLIKE, REMOVE_LIKE }
+
+    /** Sends a like/dislike. Returns false when not logged in or YouTube rejects the
+     *  authenticated innertube request (currently blocked server-side, see AGENTS.md). */
+    suspend fun likeVideo(videoId: String, action: YtEngageAction): Boolean = withContext(Dispatchers.IO) {
+        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken()
+        if (token.isNullOrEmpty() || videoId.isEmpty()) return@withContext false
+        val endpoint = when (action) {
+            YtEngageAction.LIKE -> "like/like"
+            YtEngageAction.DISLIKE -> "like/dislike"
+            YtEngageAction.REMOVE_LIKE -> "like/removelike"
+        }
+        authPost(endpoint) {
+            it.put("target", JSONObject().put("videoId", videoId)).put("params", "")
+        }
+    }
+
+    /** Subscribes/unsubscribes a channel. Returns false when not logged in or rejected. */
+    suspend fun setSubscription(channelId: String, subscribe: Boolean): Boolean = withContext(Dispatchers.IO) {
+        if (channelId.isEmpty()) return@withContext false
+        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken()
+        if (token.isNullOrEmpty()) return@withContext false
+        val endpoint = if (subscribe) "subscription/subscribe" else "subscription/unsubscribe"
+        authPost(endpoint) {
+            it.put("channelIds", JSONArray().put(channelId)).put("params", "")
+        }
+    }
+
+    private suspend fun authPost(endpoint: String, fill: (JSONObject) -> Unit): Boolean = withContext(Dispatchers.IO) {
+        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken() ?: return@withContext false
+        try {
+            val body = JSONObject().put("context", context(clients[0]))
+            fill(body)
+            val request = Request.Builder()
+                .url("https://www.youtube.com/youtubei/v1/$endpoint?key=${clients[0].key}&prettyPrint=false")
+                .addHeader("User-Agent", clients[0].ua)
+                .addHeader("Accept", "application/json")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Origin", "https://www.youtube.com")
+                .addHeader("Authorization", "Bearer $token")
+                .addHeader("X-Goog-AuthUser", "0")
+                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "$endpoint HTTP ${resp.code}: ${resp.body?.string()?.take(150)}")
+                    return@use false
+                }
+                true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "$endpoint error: ${e.message}")
+            false
+        }
     }
 
     // ---- public API used by the YouTube UI ----
@@ -411,70 +593,7 @@ class YouTubeScraper : AnimeProvider {
     }
 
     suspend fun searchVideos(query: String, params: String? = null): List<YouTubeVideo> = withContext(Dispatchers.IO) {
-        val direct = fetchSearch(query, params)
-        if (direct.isNotEmpty()) {
-            direct.take(30)
-        } else {
-            Log.w(TAG, "search innertube empty, trying Invidious")
-            fetchSearchInvidious(query, params).take(30)
-        }
-    }
-
-    private fun fetchSearchInvidious(query: String, params: String?): List<YouTubeVideo> {
-        for (base in INVIOUS_INSTANCES) {
-            try {
-                val request = Request.Builder()
-                    .url("$base/api/v1/search?q=${java.net.URLEncoder.encode(query, "UTF-8")}&type=video")
-                    .addHeader("User-Agent", WEB_UA)
-                    .build()
-                val resp = client.newCall(request).execute()
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "invidious search $base HTTP ${resp.code}")
-                    continue
-                }
-                val arr = JSONArray(resp.body?.string() ?: "[]")
-                val out = mutableListOf<YouTubeVideo>()
-                for (i in 0 until arr.length()) {
-                    val v = arr.optJSONObject(i) ?: continue
-                    val videoId = v.optString("videoId", "")
-                    if (videoId.isEmpty()) continue
-                    val thumbs = v.optJSONArray("videoThumbnails")
-                    val thumb = if (thumbs != null && thumbs.length() > 0) thumbs.getJSONObject(thumbs.length() - 1).optString("url", "") else ""
-                    val cThumbs = v.optJSONArray("authorThumbnails")
-                    val cThumb = if (cThumbs != null && cThumbs.length() > 0) cThumbs.getJSONObject(cThumbs.length() - 1).optString("url", "") else ""
-                    out += YouTubeVideo(
-                        videoId = videoId,
-                        title = v.optString("title", ""),
-                        channel = v.optString("author", ""),
-                        channelThumb = cThumb,
-                        thumbnail = thumb,
-                        duration = formatDuration(v.optLong("lengthSeconds", 0)),
-                        views = formatCount(v.optLong("viewCount", 0)),
-                        published = v.optString("publishedText", "")
-                    )
-                }
-                if (out.isNotEmpty()) return out
-            } catch (e: Exception) {
-                Log.w(TAG, "invidious search $base failed: ${e.message}")
-            }
-        }
-        return emptyList()
-    }
-
-    private fun formatDuration(sec: Long): String {
-        if (sec <= 0) return ""
-        val h = sec / 3600; val m = (sec % 3600) / 60; val s = sec % 60
-        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-    }
-
-    private fun formatCount(n: Long): String {
-        if (n <= 0) return ""
-        return when {
-            n >= 1_000_000_000 -> "%.1f M ditonton".format(n / 1_000_000_000.0)
-            n >= 1_000_000 -> "%.1f M ditonton".format(n / 1_000_000.0)
-            n >= 1_000 -> "%.1f rb ditonton".format(n / 1_000.0)
-            else -> "$n ditonton"
-        }
+        fetchSearch(query, params).take(30)
     }
 
     suspend fun getVideoDetail(videoId: String): YouTubeVideoDetail = withContext(Dispatchers.IO) {

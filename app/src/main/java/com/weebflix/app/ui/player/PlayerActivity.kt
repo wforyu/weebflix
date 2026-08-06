@@ -333,6 +333,14 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var ytDetailMeta: TextView
     private lateinit var ytRelatedList: RecyclerView
     private lateinit var ytRelatedAdapter: YouTubeFeedAdapter
+    private lateinit var ytActionRow: View
+    private lateinit var ytLikeCount: TextView
+    private lateinit var btnYtLike: android.widget.ImageButton
+    private lateinit var btnYtDislike: android.widget.ImageButton
+    private lateinit var btnYtSubscribe: TextView
+    private lateinit var ytCommentHeader: TextView
+    private lateinit var ytCommentList: RecyclerView
+    private lateinit var ytCommentAdapter: com.weebflix.app.ui.youtube.adapter.YouTubeCommentAdapter
 
     private val ytScraper by lazy {
         com.weebflix.app.data.provider.ProviderFactory.getProvider(com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) as YouTubeScraper
@@ -342,6 +350,14 @@ class PlayerActivity : AppCompatActivity() {
     private var ytRelatedEnded = false
     private var ytRelatedContinuation: String = ""
     private var ytUpNext: YouTubeVideo? = null
+    private var ytCommentContinuation: String = ""
+    private var ytLoadingComments = false
+    private var ytCommentsEnded = false
+    private var currentChannelId: String = ""
+    private var currentChannelName: String = ""
+    private var isYtLiked = false
+    private var isYtDisliked = false
+    private var isYtSubscribed = false
     private var startPositionMs: Long = 0L
     private var pendingYtSeekMs: Long = 0L
     private var ytFullscreen = false
@@ -500,6 +516,7 @@ class PlayerActivity : AppCompatActivity() {
 
         initViews()
         setupYtRelatedList()
+        setupYtComments()
         applyYtArea()
         setupGestureDetector()
         setupControls()
@@ -638,6 +655,17 @@ class PlayerActivity : AppCompatActivity() {
         ytDetailTitle = findViewById(R.id.ytDetailTitle)
         ytDetailMeta = findViewById(R.id.ytDetailMeta)
         ytRelatedList = findViewById(R.id.ytRelatedList)
+        ytActionRow = findViewById(R.id.ytActionRow)
+        ytLikeCount = findViewById(R.id.ytLikeCount)
+        btnYtLike = findViewById(R.id.btnYtLike)
+        btnYtDislike = findViewById(R.id.btnYtDislike)
+        btnYtSubscribe = findViewById(R.id.btnYtSubscribe)
+        ytCommentHeader = findViewById(R.id.ytCommentHeader)
+        ytCommentList = findViewById(R.id.ytCommentList)
+
+        btnYtLike.setOnClickListener { onYtLikePressed() }
+        btnYtDislike.setOnClickListener { onYtDislikePressed() }
+        btnYtSubscribe.setOnClickListener { onYtSubscribePressed() }
 
         playerView.useController = isTvMode
         playerView.keepScreenOn = true
@@ -656,6 +684,154 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun setupYtComments() {
+        ytCommentAdapter = com.weebflix.app.ui.youtube.adapter.YouTubeCommentAdapter()
+        ytCommentList.layoutManager = LinearLayoutManager(this)
+        ytCommentList.adapter = ytCommentAdapter
+        ytCommentList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0) return
+                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
+                if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) {
+                    loadMoreComments()
+                }
+            }
+        })
+    }
+
+    private fun resetYtComments() {
+        ytCommentContinuation = ""
+        ytLoadingComments = false
+        ytCommentsEnded = false
+        ytCommentAdapter.submitList(emptyList())
+        ytCommentHeader.visibility = View.GONE
+        ytCommentList.visibility = View.GONE
+    }
+
+    private fun loadMoreComments() {
+        if (ytLoadingComments || ytCommentsEnded) return
+        ytLoadingComments = true
+        lifecycleScope.launch {
+            val c = ytCommentContinuation
+            val page = try {
+                withContext(Dispatchers.IO) {
+                    if (c.isEmpty()) ytScraper.firstComments(currentYtVideoId)
+                    else ytScraper.nextComments(c)
+                }
+            } catch (e: Exception) {
+                com.weebflix.app.data.scraper.CommentPage()
+            }
+            val fresh = page.comments.filter { it.author.isNotEmpty() && it.text.isNotEmpty() }
+            if (fresh.isNotEmpty()) {
+                val all = ytCommentAdapter.currentList.toMutableList().apply { addAll(fresh) }
+                ytCommentAdapter.submitList(all)
+                ytCommentContinuation = page.continuation
+                ytCommentHeader.visibility = View.VISIBLE
+                ytCommentList.visibility = View.VISIBLE
+            } else if (page.continuation.isEmpty()) {
+                ytCommentsEnded = true
+                if (ytCommentAdapter.currentList.isEmpty()) {
+                    ytCommentHeader.visibility = View.GONE
+                    ytCommentList.visibility = View.GONE
+                }
+            }
+            ytLoadingComments = false
+        }
+    }
+
+    private fun onYtLikePressed() {
+        if (!com.weebflix.app.data.auth.YouTubeAuthManager.isLoggedIn()) {
+            Toast.makeText(this, R.string.yt_login_required_like, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val target = !isYtLiked
+        setLikeUi(target)
+        setDislikeUi(false)
+        val action = if (target) com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.LIKE
+            else com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.REMOVE_LIKE
+        lifecycleScope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) { ytScraper.likeVideo(currentYtVideoId, action) }
+            } catch (e: Exception) {
+                Log.w(TAG, "like error: ${e.message}")
+                false
+            }
+            if (!ok) {
+                setLikeUi(!target)
+                setDislikeUi(false)
+                Toast.makeText(this@PlayerActivity, R.string.yt_engagement_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun onYtDislikePressed() {
+        if (!com.weebflix.app.data.auth.YouTubeAuthManager.isLoggedIn()) {
+            Toast.makeText(this, R.string.yt_login_required_like, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val target = !isYtDisliked
+        setDislikeUi(target)
+        setLikeUi(false)
+        val action = if (target) com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.DISLIKE
+            else com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.REMOVE_LIKE
+        lifecycleScope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) { ytScraper.likeVideo(currentYtVideoId, action) }
+            } catch (e: Exception) {
+                Log.w(TAG, "dislike error: ${e.message}")
+                false
+            }
+            if (!ok) {
+                setDislikeUi(!target)
+                setLikeUi(false)
+                Toast.makeText(this@PlayerActivity, R.string.yt_engagement_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun onYtSubscribePressed() {
+        if (currentChannelId.isEmpty()) {
+            Toast.makeText(this, "Channel tidak diketahui", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!com.weebflix.app.data.auth.YouTubeAuthManager.isLoggedIn()) {
+            Toast.makeText(this, R.string.yt_login_required_subscribe, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val target = !isYtSubscribed
+        setSubscribeUi(target)
+        lifecycleScope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) { ytScraper.setSubscription(currentChannelId, target) }
+            } catch (e: Exception) {
+                Log.w(TAG, "subscribe error: ${e.message}")
+                false
+            }
+            if (!ok) {
+                setSubscribeUi(!target)
+                Toast.makeText(this@PlayerActivity, R.string.yt_engagement_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setLikeUi(liked: Boolean) {
+        isYtLiked = liked
+        if (liked) btnYtLike.setColorFilter(0xFFE50914.toInt()) else btnYtLike.clearColorFilter()
+    }
+
+    private fun setDislikeUi(disliked: Boolean) {
+        isYtDisliked = disliked
+        if (disliked) btnYtDislike.setColorFilter(0xFFE50914.toInt()) else btnYtDislike.clearColorFilter()
+    }
+
+    private fun setSubscribeUi(subscribed: Boolean) {
+        isYtSubscribed = subscribed
+        btnYtSubscribe.text = getString(if (subscribed) R.string.yt_subscribed else R.string.yt_subscribe)
+        btnYtSubscribe.setBackgroundResource(
+            if (subscribed) R.drawable.bg_yt_subscribed else R.drawable.bg_yt_subscribe
+        )
     }
 
     /** Sizes the video area: fullscreen for normal providers, 16:9 at top for YouTube
@@ -4439,6 +4615,13 @@ class PlayerActivity : AppCompatActivity() {
         tvServerName.visibility = View.GONE
         btnPrevEpisodeNav.visibility = View.GONE
         btnNextEpisodeNav.visibility = View.GONE
+        currentChannelId = ""
+        currentChannelName = ""
+        ytLikeCount.visibility = View.GONE
+        setLikeUi(false)
+        setDislikeUi(false)
+        setSubscribeUi(false)
+        resetYtComments()
         lifecycleScope.launch {
             val resolved = try {
                 withContext(Dispatchers.IO) { com.weebflix.app.data.scraper.YouTubeResolver.resolve(videoId) }
@@ -4470,6 +4653,7 @@ class PlayerActivity : AppCompatActivity() {
                     ytRelatedEnded = false
                     loadMoreRelated()
                 }
+                loadMoreComments()
             }
         }
     }
@@ -4658,6 +4842,19 @@ class PlayerActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 com.weebflix.app.data.scraper.RelatedPage()
+            }
+            if (c.isEmpty()) {
+                // First page carries the owner renderer + like count from the same response.
+                if (page.channelId.isNotEmpty()) {
+                    currentChannelId = page.channelId
+                    currentChannelName = page.channelName
+                    btnYtSubscribe.contentDescription =
+                        "Subscribe " + currentChannelName.ifEmpty { currentChannelId }
+                }
+                if (page.likeCount.isNotEmpty()) {
+                    ytLikeCount.text = page.likeCount
+                    ytLikeCount.visibility = View.VISIBLE
+                }
             }
             val fresh = page.videos.filter { it.videoId.isNotEmpty() && it.videoId != currentYtVideoId }
             if (fresh.isNotEmpty()) {
