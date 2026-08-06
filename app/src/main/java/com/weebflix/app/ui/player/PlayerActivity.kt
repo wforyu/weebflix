@@ -4452,8 +4452,10 @@ class PlayerActivity : AppCompatActivity() {
                 servers = com.weebflix.app.data.provider.ProviderFactory.getProvider(activeProviderId).getEpisodeServers(episodeUrl)
                 if (!isFinishing) {
                     if (servers.isNotEmpty()) {
+                        val startIndex = initialServerIndex()
+                        currentServerIndex = startIndex
                         updateServerUI()
-                        loadServer(0)
+                        loadServer(startIndex)
                     } else {
                         showError(getString(R.string.no_servers))
                     }
@@ -4470,6 +4472,38 @@ class PlayerActivity : AppCompatActivity() {
         tvLoadingHint.visibility = View.GONE
         tvError.visibility = View.VISIBLE
         tvError.text = message
+    }
+
+    /**
+     * TV auto-selection: prefer a server that plays via ExoPlayer (D-pad friendly) over a
+     * WebView-only embed (Mega/OK.ru/Rumble/archive.org) which needs on-screen JS controls.
+     */
+    private fun initialServerIndex(): Int {
+        if (servers.isEmpty()) return 0
+        if (!isTvMode) return 0
+        val preferred = servers.indexOfFirst { isTvExoPlayerPreferred(it) }
+        if (preferred >= 0) {
+            Log.d(TAG, "TV mode: auto-selected ExoPlayer-friendly server index $preferred (${servers[preferred].name})")
+            return preferred
+        }
+        return 0
+    }
+
+    private fun isTvExoPlayerPreferred(server: VideoServer): Boolean {
+        if (server.dataType == "dl" || server.dataType == "p2p") return true
+        val v = server.videoUrl.lowercase()
+        val u = server.url.lowercase()
+        if (v.startsWith("hydrax://")) return true
+        val directSuffixes = listOf(".mp4", ".m3u8", ".mpd", ".mkv", ".webm", ".m4v", "googlevideo.com")
+        if (directSuffixes.any { v.contains(it) || u.contains(it) }) return true
+        if (v.contains("filedon.co") || u.contains("filedon.co")) return true
+        if (v.contains("anichin.stream") || u.contains("anichin.stream")) return true
+        if (v.contains("minochinos.com") || u.contains("minochinos.com")) return true
+        if (v.contains("filelions") || u.contains("filelions")) return true
+        if (v.contains("wibufile") || u.contains("wibufile")) return true
+        if ((v.contains("abyssplayer.com") || u.contains("abyssplayer.com")) &&
+            server.name.contains("Hydrax", ignoreCase = true)) return true
+        return false
     }
 
     private fun resetDlProgress() {

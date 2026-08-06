@@ -36,7 +36,7 @@
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:maxLines="1"
-            android:paddingHorizontal="12dp"
+            android:selectAllOnFocus="true"
             android:singleLine="true"
             android:textColor="#FFFFFF"
             android:textColorHint="#909090"
