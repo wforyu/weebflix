@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <!-- Android TV banner (320x180): black background + Netflix-style N -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M0,0 L320,0 L320,180 L0,180 Z" />
+
+    <!-- Path 1: left bar + diagonal body (bright red) -->
+    <path
+        android:fillColor="#E50914"
+        android:pathData="M117,13 L170.68,164.8 C185.86,165.24 201.92,167.44 201.92,167.44 L147.36,13 Z" />
+
+    <!-- Path 2: right vertical bar (bright red) -->
+    <path
+        android:fillColor="#E50914"
+        android:pathData="M171.56,13 L171.56,71.96 L201.92,157.76 L201.92,13 Z" />
+
+    <!-- Path 3: fold shadow at bottom-left (dark red) -->
+    <path
+        android:fillColor="#B20710"
+        android:pathData="M117,22.68 L117,167.44 C129.1,165.9 135.04,165.46 147.36,164.8 L147.36,108.48 Z" />
+
+</vector>
