@@ -63,7 +63,10 @@ class YouTubeSearchActivity : AppCompatActivity() {
         chipContainer = findViewById(R.id.chipContainer)
         val resultsList: RecyclerView = findViewById(R.id.resultsList)
 
-        adapter = YouTubeSearchAdapter { video -> openVideo(video) }
+        adapter = YouTubeSearchAdapter(
+            { video -> openVideo(video) },
+            { video -> openChannel(video) }
+        )
         resultsList.layoutManager = LinearLayoutManager(this)
         resultsList.adapter = adapter
 
@@ -167,6 +170,15 @@ class YouTubeSearchActivity : AppCompatActivity() {
             putExtra("animeUrl", video.url)
             putExtra("providerId", ProviderFactory.YOUTUBE_ID)
             putExtra("nextEpisodeUrl", "")
+        }
+        startActivity(intent)
+    }
+
+    private fun openChannel(video: YouTubeVideo) {
+        val intent = android.content.Intent(this, YouTubeChannelActivity::class.java).apply {
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_ID, video.channelId)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_NAME, video.channel)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_THUMB, video.channelThumb)
         }
         startActivity(intent)
     }

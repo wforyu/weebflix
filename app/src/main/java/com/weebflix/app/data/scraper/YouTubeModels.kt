@@ -7,6 +7,7 @@ data class YouTubeVideo(
     val videoId: String = "",
     val title: String = "",
     val channel: String = "",
+    val channelId: String = "",
     val channelThumb: String = "",
     val thumbnail: String = "",
     val duration: String = "",
@@ -87,6 +88,17 @@ data class YouTubeChannel(
 data class YouTubeHistoryItem(
     val video: YouTubeVideo = YouTubeVideo(),
     val watchedAtMs: Long = 0
+)
+
+/** A channel page: header info + the videos tab (all content by that owner), paginated. */
+data class YouTubeChannelDetail(
+    val channelId: String = "",
+    val channelName: String = "",
+    val channelThumb: String = "",
+    val channelBanner: String = "",
+    val subscriberCount: String = "",
+    val videos: List<YouTubeVideo> = emptyList(),
+    val continuation: String = ""
 )
 
 /** A single comment from youtubei/v1/next (commentThreadRenderer). */

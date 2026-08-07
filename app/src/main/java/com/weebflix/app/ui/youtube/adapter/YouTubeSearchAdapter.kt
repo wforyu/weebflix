@@ -10,14 +10,17 @@ import com.weebflix.app.R
 import com.weebflix.app.data.scraper.YouTubeVideo
 
 class YouTubeSearchAdapter(
-    private val onVideoClick: (YouTubeVideo) -> Unit
+    private val onVideoClick: (YouTubeVideo) -> Unit,
+    private val onChannelClick: ((YouTubeVideo) -> Unit)? = null
 ) : RecyclerView.Adapter<YouTubeSearchAdapter.VH>() {
 
-    private val items = mutableListOf<YouTubeVideo>()
+    private val itemsList = mutableListOf<YouTubeVideo>()
+
+    val items: List<YouTubeVideo> get() = itemsList
 
     fun submit(list: List<YouTubeVideo>) {
-        items.clear()
-        items.addAll(list)
+        itemsList.clear()
+        itemsList.addAll(list)
         notifyDataSetChanged()
     }
 
@@ -33,15 +36,24 @@ class YouTubeSearchAdapter(
         return VH(LayoutInflater.from(parent.context).inflate(R.layout.item_youtube_search, parent, false))
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = itemsList.size
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val v = items[position]
+        val v = itemsList[position]
         holder.title.text = v.title
         holder.duration.text = v.duration
         holder.channel.text = v.channel
         holder.meta.text = YouTubeFormat.searchMeta(v)
         YouTubeFormat.bindThumb(holder.thumb, v.thumbnail)
         holder.itemView.setOnClickListener { onVideoClick(v) }
+        if (onChannelClick != null && v.channelId.isNotEmpty()) {
+            holder.channel.isClickable = true
+            holder.channel.isFocusable = true
+            holder.channel.setOnClickListener { onChannelClick(v) }
+        } else {
+            holder.channel.isClickable = false
+            holder.channel.isFocusable = false
+            holder.channel.setOnClickListener(null)
+        }
     }
 }

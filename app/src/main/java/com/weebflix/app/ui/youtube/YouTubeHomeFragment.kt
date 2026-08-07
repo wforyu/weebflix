@@ -32,7 +32,9 @@ class YouTubeHomeFragment : Fragment() {
     private lateinit var ytFeed: RecyclerView
     private lateinit var ytError: TextView
     private lateinit var ytRefresh: SwipeRefreshLayout
-    private lateinit var ytBtnLogin: TextView
+    private lateinit var ytBtnLogin: View
+    private lateinit var ytAccountAvatar: ImageView
+    private lateinit var ytAccountName: TextView
     private lateinit var adapter: YouTubeFeedAdapter
 
     private val scraper by lazy { YouTubeScraper() }
@@ -43,6 +45,7 @@ class YouTubeHomeFragment : Fragment() {
 
     private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
+            lifecycleScope.launch(Dispatchers.IO) { YouTubeAuthManager.fetchUserInfo() }
             updateLoginUi()
             Toast.makeText(requireContext(), "Login berhasil: ${YouTubeAuthManager.email()}", Toast.LENGTH_LONG).show()
             refreshFeed()
@@ -64,8 +67,13 @@ class YouTubeHomeFragment : Fragment() {
         ytError = view.findViewById(R.id.ytError)
         ytRefresh = view.findViewById(R.id.ytRefresh)
         ytBtnLogin = view.findViewById(R.id.ytBtnLogin)
+        ytAccountAvatar = view.findViewById(R.id.ytAccountAvatar)
+        ytAccountName = view.findViewById(R.id.ytAccountName)
 
-        adapter = YouTubeFeedAdapter { video -> openVideo(video) }
+        adapter = YouTubeFeedAdapter(
+            { video -> openVideo(video) },
+            { video -> openChannel(video) }
+        )
         ytFeed.layoutManager = LinearLayoutManager(requireContext())
         ytFeed.adapter = adapter
 
@@ -221,12 +229,22 @@ class YouTubeHomeFragment : Fragment() {
     private fun updateLoginUi() {
         if (!isAdded) return
         if (YouTubeAuthManager.isLoggedIn()) {
-            val email = YouTubeAuthManager.email()
-            ytBtnLogin.text = email.substringBefore('@').takeIf { it.isNotEmpty() } ?: "Akun"
-            ytBtnLogin.setTextColor(0xFFB3B3B3.toInt())
+            ytAccountAvatar.visibility = View.VISIBLE
+            val pic = YouTubeAuthManager.picture()
+            if (pic.isNotEmpty()) {
+                com.bumptech.glide.Glide.with(this)
+                    .load(pic)
+                    .placeholder(R.drawable.bg_card)
+                    .into(ytAccountAvatar)
+            } else {
+                ytAccountAvatar.setImageDrawable(null)
+            }
+            ytAccountName.text = YouTubeAuthManager.displayName()
+            ytAccountName.setTextColor(0xFFB3B3B3.toInt())
         } else {
-            ytBtnLogin.setText(R.string.yt_login)
-            ytBtnLogin.setTextColor(0xFFE50914.toInt())
+            ytAccountAvatar.visibility = View.GONE
+            ytAccountName.setText(R.string.yt_login)
+            ytAccountName.setTextColor(0xFFE50914.toInt())
         }
     }
 
@@ -248,6 +266,15 @@ class YouTubeHomeFragment : Fragment() {
             putExtra("animeUrl", video.url)
             putExtra("providerId", ProviderFactory.YOUTUBE_ID)
             putExtra("nextEpisodeUrl", "")
+        }
+        startActivity(intent)
+    }
+
+    private fun openChannel(video: YouTubeVideo) {
+        val intent = Intent(requireContext(), YouTubeChannelActivity::class.java).apply {
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_ID, video.channelId)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_NAME, video.channel)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_THUMB, video.channelThumb)
         }
         startActivity(intent)
     }

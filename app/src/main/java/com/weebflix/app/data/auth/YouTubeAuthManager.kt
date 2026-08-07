@@ -46,10 +46,15 @@ object YouTubeAuthManager {
     private const val KEY_ACCESS = "access_token"
     private const val KEY_EXPIRES_AT = "expires_at_ms"
     private const val KEY_EMAIL = "email"
+    private const val KEY_NAME = "user_name"
+    private const val KEY_PICTURE = "user_picture"
 
     private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
     private const val AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-    private const val SCOPE = "https://www.googleapis.com/auth/youtube"
+    // `youtube` penuh untuk Data API v3; `openid` + `email` + `profile` agar
+    // `oauth2/v2/userinfo` mengembalikan nama + foto akun (dipakai di header home).
+    private const val SCOPE =
+        "https://www.googleapis.com/auth/youtube openid email profile"
 
     private val rng = SecureRandom()
 
@@ -107,6 +112,15 @@ object YouTubeAuthManager {
     fun isLoggedIn(): Boolean = getRefreshToken().isNotEmpty()
 
     fun email(): String = prefs.getString(KEY_EMAIL, "") ?: ""
+
+    /** Nama tampilan akun: full name dari userinfo, fallback ke bagian sebelum `@` email. */
+    fun displayName(): String =
+        (prefs.getString(KEY_NAME, "") ?: "").takeIf { it.isNotBlank() }
+            ?: email().substringBefore('@').takeIf { it.isNotBlank() }
+            ?: "Akun"
+
+    /** Foto profil Google (URL) — diisi oleh [fetchUserInfo]. */
+    fun picture(): String = prefs.getString(KEY_PICTURE, "") ?: ""
 
     private fun getRefreshToken() = prefs.getString(KEY_REFRESH, "") ?: ""
 
@@ -198,6 +212,7 @@ object YouTubeAuthManager {
                 json.optString("refresh_token", "").takeIf { it.isNotEmpty() }
                     ?.let { prefs.edit().putString(KEY_REFRESH, it).apply() }
                 fetchEmail(at)
+                fetchUserInfo()
                 null
             }
         } catch (e: Exception) {
@@ -221,6 +236,35 @@ object YouTubeAuthManager {
             }
         } catch (e: Exception) {
             Log.w(TAG, "email fetch failed: ${e.message}")
+        }
+    }
+
+    /** Fetches the profile (name/email/picture) from the Google userinfo endpoint and caches it.
+     *  Requires the `openid email profile` scopes (added to [SCOPE]) — old refresh tokens from a
+     *  pre-scope login return HTTP 403 here; the header then just falls back to the email prefix. */
+    fun fetchUserInfo(): Boolean {
+        val at = getAccessToken() ?: return false
+        return try {
+            val request = Request.Builder()
+                .url("https://www.googleapis.com/oauth2/v2/userinfo?alt=json")
+                .addHeader("Authorization", "Bearer $at")
+                .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "userinfo HTTP ${resp.code}")
+                    return false
+                }
+                val json = JSONObject(resp.body?.string() ?: "")
+                prefs.edit()
+                    .putString(KEY_NAME, json.optString("name", ""))
+                    .putString(KEY_PICTURE, json.optString("picture", ""))
+                    .putString(KEY_EMAIL, json.optString("email", "").ifEmpty { prefs.getString(KEY_EMAIL, "") })
+                    .apply()
+                true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "userinfo failed: ${e.message}")
+            false
         }
     }
 

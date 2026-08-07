@@ -32,6 +32,7 @@ import android.widget.Toast
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
@@ -54,6 +55,7 @@ import com.weebflix.app.data.model.VideoServer
 import com.weebflix.app.data.model.WatchHistoryManager
 import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
+import com.weebflix.app.ui.youtube.YouTubeChannelActivity
 import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
 import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.Dispatchers
@@ -343,6 +345,19 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var ytCommentList: RecyclerView
     private lateinit var ytCommentAdapter: com.weebflix.app.ui.youtube.adapter.YouTubeCommentAdapter
 
+    private lateinit var ytDetailPanel: View
+    private lateinit var ytHomeSwipe: SwipeRefreshLayout
+    private lateinit var ytHomeList: RecyclerView
+    private lateinit var ytHomeAdapter: YouTubeFeedAdapter
+    private lateinit var ytMiniPlayer: View
+    private lateinit var btnMiniClose: android.widget.ImageView
+    private lateinit var miniPlayerView: androidx.media3.ui.PlayerView
+    private lateinit var miniTitle: TextView
+    private var ytMiniCollapsed = false
+    private var ytHomeLoading = false
+    private var ytHomeEnded = false
+    private var ytHomeJob: kotlinx.coroutines.Job? = null
+
     private val ytScraper by lazy {
         com.weebflix.app.data.provider.ProviderFactory.getProvider(com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) as YouTubeScraper
     }
@@ -520,6 +535,7 @@ class PlayerActivity : AppCompatActivity() {
         initViews()
         setupYtRelatedList()
         setupYtComments()
+        setupYtHomeList()
         applyYtArea()
         setupGestureDetector()
         setupControls()
@@ -666,17 +682,33 @@ class PlayerActivity : AppCompatActivity() {
         ytCommentHeader = findViewById(R.id.ytCommentHeader)
         btnYtCommentToggle = findViewById(R.id.btnYtCommentToggle)
         ytCommentList = findViewById(R.id.ytCommentList)
+        ytDetailPanel = findViewById(R.id.ytDetailPanel)
+        ytHomeSwipe = findViewById(R.id.ytHomeSwipe)
+        ytHomeList = findViewById(R.id.ytHomeList)
+        ytMiniPlayer = findViewById(R.id.ytMiniPlayer)
+        btnMiniClose = findViewById(R.id.btnMiniClose)
+        miniPlayerView = findViewById(R.id.miniPlayerView)
+        miniTitle = findViewById(R.id.miniTitle)
+
+        miniPlayerView.useController = false
+        miniPlayerView.keepScreenOn = true
+        ytMiniPlayer.setOnClickListener { expandYtPlayer() }
+        btnMiniClose.setOnClickListener { finish() }
 
         btnYtLike.setOnClickListener { onYtLikePressed() }
         btnYtDislike.setOnClickListener { onYtDislikePressed() }
         btnYtSubscribe.setOnClickListener { onYtSubscribePressed() }
+        ytDetailMeta.setOnClickListener { openChannel(currentChannelId, currentChannelName, "") }
 
         playerView.useController = isTvMode
         playerView.keepScreenOn = true
     }
 
     private fun setupYtRelatedList() {
-        ytRelatedAdapter = YouTubeFeedAdapter { video -> playYouTubeByVideo(video) }
+        ytRelatedAdapter = YouTubeFeedAdapter(
+            { video -> playYouTubeByVideo(video) },
+            { video -> openChannelFromVideo(video) }
+        )
         ytRelatedList.layoutManager = LinearLayoutManager(this)
         ytRelatedList.adapter = ytRelatedAdapter
         ytRelatedList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -706,6 +738,118 @@ class PlayerActivity : AppCompatActivity() {
         val toggle = View.OnClickListener { toggleYtComments() }
         ytCommentHeader.setOnClickListener(toggle)
         btnYtCommentToggle.setOnClickListener(toggle)
+    }
+
+    // ===== Mini player (YouTube) =====
+    // Pulling down on the video collapses it into a pinned overlay at the bottom-left while the
+    // home feed fills the rest of the screen. The same exoPlayer keeps rendering in both views.
+
+    private fun setupYtHomeList() {
+        ytHomeAdapter = YouTubeFeedAdapter(
+            { video -> playYouTubeFromMini(video) },
+            { video -> openChannelFromVideo(video) }
+        )
+        ytHomeList.layoutManager = LinearLayoutManager(this)
+        ytHomeList.adapter = ytHomeAdapter
+        ytHomeList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0) return
+                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
+                if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) {
+                    loadMoreYtHome()
+                }
+            }
+        })
+        ytHomeSwipe.setColorSchemeResources(R.color.netflix_red)
+        ytHomeSwipe.setOnRefreshListener { refreshYtHome() }
+    }
+
+    /** Pull-to-refresh on the mini-player feed: drops the seen-id dedup set so a fresh random
+     *  batch of Indonesian uploads loads, then clears the spinner once the new page lands. */
+    private fun refreshYtHome() {
+        ytHomeJob?.cancel()
+        ytHomeAdapter.clear()
+        ytHomeLoading = false
+        ytHomeEnded = false
+        ytScraper.resetFeed()
+        loadMoreYtHome()
+        lifecycleScope.launch {
+            ytHomeJob?.join()
+            if (!isFinishing) ytHomeSwipe.isRefreshing = false
+        }
+    }
+
+    private fun loadMoreYtHome() {
+        if (ytHomeLoading || ytHomeEnded || ytHomeJob?.isActive == true) return
+        ytHomeLoading = true
+        val job = lifecycleScope.launch {
+            val page = try {
+                withContext(Dispatchers.IO) { ytScraper.nextFeedPage() }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            when {
+                page.isNotEmpty() -> ytHomeAdapter.append(page, endOfFeed = false)
+                ytHomeAdapter.isEmpty -> {
+                    ytHomeEnded = true
+                    ytHomeAdapter.setLoading()
+                }
+                else -> {
+                    ytHomeEnded = true
+                    ytHomeAdapter.setLoading()
+                    ytHomeAdapter.append(emptyList(), endOfFeed = true)
+                }
+            }
+            ytHomeLoading = false
+        }
+        ytHomeJob = job
+        ytHomeList.post {
+            if (job.isActive && !isFinishing) ytHomeAdapter.setLoading()
+        }
+    }
+
+    private fun canMiniPlayer(): Boolean {
+        if (activeProviderId != com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) return false
+        if (ytFullscreen || ytMiniCollapsed) return false
+        if (isWebViewPlayback) return false
+        return exoPlayer != null
+    }
+
+    private fun collapseYtPlayer() {
+        if (!canMiniPlayer()) return
+        ytMiniCollapsed = true
+        miniTitle.text = tvAnimeTitle.text
+        playerView.player = null
+        playerArea.visibility = View.GONE
+        ytDetailPanel.visibility = View.GONE
+        ytHomeSwipe.visibility = View.VISIBLE
+        ytBelowArea.visibility = View.VISIBLE
+        ytMiniPlayer.visibility = View.VISIBLE
+        miniPlayerView.player = exoPlayer
+        hideControls()
+        if (ytHomeAdapter.isEmpty) {
+            ytHomeEnded = false
+            loadMoreYtHome()
+        }
+    }
+
+    private fun expandYtPlayer() {
+        if (!ytMiniCollapsed) return
+        ytMiniCollapsed = false
+        ytMiniPlayer.visibility = View.GONE
+        miniPlayerView.player = null
+        playerView.player = exoPlayer
+        playerArea.visibility = View.VISIBLE
+        ytDetailPanel.visibility = View.VISIBLE
+        ytHomeSwipe.visibility = View.GONE
+        applyYtArea()
+        showControls()
+        scheduleAutoHide()
+    }
+
+    private fun playYouTubeFromMini(video: YouTubeVideo) {
+        if (video.videoId.isEmpty() || video.videoId == currentYtVideoId) return
+        playYouTubeByVideo(video)
     }
 
     /** Expands/collapses the comments list so the recommendations below regain the full height. */
@@ -3904,12 +4048,53 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
 
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (canMiniPlayer() && velocityY > 1200f && abs(velocityY) > abs(velocityX) * 1.5f) {
+                    collapseYtPlayer()
+                    return true
+                }
+                return false
+            }
+
             override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
                 if (e1 == null) return false
 
                 val deadZoneTop = topBar.height + 10
                 val deadZoneBottom = gestureDeadZoneBottom()
                 val startInDeadZone = e1.y < deadZoneTop || e1.y > deadZoneBottom
+
+                // A downward drag in the mini-player-capable state is reserved as a collapse
+                // intent. The classification is sticky for the whole gesture, so a slow pull
+                // (below the speed gate) is never re-routed into handleVolumeGesture/
+                // handleBrightnessGesture and can't drive STREAM_MUSIC down to 0. Fast enough
+                // pulls still collapse when the gate is met.
+                if (canMiniPlayer() && !startInDeadZone) {
+                    if (!isGestureActive) {
+                        val dX = e2.x - e1.x
+                        val dY = e2.y - e1.y
+                        if (dY > 20 && abs(dY) > abs(dX)) {
+                            gestureStartY = e1.y
+                            isGestureActive = true
+                            gestureType = 4 // collapse intent
+                        }
+                    }
+                    if (isGestureActive && gestureType == 4) {
+                        val deltaX = e2.x - e1.x
+                        val deltaY = e2.y - e1.y
+                        val elapsed = (e2.eventTime - e1.downTime).coerceAtLeast(1L)
+                        val pullSpeed = deltaY / elapsed.toFloat()
+                        if (deltaY > 60 && abs(deltaY) > abs(deltaX) * 1.5f && pullSpeed > 0.8f) {
+                            collapseYtPlayer()
+                        }
+                        return true
+                    }
+                }
+
+                // Keep consuming once a gesture was reserved as a collapse intent, even after
+                // the player has collapsed (the overlay is still in the touch path until the
+                // feed above it takes over).
+                if (isGestureActive && gestureType == 4) return true
+
                 if (startInDeadZone) return false
 
                 if (!isGestureActive) {
@@ -4268,6 +4453,11 @@ class PlayerActivity : AppCompatActivity() {
         webView?.visibility = View.GONE
         playerView.visibility = View.VISIBLE
         gestureOverlay.visibility = View.VISIBLE
+        if (ytMiniCollapsed) {
+            // Mini player is active: never show the big controls over the home feed.
+            hideControls()
+            return
+        }
         showControls()
         scheduleAutoHide()
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
@@ -4745,6 +4935,7 @@ class PlayerActivity : AppCompatActivity() {
                 showError(msg)
             } else {
                 tvAnimeTitle.text = resolved.title
+                if (ytMiniCollapsed) miniTitle.text = resolved.title
                 val sub = buildString {
                     if (resolved.author.isNotEmpty()) append(resolved.author)
                     if (resolved.views.isNotEmpty()) {
@@ -4849,7 +5040,12 @@ class PlayerActivity : AppCompatActivity() {
             )
             .build()
             .also { player ->
-                playerView.player = player
+                if (ytMiniCollapsed) {
+                    playerView.player = null
+                    miniPlayerView.player = player
+                } else {
+                    playerView.player = player
+                }
                 player.addListener(object : Player.Listener {
                     override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
                         for (g in tracks.groups) {
@@ -4936,6 +5132,20 @@ class PlayerActivity : AppCompatActivity() {
         ytRelatedEnded = false
         ytRelatedAdapter.clear()
         playYouTubeVideo(video.videoId, 0L)
+    }
+
+    private fun openChannelFromVideo(video: YouTubeVideo) {
+        openChannel(video.channelId, video.channel, video.channelThumb)
+    }
+
+    private fun openChannel(channelId: String, channelName: String, channelThumb: String) {
+        if (channelId.isEmpty()) return
+        val intent = android.content.Intent(this, YouTubeChannelActivity::class.java).apply {
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_ID, channelId)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_NAME, channelName)
+            putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_THUMB, channelThumb)
+        }
+        startActivity(intent)
     }
 
     private fun loadMoreRelated() {

@@ -62,16 +62,37 @@
             android:contentDescription="Notifications"
             android:scaleType="centerInside" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/ytBtnLogin"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/selector_focus_outline"
             android:gravity="center"
-            android:paddingHorizontal="10dp"
-            android:text="@string/yt_login"
-            android:textColor="#E50914"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
+
+            <ImageView
+                android:id="@+id/ytAccountAvatar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_circle_avatar"
+                android:contentDescription="Akun"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/ytAccountName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingHorizontal="4dp"
+                android:text="@string/yt_login"
+                android:textColor="#E50914"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Error / empty -->

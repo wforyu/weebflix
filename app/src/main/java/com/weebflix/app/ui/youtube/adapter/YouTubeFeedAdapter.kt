@@ -55,7 +55,8 @@ object YouTubeFormat {
  * is offset by that section. Call [setSection] with a null title / empty list to remove it.
  */
 class YouTubeFeedAdapter(
-    private val onVideoClick: (YouTubeVideo) -> Unit
+    private val onVideoClick: (YouTubeVideo) -> Unit,
+    private val onChannelClick: ((YouTubeVideo) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private companion object {
@@ -135,7 +136,8 @@ class YouTubeFeedAdapter(
         return when (viewType) {
             TYPE_VIDEO -> FeedVH(
                 LayoutInflater.from(parent.context).inflate(R.layout.item_youtube_feed, parent, false),
-                onVideoClick
+                onVideoClick,
+                onChannelClick
             )
             TYPE_SECTION -> SectionVH(
                 LayoutInflater.from(parent.context).inflate(R.layout.item_youtube_section, parent, false)
@@ -174,7 +176,11 @@ class YouTubeFeedAdapter(
         }
     }
 
-    class FeedVH(view: View, private val onVideoClick: (YouTubeVideo) -> Unit) : RecyclerView.ViewHolder(view) {
+    class FeedVH(
+        view: View,
+        private val onVideoClick: (YouTubeVideo) -> Unit,
+        private val onChannelClick: ((YouTubeVideo) -> Unit)?
+    ) : RecyclerView.ViewHolder(view) {
         private val thumbFrame: View = view.findViewById(R.id.thumbFrame)
         private val thumb: ImageView = view.findViewById(R.id.thumb)
         private val duration: TextView = view.findViewById(R.id.duration)
@@ -195,6 +201,12 @@ class YouTubeFeedAdapter(
                 channelThumb.setImageDrawable(null)
             }
             itemView.setOnClickListener { onVideoClick(v) }
+            val canOpenChannel = onChannelClick != null && v.channelId.isNotEmpty()
+            for (target in listOf(channelThumb, meta)) {
+                target.isClickable = canOpenChannel
+                target.isFocusable = canOpenChannel
+                target.setOnClickListener { if (canOpenChannel) onChannelClick(v) }
+            }
         }
     }
 }

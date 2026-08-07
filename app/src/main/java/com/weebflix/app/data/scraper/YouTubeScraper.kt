@@ -161,6 +161,9 @@ class YouTubeScraper : AnimeProvider {
         if (videoId.isEmpty()) return null
         val byline = r.optJSONObject("ownerText")?.optJSONArray("runs")
             ?: r.optJSONObject("longBylineText")?.optJSONArray("runs")
+        val channelId = r.optJSONObject("ownerText")?.optJSONArray("runs")
+            ?.optJSONObject(0)?.optJSONObject("navigationEndpoint")
+            ?.optJSONObject("browseEndpoint")?.optString("browseId", "").orEmpty()
         val channelThumb = r.optJSONObject("channelThumbnailSupportedRenderers")
             ?.optJSONObject("channelThumbnailWithLinkRenderer")
             ?.optJSONObject("thumbnail")
@@ -169,6 +172,7 @@ class YouTubeScraper : AnimeProvider {
             videoId = videoId,
             title = runsText(r.optJSONObject("title")),
             channel = byline?.optJSONObject(0)?.optString("text", "") ?: "",
+            channelId = channelId,
             channelThumb = channelThumb?.let { pickThumb(it) } ?: "",
             thumbnail = pickThumb(r.optJSONObject("thumbnail")),
             duration = r.optJSONObject("lengthText")?.let { runsText(it) } ?: "",
@@ -242,11 +246,14 @@ class YouTubeScraper : AnimeProvider {
         val channel = part(0)
         val views = part(1)
         val published = part(1, 1)
+        val avatarVm = md.optJSONObject("image")
+            ?.optJSONObject("decoratedAvatarViewModel")?.optJSONObject("avatar")
+            ?.optJSONObject("avatarViewModel")
+        val channelId = avatarVm?.optJSONObject("onTap")?.optJSONObject("innertubeCommand")
+            ?.optJSONObject("browseEndpoint")?.optString("browseId", "").orEmpty()
         val img = l.optJSONObject("contentImage")?.optJSONObject("thumbnailViewModel")?.optJSONObject("image")
         val thumbnail = pickFromSources(img?.optJSONArray("sources"))
-        val channelThumb = pickFromSources(md.optJSONObject("image")
-            ?.optJSONObject("decoratedAvatarViewModel")?.optJSONObject("avatar")
-            ?.optJSONObject("avatarViewModel")?.optJSONObject("image")?.optJSONArray("sources"))
+        val channelThumb = pickFromSources(avatarVm?.optJSONObject("image")?.optJSONArray("sources"))
         var duration = ""
         val overlays = img?.optJSONArray("overlays")
         if (overlays != null && overlays.length() > 0) {
@@ -263,6 +270,7 @@ class YouTubeScraper : AnimeProvider {
             videoId = videoId,
             title = title,
             channel = channel,
+            channelId = channelId,
             channelThumb = channelThumb,
             thumbnail = thumbnail,
             duration = duration,
@@ -345,9 +353,11 @@ class YouTubeScraper : AnimeProvider {
         if (continuation.isEmpty()) return@withContext RelatedPage()
         val res = post("next") { it.put("continuation", continuation) }
         val json = res.json ?: return@withContext RelatedPage()
-        val items = json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
-            ?.optJSONObject("appendContinuationItemsAction")
-            ?.optJSONArray("continuationItems")
+        val items = json.optJSONArray("onResponseReceivedActions")?.optJSONObject(0)
+            ?.optJSONObject("appendContinuationItemsAction")?.optJSONArray("continuationItems")
+            ?: json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
+                ?.optJSONObject("appendContinuationItemsAction")
+                ?.optJSONArray("continuationItems")
             ?: return@withContext RelatedPage()
         val out = mutableListOf<JSONObject>()
         collectLockupViewModel(items, out)
@@ -675,6 +685,103 @@ class YouTubeScraper : AnimeProvider {
             Log.w(TAG, "getVideoDetail error: ${e.message}")
             YouTubeVideoDetail(videoId = videoId)
         }
+    }
+
+    /** The channel's "Videos" tab params (browse params `EgZ2aWRlb3PyBgQKAjoA`) — shows every
+     *  upload by the owner, newest first, paginated via continuation. */
+    private val CHANNEL_VIDEOS_PARAMS = "EgZ2aWRlb3PyBgQKAjoA"
+
+    /** First page of a channel page: header (name/avatar/banner/subscriber count) + the Videos
+     *  tab grid. YouTube removed `c4TabbedHeaderRenderer` (2026): the no-params browse now carries
+     *  the header as `header.pageHeaderRenderer.content.pageHeaderViewModel`, and the Videos tab
+     *  as `continuationContents.richGridContinuation` (lockupViewModel grid) when fetched with
+     *  [CHANNEL_VIDEOS_PARAMS]. Two browse calls — one for the header, one for the videos. */
+    suspend fun getChannelDetail(channelId: String): YouTubeChannelDetail = withContext(Dispatchers.IO) {
+        if (channelId.isEmpty()) return@withContext YouTubeChannelDetail()
+
+        // Header: name/avatar/banner/subscriber count from the new pageHeaderViewModel.
+        val headerJson = post("browse") { it.put("browseId", channelId) }.json
+        var name = ""
+        var avatar = ""
+        var banner = ""
+        var subs = ""
+        headerJson?.optJSONObject("header")?.optJSONObject("pageHeaderRenderer")
+            ?.optJSONObject("content")?.optJSONObject("pageHeaderViewModel")?.let { vm ->
+                name = vm.optJSONObject("title")?.optJSONObject("dynamicTextViewModel")
+                    ?.optJSONObject("text")?.optString("content", "").orEmpty()
+                avatar = vm.optJSONObject("image")?.optJSONObject("decoratedAvatarViewModel")
+                    ?.optJSONObject("avatar")?.optJSONObject("avatarViewModel")
+                    ?.optJSONObject("image")?.optJSONArray("sources")?.let { pickFromSources(it) }.orEmpty()
+                banner = vm.optJSONObject("banner")?.optJSONObject("imageBannerViewModel")
+                    ?.optJSONObject("image")?.optJSONArray("sources")?.let { pickFromSources(it) }.orEmpty()
+                val rows = vm.optJSONObject("metadata")?.optJSONObject("contentMetadataViewModel")
+                    ?.optJSONArray("metadataRows")
+                val row = rows?.optJSONObject(1) ?: rows?.optJSONObject(0)
+                subs = row?.optJSONArray("metadataParts")?.optJSONObject(0)
+                    ?.optJSONObject("text")?.optString("content", "").orEmpty()
+            }
+
+        // Videos tab grid.
+        val videosRes = post("browse") {
+            it.put("browseId", channelId)
+                .put("params", CHANNEL_VIDEOS_PARAMS)
+                .put("continuation", "")
+        }
+        val videosJson = videosRes.json
+        val videos = if (videosJson != null) collectChannelVideos(videosJson) else emptyList()
+        val continuation = if (videosJson != null) findContinuationToken(videosJson) else ""
+
+        // Fallback: `metadata.channelMetadataRenderer` (present in both responses) carries a
+        // high-res avatar + name when the new header layout was not parsed.
+        videosJson?.optJSONObject("metadata")?.optJSONObject("channelMetadataRenderer")?.let { meta ->
+            if (name.isEmpty()) name = meta.optString("title", "")
+            if (avatar.isEmpty()) avatar = meta.optJSONObject("avatar")?.let { pickThumb(it) }.orEmpty()
+        }
+
+        YouTubeChannelDetail(
+            channelId = channelId,
+            channelName = name,
+            channelThumb = avatar,
+            channelBanner = banner,
+            subscriberCount = subs,
+            videos = videos,
+            continuation = continuation
+        )
+    }
+
+    /** Next page of a channel's Videos tab via the continuation token. YouTube switched the
+     *  continuation response from `onResponseReceivedEndpoints[]` to `onResponseReceivedActions[]`
+     *  (2026) — both layouts are handled. */
+    suspend fun getChannelNextPage(continuation: String): YouTubeChannelDetail = withContext(Dispatchers.IO) {
+        if (continuation.isEmpty()) return@withContext YouTubeChannelDetail()
+        val res = post("browse") { it.put("continuation", continuation) }
+        val json = res.json ?: return@withContext YouTubeChannelDetail()
+        val items = json.optJSONArray("onResponseReceivedActions")?.optJSONObject(0)
+            ?.optJSONObject("appendContinuationItemsAction")?.optJSONArray("continuationItems")
+            ?: json.optJSONArray("onResponseReceivedEndpoints")?.optJSONObject(0)
+                ?.optJSONObject("appendContinuationItemsAction")?.optJSONArray("continuationItems")
+        val videos = if (items != null) {
+            val out = mutableListOf<JSONObject>()
+            collectVideoRenderers(items, out)
+            val lockups = mutableListOf<JSONObject>()
+            collectLockupViewModel(items, lockups)
+            (out.mapNotNull { parseVideoRenderer(it) } + lockups.mapNotNull { parseLockupViewModel(it) })
+                .distinctBy { it.videoId }
+        } else emptyList()
+        YouTubeChannelDetail(
+            videos = videos,
+            continuation = if (items != null) findContinuationToken(items) else ""
+        )
+    }
+
+    /** Collects every video (videoRenderer/compactVideoRenderer + lockupViewModel) in a JSON tree. */
+    private fun collectChannelVideos(json: JSONObject): List<YouTubeVideo> {
+        val out = mutableListOf<JSONObject>()
+        collectVideoRenderers(json, out)
+        val lockups = mutableListOf<JSONObject>()
+        collectLockupViewModel(json, lockups)
+        return (out.mapNotNull { parseVideoRenderer(it) } + lockups.mapNotNull { parseLockupViewModel(it) })
+            .distinctBy { it.videoId }
     }
 
     companion object {

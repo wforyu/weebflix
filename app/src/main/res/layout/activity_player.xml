@@ -571,6 +571,15 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Detail/related panel: visible in the normal expanded player, replaced by the
+                 home feed when the player is collapsed into the mini player. -->
+            <LinearLayout
+                android:id="@+id/ytDetailPanel"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
             <TextView
                 android:id="@+id/ytDetailTitle"
                 android:layout_width="match_parent"
@@ -728,6 +737,26 @@
                 android:clipToPadding="false"
                 android:paddingTop="8dp"
                 android:paddingBottom="24dp" />
+            </LinearLayout>
+            <!-- /ytDetailPanel -->
+
+            <!-- Home feed: fills the screen while the player is collapsed into the mini player.
+                 Pulling down on the feed refreshes it with a fresh random batch. -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/ytHomeSwipe"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:visibility="gone">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/ytHomeList"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="24dp" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
         </LinearLayout>
     </LinearLayout>
     <!-- /vertical column -->
@@ -947,6 +976,71 @@
             android:indeterminateTint="@color/netflix_red"
             android:visibility="gone" />
 
+    </FrameLayout>
+
+    <!-- Mini player (YouTube only): pinned overlay shown when the big player is collapsed by a
+         pull-down gesture. Binds the SAME exoPlayer instance, so the video keeps playing while
+         the home feed fills the screen. Tap anywhere on it to expand back. -->
+    <FrameLayout
+        android:id="@+id/ytMiniPlayer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="12dp"
+        android:foreground="@drawable/selector_focus_outline"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/miniPlayerView"
+            android:layout_width="200dp"
+            android:layout_height="112dp"
+            app:use_controller="false"
+            app:resize_mode="fit" />
+
+        <ImageView
+            android:id="@+id/btnMiniClose"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="top|end"
+            android:background="@drawable/bg_circle_semi_black"
+            android:contentDescription="Tutup"
+            android:padding="5dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_close" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="#99000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/miniTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                tools:text="Judul video" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Kembangkan"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_expand_less" />
+        </LinearLayout>
     </FrameLayout>
 
 </FrameLayout>
