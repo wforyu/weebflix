@@ -29,7 +29,8 @@ WeebFlix/app/src/main/
 │   │   └── scraper/
 │   │       ├── SamehadakuScraper.kt   # Anime scraper (Jsoup) — implements AnimeProvider
 │   │       ├── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
-│   │       └── AnichinScraper.kt     # Donghua/Anime scraper (Jsoup) — implements AnimeProvider
+│   │       ├── AnichinScraper.kt     # Donghua/Anime scraper (Jsoup) — implements AnimeProvider
+│   │       └── OtakudesuScraper.kt   # Anime scraper (Jsoup, Blogspot streaming) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt      # Splash with animated N logo
 │       ├── main/MainActivity.kt          # Bottom nav host (Home/Search/Ongoing/Settings)
@@ -75,7 +76,8 @@ Graf ketergantungan antar-kelas (di-generate dari import aktual, 2026-08). Layer
 │   └─ satu-satunya yang "tahu" tentang Android views + Activity nav  │
 ├─────────────────────────────────────────────────────────────────────┤
 │ DATA LAYER (scraper / provider / auth / model / config)             │
-│   ├─ scrapers: Samehadaku, DrakorKita, Anichin, OppaDrama, YouTube  │
+│   ├─ scrapers: Samehadaku, DrakorKita, Anichin, OppaDrama, Otakudesu,  │
+│   │             YouTube                                               │
 │   ├─ provider: AnimeProvider (interface) + ProviderFactory (registry)│
 │   ├─ auth:    YouTubeAuthManager + LoopbackOAuthServer              │
 │   ├─ model:   Models, WatchHistoryManager, ProviderDataCache,       │
@@ -110,6 +112,7 @@ flowchart TB
     ProviderFactory --> AnichinScraper
     ProviderFactory --> DrakorKitaScraper
     ProviderFactory --> OppaDramaScraper
+    ProviderFactory --> OtakudesuScraper
     ProviderFactory --> SamehadakuScraper
     ProviderFactory --> YouTubeScraper
 
@@ -123,6 +126,9 @@ flowchart TB
     OppaDramaScraper --> ProviderConfig
     OppaDramaScraper --> Models
     OppaDramaScraper --> AnimeProvider
+    OtakudesuScraper --> ProviderConfig
+    OtakudesuScraper --> Models
+    OtakudesuScraper --> AnimeProvider
     SamehadakuScraper --> ProviderConfig
     SamehadakuScraper --> Models
     SamehadakuScraper --> AnimeProvider
@@ -132,6 +138,11 @@ flowchart TB
     YouTubeScraper --> YouTubeResolver
     YouTubeResolver --> YouTubeAuthManager
     YouTubeResolver --> YouTubeCipher
+    YouTubeDataApi --> YouTubeAuthManager
+    YouTubeDataApi --> YouTubeSubscriptionStore
+    YouTubeDataApi --> Models
+    YouTubeSubscriptionStore --> YouTubeAuthManager
+    YouTubeSubscriptionStore --> Models
 
     %% auth
     YouTubeAuthManager --> ProviderConfig
@@ -175,6 +186,12 @@ flowchart TB
     AnichinHomeFragment --> ProviderDataCache
     AnichinHomeFragment --> AnimeDetailActivity
     AnichinHomeFragment --> CategoryGridActivity
+    OtakudesuHomeFragment --> ProviderFactory
+    OtakudesuHomeFragment --> WatchHistoryManager
+    OtakudesuHomeFragment --> ProviderDataCache
+    OtakudesuHomeFragment --> AnimeDetailActivity
+    OtakudesuHomeFragment --> CategoryGridActivity
+    OtakudesuHomeFragment --> PlayerActivity
 
     %% UI: search / ongoing / detail / settings
     SearchFragment --> AnimeDetailActivity
@@ -236,13 +253,15 @@ flowchart TB
 | `data/model/ProviderDataCache` | (mandiri — cache memory/disk home data) |
 | `data/model/GitHubDataFetcher` | ProviderDataCache |
 | `data/provider/AnimeProvider` | Models (interface kontrak scraper) |
-| `data/provider/ProviderFactory` | ProviderConfig, 5 scraper (Samehadaku/DrakorKita/Anichin/OppaDrama/YouTube) |
-| `data/scraper/*` (4 scraper lama) | ProviderConfig, Models, AnimeProvider |
+| `data/provider/ProviderFactory` | ProviderConfig, 6 scraper (Samehadaku/DrakorKita/Anichin/OppaDrama/YouTube/Otakudesu) |
+| `data/scraper/*` (5 scraper lama) | ProviderConfig, Models, AnimeProvider |
 | `data/scraper/YouTubeScraper` | ProviderConfig, Models, AnimeProvider, YouTubeResolver |
 | `data/scraper/YouTubeResolver` | YouTubeAuthManager, YouTubeCipher |
 | `data/scraper/YouTubeCipher` | (mandiri — decipher logic) |
 | `data/scraper/YouTubeDashManifest` | (mandiri — DASH manifest builder) |
-| `data/scraper/YouTubeModels` | (mandiri — YouTubeVideo/YouTubeVideoDetail/YouTubeStream) |
+| `data/scraper/YouTubeModels` | (mandiri — YouTubeVideo/YouTubeVideoDetail/YouTubeStream, YouTubeChannel, YouTubeHistoryItem) |
+| `data/scraper/YouTubeDataApi` | YouTubeAuthManager, YouTubeSubscriptionStore, YouTubeModels — klien Data API v3 (subscriptions/activities/videos/rate/playlistItems HL) |
+| `data/scraper/YouTubeSubscriptionStore` | YouTubeAuthManager (email), YouTubeModels — cache langganan per-akun (SharedPreferences, init di WeebFlixApp) |
 | `data/auth/YouTubeAuthManager` | ProviderConfig, YouTubeResolver (⚠ circular: resolver memakai auth token, auth memakai resolver.clearMemo) |
 | `data/auth/LoopbackOAuthServer` | (mandiri — ServerSocket localhost callback) |
 | `ui/splash/SplashActivity` | MainActivity |
@@ -252,6 +271,7 @@ flowchart TB
 | `ui/home/DrakorKitaHomeFragment` | Models, WatchHistoryManager, ProviderFactory, DrakorKitaScraper, ContinueWatchingAdapter, HeroPagerAdapter, NetflixCardAdapter, AnimeDetailActivity, PlayerActivity |
 | `ui/home/OppaDramaHomeFragment` | Models, WatchHistoryManager, ProviderFactory, OppaDramaScraper, ContinueWatchingAdapter, HeroPagerAdapter, NetflixCardAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
 | `ui/home/AnichinHomeFragment` | Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity |
+| `ui/home/OtakudesuHomeFragment` | Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
 | `ui/search/SearchFragment` | WeebFlixApp, SearchGridAdapter, SearchHistoryAdapter, AnimeDetailActivity |
 | `ui/ongoing/OngoingFragment` | ProviderConfig, Models, ProviderFactory, SearchGridAdapter, AnimeDetailActivity |
 | `ui/detail/AnimeDetailActivity` | WeebFlixApp, Models, ProviderFactory, EpisodeListAdapter, PlayerActivity |
@@ -314,7 +334,8 @@ java/com/weebflix/app/
 │       ├── DrakorKitaScraper.kt #   drakor
 │       ├── AnichinScraper.kt    #   donghua
 │       ├── OppaDramaScraper.kt  #   drakor
-│       └── YouTube*             #   YouTubeScraper + YouTubeResolver + YouTubeCipher + YouTubeDashManifest + YouTubeModels
+│       ├── OtakudesuScraper.kt  #   anime (WordPress + Blogspot streaming)
+│       └── YouTube*             #   YouTubeScraper + YouTubeResolver + YouTubeCipher + YouTubeDashManifest + YouTubeModels + YouTubeDataApi + YouTubeSubscriptionStore
 │
 └── ui/                          # SEMUA Android views + navigasi + adapters. Boleh akses data HANYA lewat ProviderFactory/interface
     ├── splash/                  # SplashActivity → MainActivity
@@ -409,7 +430,7 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 ## Provider Architecture
 - **`AnimeProvider` interface:** `id`, `name`, `baseUrl`, `getLatestEpisodes()`, `getOngoingAnime()`, `getPopularAnime()`, `searchAnime()`, `getAnimeDetail()`, `getEpisodeServers()`, `resolveServerVideoUrl()`, `getEpisodeNavigation()`
 - **`ProviderFactory`:** Singleton registry, lazy-init all providers, `getActiveProvider()` reads from `ProviderConfig.activeProviderId`
-- **`ProviderConfig`:** Stores per-provider base URLs (`base_url_samehadaku`, `base_url_drakorkita`, `base_url_anichin`) and active provider ID in SharedPreferences
+- **`ProviderConfig`:** Stores per-provider base URLs (`base_url_samehadaku`, `base_url_drakorkita`, `base_url_anichin`, `base_url_otakudesu`, dst.) and active provider ID in SharedPreferences
 - **Active provider** is persisted — app remembers last selected provider across restarts
 
 ## Providers
@@ -454,12 +475,27 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - **OppaDrama Home:** Provider-specific home fragment (`OppaDramaHomeFragment.kt`) with 5 clickable sections: Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix. Each section has horizontal infinite scroll and "Lihat Semua" opens `CategoryGridActivity`
 - **CategoryGridActivity:** Supports OppaDrama categories (`CATEGORY_DRAMA_KOREA`, `CATEGORY_DRAMA_CHINA`, `CATEGORY_FILM_KOREA`, `CATEGORY_NETFLIX`) with infinite scroll
 
+### Otakudesu
+- Website: `https://otakudesu.blog`
+- Content: Anime (Latest Episodes, Ongoing, Complete)
+- CMS: WordPress
+- Scraper: `OtakudesuScraper.kt` — Jsoup CSS selectors
+- Key methods: `getLatestEpisodes(page)` (home `/` — cards `div.venz > ul > li > div.detpost`, difilter yang `.epz` "Episode N"), `getOngoingAnime(page)` (`/ongoing-anime/`, satu halaman panjang — tidak ada pagination), `getPopularAnime(page)` (`/complete-anime/page/{N}/` — kartu completed, `.epztipe` = rating), `searchAnime(query)` (`/?s={q}&post_type=anime` → `ul.chivsrc > li`), `getAnimeDetail(url)`, `getEpisodeServers(url)` (`#lightsVideo iframe` = `blogger.com/video.g?token=`), `getEpisodeNavigation(url)` (`div.flir a[title="Episode Sebelumnya"/"Episode Selanjutnya"]`)
+- **Card structure (home/ongoing/complete):** `.detpost` → `.epz` ("Episode 5" ongoing / "12 Episode" complete), `.epztipe` (hari untuk ongoing, rating untuk complete), `.newnime` (tanggal), `.thumb > a[href]` (link ke `/anime/{slug}/`), `.thumbz img[src]`, `h2.jdlflm` (judul). ⚠ Quote atribut class bervariasi (`class="detpost"` vs `class='detpost'`) — Jsoup CSS selector `div.detpost` quote-agnostic, aman
+- **Detail:** `h1` (judul, strip span ikon), `div.infozingle p span` (`<b>Label</b>: value`, nilai pakai `span.ownText()`, strip `:`), `div.sinopc` (sinopsis), `meta[property='og:image']` (poster), `div.episodelist` (beberapa blok: Batch + Episode List — pilih blok yang link-nya mengandung `/episode/`; tiap `li span a` + `span.zeebr` tanggal). URL episode page (tanpa episode list) di-resolve ke `/anime/{slug}/` via `div.flir a[href*='/anime/']`
+- **Episode page:** player `#lightsVideo > iframe` = `https://www.blogger.com/video.g?token=...&origin=...` → **pipeline Blogspot yang sudah didukung `PlayerActivity`** (XHR intercept batchexecute → googlevideo → ExoPlayer). Mirror download: `div.download ul li` (`<strong>Mp4 360p</strong>` + link `link.desustream.com/?id=...`) — dipakai sebagai server cadangan bila iframe kosong. Navigasi: `div.flir a[title='Episode Sebelumnya']` (prev) / `a[title='Episode Selanjutnya']` (next) + "See All Episodes" → `/anime/{slug}/`; judul prev/next di-derive dari slug (`-episode-{N}-`)
+- **Redirect 404 (bukan anti-bot):** slug/URL invalid → 302 ke `https://otakudesu.io/`. Semua deep-path dengan slug valid return 200. Jangan dianggap Cloudflare challenge
+- **Home:** Provider-specific home (`OtakudesuHomeFragment.kt`) — copy pola `SamehadakuHomeFragment` (reuse layout `fragment_home_samehadaku.xml`): static hero + Continue Watching + Eps Terbaru + Anime Ongoing + Anime Completed. "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`)
+- **CategoryGridActivity:** generic path sudah jalan (fallback ke interface method) — `CATEGORY_EPISODES` → `getLatestEpisodes`, `CATEGORY_ONGOING` → `getOngoingAnime`, `CATEGORY_COMPLETED`/`CATEGORY_POPULAR` → `getPopularAnime`
+- **Player routing:** tidak perlu perubahan `PlayerActivity` — `getEpisodeServers` mengembalikan server bernama "Blogspot" dengan `url` = iframe `blogger.com/video.g`; deteksi Blogspot (`server.name.contains("Blogspot") || server.url.contains("blogger.com")`) dan pipeline XHR-nya generic (bukan provider-gated)
+
 ## Features
 - **Home:** Provider chip switcher, each provider has its own home fragment:
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll). Each section header has a "Lihat Semua >" button → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_POPULAR`)
   - DrakorKita: Auto-scrolling ViewPager2 hero carousel (4s interval) + Continue Watching + Episodes + Movies + Series (infinite scroll)
   - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
   - Anichin: Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal infinite scroll per section). Each section header has a "Lihat Semua >" button → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`/`CATEGORY_ALL`)
+  - Otakudesu: Copy pola Samehadaku — static hero + Continue Watching + Latest Episode + Ongoing + Completed (infinite scroll). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`)
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
@@ -490,6 +526,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 | OppaDrama | TurboVIP | `emturbovid.com/t/{id}` → `cdn3.turboviplay.com` → `g*.turbosplayer.com` → `lh3.googleusercontent.com/d/{gDriveId}=d` | **WebView** (`playVideoViaHtml5WebView`) — Google-drive segments **429 rate-limited** from a plain IP → NOT ExoPlayer-viable |
 | OppaDrama | Hydrax | `abyssplayer.com/?v={id}` → SoTrym `const datas` → AES-CTR progressive MP4 on `*.sssrr.org` (only `[0, 65536)` encrypted) | **ExoPlayer** (`hydrax://` URI + `HydraxDataSource` — decrypts leading 64KB, passes tail raw). moov at START → fast start |
 | DrakorKita | Download 480p/720p/1080p | `ajax_dl_all.php` → `/download/{dlId}` → `dlfilemob.php?id={dlId}` → `https://c1hd.load.my.id/1fichier/{fileId}` | **ExoPlayer** direct MP4 (progressive, NO .mp4 ext, Range **ignored 200**, moov at END of file) — see "DrakorKita Download-Pipeline" below. **If ExoPlayer fails → `playDrakorKitaEpisodePage()` WebView fallback (one retry via `drakorDlFallbackTried`)** |
+| Otakudesu | Blogspot | `#lightsVideo iframe` → `www.blogger.com/video.g?token=...&origin=...` | **ExoPlayer** (pipeline Blogspot generic — XHR intercept batchexecute → googlevideo). Deteksi: `server.name.contains("Blogspot")` / `server.url.contains("blogger.com")` — sama dengan Samehadaku |
 
 `SamehadakuScraper.resolveServerVideoUrl()` guards direct videos: if `server.url` already ends in a direct-video suffix → returned unchanged (no AJAX re-fetch); the AJAX `player_ajax` iframe src is also checked with `isDirectVideoUrl()` before Blogger/filedon branches.
 
@@ -609,6 +646,16 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - Token decoding: `decodePageTokens()` — Base64 decode, digit extraction, character code parsing
 - API endpoints: `api.nonton.bid/c_api/episode.php`, `server.php`, `video_hydrax.php`
 - Domain migration: Old URLs auto-rewritten via `rewriteToCurrentDomain()`
+
+### Otakudesu
+- Website: `https://otakudesu.blog`
+- Card selectors: `div.venz > ul > li > div.detpost` (home/ongoing/complete) → `.epz` (episode), `.epztipe` (hari/rating), `.newnime` (tanggal), `.thumb > a[href]` (link), `.thumbz img[src]` (poster), `h2.jdlflm` (judul). ⚠ Quote atribut bisa single quotes (`class='detpost'`) — Jsoup CSS selector quote-agnostic, aman
+- Search: `/?s={q}&post_type=anime` → `ul.chivsrc > li`
+- Detail: `h1` (judul), `div.infozingle p span` (`span.ownText()` untuk nilai di luar `<b>`), `div.sinopc` (sinopsis), `meta[property='og:image']`, episode di `div.episodelist ul li` (pilih blok berisi link `/episode/`)
+- Episode servers: `#lightsVideo iframe[src]` = `blogger.com/video.g?token=` — return sebagai `VideoServer(name="Blogspot")`; mirror `div.download ul li` sebagai cadangan
+- Navigation: `div.flir a[title='Episode Sebelumnya'/'Episode Selanjutnya']`
+- Video resolution: TANPA perubahan `PlayerActivity` — pipeline Blogspot generic (XHR intercept batchexecute → googlevideo → ExoPlayer)
+- **Redirect 404:** slug/URL invalid → 302 ke `https://otakudesu.io/` (bukan anti-bot; jangan dianggap Cloudflare challenge)
 
 ## Common Tasks
 - **Add new provider:** Implement `AnimeProvider` interface, register in `ProviderFactory`, add chip in `HomeFragment`, add config key in `ProviderConfig`
@@ -748,6 +795,14 @@ Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pemba
 - **Resolver client chain (`YouTubeResolver.resolve`):** `ANDROID_VR` (1.55.3, key `AIzaSyB9VGVgUmYc0HeBp5dHnjg1WxNb0qk2X3k`, direct URLs, primary) → `ANDROID_MUSIC` (6.27.51, same key, known bypass for the Android bot-gate; not yet needed) → `IOS` (22.41.2, uses WEB key — the classic iOS key `AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w` returns **404**, dead) → `MWEB` → `WEB_EMBEDDED_PLAYER` (signatureCipher via `YouTubeCipher`). 2.5s sleep between clients; HTTP 400 = flagged → stop.
 - **Invidious fallback — DEAD (2026-08-03):** all 3 instances (`inv.nadeko.net`, `yewtu.be` → 403, `invidious.nerdvpn.de` → 401) fail even from a clean PC IP; `api.invidious.io/instances.json` lists only 12 instances, **zero API-enabled**. Invidious is a dead end in 2026 — do not invest further.
 - **Login (optional, phase 2):** OAuth via Google API project (unverified client ID, scopes `youtube.readonly` + `youtube.upload`); cookie-mode fallback. History: logged-in → fetch `FEhistory` browse feed server-side; logged-out → existing `WatchHistoryManager` (per-provider SharedPreferences). Ads stay zero either way (raw streams), login is only for personalization.
+- **⭐ Data API v3 (2026-08-06, NEW):** karena innertube ber-OAuth diblokir (HTTP 400), semua fitur akun GoTube-style dipindah ke **Data API v3** (`www.googleapis.com/youtube/v3/*`) yang menerima access token OAuth yang sama dari `YouTubeAuthManager`:
+  - `data/scraper/YouTubeDataApi.kt` (object): `getMySubscriptions` (subscriptions?mine=true, refresh store), `getSubscriptionsFeed` (activities?part=snippet,contentDetails&home=true → uploads dari channel yang disubscribe; **⚠ jangan pakai `mine=true` bersamaan** — itu mengembalikan aktivitas channel user sendiri, bukan feed langganan), `setSubscription` (POST/DELETE subscriptions, lookup forChannelId + sync store), `isSubscribedExact` (subscriptions?mine=true&forChannelId={id} — akurat walau daftar >50 item; tidak rawan halaman), `rateVideo` (POST videos/rate?rating=like|dislike|none), `getMyRating` (videos?part=statistics&myRating=like), `getWatchHistory` (playlistItems?part=snippet&playlistId=HL → `YouTubeHistoryItem`). Helper: authGet/authPostJson/authPostForm/authDelete + `bestThumb`/`parseIso`/`relTime`.
+  - `data/scraper/YouTubeSubscriptionStore.kt` (object): cache langganan per-email (`SharedPreferences` `weebflix_yt_subs`, key `subs_{email}`), **`init(context)` dipanggil di `WeebFlixApp.onCreate`**, `replaceAll/add/remove/getAll/isSubscribed/subscriptionIdOf`; `YouTubeChannel` punya `toJson()`/`fromJson()`.
+  - `PlayerActivity`: handler like/dislike/subscribe memakai `YouTubeDataApi` (bukan lagi innertube `likeVideo`/`setSubscription` yang dihapus dari `YouTubeScraper`); `syncYtEngagement()` dipanggil saat first bundle (`loadMoreRelated`) → `isSubscribedExact` + `getMyRating` → `setSubscribeUi/setLikeUi/setDislikeUi`.
+  - `YouTubeHomeFragment`: saat login, section **"Langganan"** (header baru `item_youtube_section.xml` + `YouTubeFeedAdapter.setSection`) ditampilkan di atas endless feed; `refreshSection()` di `onResume` (subscribe bisa berubah dari player); logout → section dihapus. `YouTubeFeedAdapter` sekarang mendukung section header + list video (offset).
+  - `YouTubeHistoryFragment`: saat login, histori server (`getWatchHistory`) di-merge dengan history lokal (dedupe per `episodeUrl`, preferensi entri lokal yang punya progres), subtitle berubah "Diperbarui dari akun {user}".
+  - **Limitasi Data API:** kuota harian (10.000 unit; subscriptions.list ≈ 1 unit/req, activities ≈ 1, videos/rate ≈ 50, playlistItems ≈ 1); `getMySubscriptions` max 50/halaman (halaman berikutnya lewat `nextPageToken` — untuk state subscribe tombol pakai `isSubscribedExact` yang eksak, bukan daftar). `<select class=mirror>` tidak relevan.
+  - `yt_engagement_failed` string diubah ke "Gagal menyimpan. Coba lagi nanti." (sebelumnya menyalahkan innertube).
 - **Anti-break strategy (YouTube updates signatures often):**
   1. **Remote rules updater** — decipher logic = indices (splice/swap patterns) stored in GitHub `youtube_rules.json`; app fetches on open + cron workflow refresh every 6h (same as `scrape-providers.yml`). Rumus update = push JSON, no APK release.
   2. **Multi-client fallback chain** — `android_vr` → `android_music` → `ios` → `mweb` → `web_embedded` (see chain above; `ensureVisitor()` covers the LOGIN_REQUIRED gate).
@@ -788,13 +843,14 @@ Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pemba
   - Dedicated tab `nav_youtube` di bottom nav (index 3) + `YouTubeHomeFragment` penuh
 - **Nav label flip** — label nav berubah tiap ganti provider: youtube→"Histori", lainnya→"Ongoing" (bug stuck-Histori sudah fixed)
 - **Blocked-video UX** — `blockReason` menampilkan "Video diblokir YouTube (butuh login). <reason>"
+- **Akun Google aktif (GoTube-style) — DONE (2026-08-06, build verified, belum on-device):** semua fitur akun via Data API v3 (lihat bullet "Data API v3" di bagian YouTube Provider): like/dislike nyata (`videos/rate`), subscribe/unsubscribe nyata (`subscriptions` POST/DELETE + `isSubscribedExact`), section "Langganan" di home saat login (feed uploads dari channel yang disubscribe, `activities?home=true`), histori server di-merge di `YouTubeHistoryFragment` (`playlistItems?playlistId=HL`). Tokens OAuth yang sama dengan login — tanpa innerube yang diblokir.
 - **OAuth login infra + built-in credential — DONE (2026-08-04):** `YouTubeAuthManager` + `YouTubeLoginActivity` + injeksi Bearer di player + UI login (home/settings) — lihat "OAuth login infra" di bagian YouTube Provider
 - **Check Update (2026-08-04):** tombol "Periksa Pembaruan" di Settings → query `api.github.com/repos/wforyu/weebflix/releases/latest`, bandingkan `tag_name` (strip `v`, numerik) vs `BuildConfig.VERSION_NAME`, kalau lebih baru → dialog dengan tombol Unduh (buka `html_url` rilis di browser). `update_failed`/`update_latest` toast untuk kasus lain
 - **Credit developer di About (2026-08-04):** `tvAppDeveloper` kecil di bawah tanggal build — "by github.com/wforyu/weebflix (Cw)" (string `developer_by`)
 
 ### ❌ Belum tercapai (untuk fase berikutnya)
-- **Login Google OAuth (phase 2) — DONE end-to-end (2026-08-05):** browser sistem + `LoopbackOAuthServer` + scope `youtube` penuh + 2-pass fallback di `YouTubeResolver` (lihat "OAuth login infra"). Bonus (belum dikerjakan): history sinkron server-side (`FEhistory`) — jalan juga kena HTTP 400 selagi innertube ber-OAuth diblokir
-- **YouTube-like UI penuh — DONE (2026-08-06, build verified):** player kini punya action row like/dislike (auth-gated, optimistic toggle) + tombol Subscribe (auth-gated) + section Komentar (infinite scroll) + like count & channel id dari owner renderer. Related-by-video (`relatedVideos`) & search filter chips sudah fungsional sejak sebelumnya. Sisa: player masih generic (belum like/dislike state sinkron server — endpoint innertube ber-OAuth masih diblokir Google, lihat item ini di bawah), resolusi default global
+- **Login Google OAuth (phase 2) — DONE end-to-end (2026-08-05):** browser sistem + `LoopbackOAuthServer` + scope `youtube` penuh + 2-pass fallback di `YouTubeResolver` (lihat "OAuth login infra"). Bonus history sinkron server-side dikerjakan via **Data API v3** (`playlistItems?playlistId=HL`, lihat item "Akun Google aktif" di atas) — bukan `FEhistory` innertube yang kena HTTP 400
+- **YouTube-like UI penuh — DONE (2026-08-06, build verified):** player kini punya action row like/dislike (auth-gated, optimistic toggle) + tombol Subscribe (auth-gated) + section Komentar (infinite scroll) + like count & channel id dari owner renderer. Related-by-video (`relatedVideos`) & search filter chips sudah fungsional sejak sebelumnya. Like/dislike/subscribe state sinkron server kini lewat **Data API v3** (`syncYtEngagement()`). Sisa: resolusi default global
 - **Komentar — FIXED (2026-08-06, build verified):** format WEB `youtubei/v1/next` tidak lagi menyertakan konten komentar (hanya metadata `commentViewModel` — authorText/contentText/likeCount = 0). Komentar kini di-load via `watchNextBundle(videoId)` (satu `next` WEB utk related+owner+token `comments-section` → satu `next` ANDROID_VR `continuation` utk isi komentar, response `continuationContents.itemSectionContinuation.contents` + `continuations[0].nextContinuationData.continuation`; `postWith()` utk request per-client, `vrClient`=ANDROID_VR yg masih return `commentRenderer` penuh). `PlayerActivity.loadMoreRelated()` mempopulasi comments dari bundle (header/list baru VISIBLE kalau ada komentar; GONE kalau kosong/ended) dan `loadMoreComments()` hanya follow continuation saat scroll — tidak ada lagi 2 `next` bersamaan yg bikin IP kena flag 400. **Bug token (2026-08-06, verified on-device):** `findCommentsSectionToken()` semula cek `targetId="comments-section"` di dalam `continuationItemRenderer` — ternyata targetId ada di level **`itemSectionRenderer`** (`contents[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token`). **Bug pagination (fixed):** guard `currentList.isNotEmpty()` di `loadMoreComments()` memblokir halaman komentar berikutnya selamanya (setelah bundle memuat halaman 1) — dihapus, scroll kini follow continuation.
 - **Komentar collapsible (2026-08-06, build verified):** `ytCommentHeader` diubah dari TextView jadi baris `LinearLayout` klik-able (label "Komentar" + `btnYtCommentToggle` chevron `ic_expand_less`/`ic_expand_more`). Default **collapsed** (`ytCommentsExpanded=false`) — komentar tersembunyi supaya `ytRelatedList` (Rekomendasi) penuh seperti sebelumnya; tap header/chevron → `toggleYtComments()` expand (list VISIBLE, chevron up), tap lagi → collapse. State di-reset di `resetYtComments()`, visibility sinkron via `updateYtCommentsUi()` (dipakai di `loadMoreComments` + bundle).
 - **Dukungan ISP lain** — `ensureVisitor()` + ANDROID_VR terbukti di ISP KISS FAMILY; perlu uji client `ANDROID_MUSIC` bila gate kembali di ISP lain
@@ -804,12 +860,12 @@ Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pemba
 
 ## TODO / Next Session
 - **YouTube provider — sisa yang belum tercapai (untuk dikerjakan besok, list user 2026-08-05):**
-  1. **YouTube-like UI penuh — DONE (2026-08-06, build verified):** action row like/dislike + Subscribe + section Komentar + related-by-video + search filter chips (semua sudah ada). Like/subscribe auth-gated (perlu login; saat ini request innertube ber-OAuth diblokir Google → toast failure, UI optimistic toggle tetap jalan)
+  1. **YouTube-like UI penuh — DONE (2026-08-06, build verified):** action row like/dislike + Subscribe + section Komentar + related-by-video + search filter chips (semua sudah ada). Like/dislike/subscribe kini nyata via **Data API v3** (`YouTubeDataApi`), bukan lagi innertube yang diblokir — `likeVideo`/`setSubscription` lama dihapus dari `YouTubeScraper`, `PlayerActivity` pakai `rateVideo`/`setSubscription`/`isSubscribedExact`/`getMyRating` di `syncYtEngagement()`
   2. **Resolusi maks / selector global default** — belum ada settingan default resolusi per pengguna
   3. **Dukungan ISP lain** — `ANDROID_VR` + `ensureVisitor()` baru terbukti di ISP KISS FAMILY; uji client `ANDROID_MUSIC` bila gate kembali di ISP lain
   4. **Rapikan/hapus path Invidious fallback — DONE (2026-08-06):** `INVIOUS_INSTANCES` + `fetchSearchInvidious` + `formatDuration`/`formatCount` dihapus; `searchVideos` langsung pakai `fetchSearch` (0 instance Invidious API-enabled)
   5. **`EncryptedSharedPreferences` untuk token store OAuth — DONE (2026-08-06):** dependency `androidx.security:security-crypto:1.1.0-alpha06`; token disimpan di `weebflix_yt_auth_enc` (AES256_GCM, master key Android Keystore), `migrateLegacyTokens()` memindahkan token lama dari `weebflix_yt_auth` lalu wipe
-- **YouTube player detail section (2026-08-06):** di `activity_player.xml` `ytBelowArea` kini: `ytDetailTitle` + `ytDetailMeta` + `ytActionRow` (btnYtLike/ytLikeCount/btnYtDislike/btnYtSubscribe) + `ytCommentHeader` + `ytCommentList` (weight 1) + header "Rekomendasi" + `ytRelatedList` (weight 1). `YouTubeScraper`: `firstComments()`/`nextComments()` (parse `commentThreadRenderer` di kolom `results` dari `youtubei/v1/next`), `relatedVideos()` kini juga mengembalikan `channelId`/`channelName`/`likeCount` (dari `videoOwnerRenderer` + `videoPrimaryInfoRenderer`), `likeVideo(action)` + `setSubscription()` pakai endpoint innertube ber-auth (`like/like`/`dislike`/`removelike`, `subscription/subscribe`/`unsubscribe`). Adapter baru `YouTubeCommentAdapter` + `item_youtube_comment.xml`; ikon baru `ic_thumb_up`/`ic_thumb_down`, pill `bg_yt_subscribe`/`bg_yt_subscribed`.
+- **YouTube player detail section (2026-08-06):** di `activity_player.xml` `ytBelowArea` kini: `ytDetailTitle` + `ytDetailMeta` + `ytActionRow` (btnYtLike/ytLikeCount/btnYtDislike/btnYtSubscribe) + `ytCommentHeader` + `ytCommentList` (weight 1) + header "Rekomendasi" + `ytRelatedList` (weight 1). `YouTubeScraper`: `firstComments()`/`nextComments()` (parse `commentThreadRenderer` di kolom `results` dari `youtubei/v1/next`), `relatedVideos()` kini juga mengembalikan `channelId`/`channelName`/`likeCount` (dari `videoOwnerRenderer` + `videoPrimaryInfoRenderer`). Like/dislike/subscribe TIDAK lagi innertube (`likeVideo`/`setSubscription` + `YtEngageAction` + `authPost` dihapus dari `YouTubeScraper` 2026-08-06) — digantikan `YouTubeDataApi.rateVideo`/`setSubscription`/`isSubscribedExact`/`getMyRating` di `PlayerActivity.syncYtEngagement()`. Adapter baru `YouTubeCommentAdapter` + `item_youtube_comment.xml`; ikon baru `ic_thumb_up`/`ic_thumb_down`, pill `bg_yt_subscribe`/`bg_yt_subscribed`.
 - **YouTube OAuth login — DONE end-to-end (2026-08-05), TAPI playback tetap tanpa login:** browser sistem + `LoopbackOAuthServer` menggantikan WebView (Google blokir embedded WebView); consent → redirect → token tersimpan (scope `youtube` penuh). Namun authenticated innertube (`youtubei/v1/player` + Bearer) → HTTP 400 `INVALID_ARGUMENT` (open issue YouTube.js #916/#803) — login TIDAK menambah kemampuan playback. Video target `Ihtxx2s6RUE` sudah `status=OK` tanpa login. 2-pass fallback (auth → anonymous) di `YouTubeResolver.resolve()` sudah terpasang sehingga login tidak merusak playback (verified on-device). Jika Google membuka lagi OAuth innertube, gated videos otomatis ke-bypass. Token store sudah di-upgrade ke EncryptedSharedPreferences (2026-08-06).
 - **YouTube player phase 2 (rencana user 2026-08-03):**
   1. **Orientasi player — DONE (2026-08-03, on-device verified):** PlayerActivity `onCreate` forces `SCREEN_ORIENTATION_PORTRAIT` when provider==YOUTUBE_ID (manifest still forces landscape for other providers); `toggleFullscreen()` rotates to `LANDSCAPE`/back to `PORTRAIT` for YouTube (bars-toggle unchanged for non-YouTube). Verified: YouTube video opens ROTATION_0 portrait on-device. Toggle tap untested (see MIUI input-block note below)

@@ -18,7 +18,9 @@ import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
 import com.weebflix.app.ui.player.PlayerActivity
+import com.weebflix.app.ui.util.Insets
 import com.weebflix.app.ui.util.TvUtils
+import com.weebflix.app.ui.util.padSystemBars
 import com.weebflix.app.ui.youtube.adapter.YouTubeSearchAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -52,6 +54,8 @@ class YouTubeSearchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_youtube_search)
+        Insets.edgeToEdge(this)
+        findViewById<View>(R.id.rootLayout).padSystemBars()
 
         searchInput = findViewById(R.id.searchInput)
         ytLoading = findViewById(R.id.ytLoading)

@@ -12,7 +12,6 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
@@ -28,7 +27,9 @@ import com.weebflix.app.data.model.Episode
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.ui.adapter.EpisodeListAdapter
 import com.weebflix.app.ui.player.PlayerActivity
+import com.weebflix.app.ui.util.Insets
 import com.weebflix.app.ui.util.TvUtils
+import com.weebflix.app.ui.util.padSystemBars
 import kotlinx.coroutines.launch
 
 class AnimeDetailActivity : AppCompatActivity() {
@@ -66,10 +67,11 @@ class AnimeDetailActivity : AppCompatActivity() {
         TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_anime_detail)
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        Insets.edgeToEdge(this)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        findViewById<View>(R.id.rootLayout).padSystemBars()
 
         animeUrl = intent.getStringExtra("url") ?: ""
 

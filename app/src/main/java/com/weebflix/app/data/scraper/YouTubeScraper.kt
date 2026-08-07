@@ -552,64 +552,6 @@ class YouTubeScraper : AnimeProvider {
         return bvm?.optString("title", "") ?: ""
     }
 
-    // ---- Engagement (like/dislike/subscribe) — auth-gated innertube endpoints ----
-
-    enum class YtEngageAction { LIKE, DISLIKE, REMOVE_LIKE }
-
-    /** Sends a like/dislike. Returns false when not logged in or YouTube rejects the
-     *  authenticated innertube request (currently blocked server-side, see AGENTS.md). */
-    suspend fun likeVideo(videoId: String, action: YtEngageAction): Boolean = withContext(Dispatchers.IO) {
-        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken()
-        if (token.isNullOrEmpty() || videoId.isEmpty()) return@withContext false
-        val endpoint = when (action) {
-            YtEngageAction.LIKE -> "like/like"
-            YtEngageAction.DISLIKE -> "like/dislike"
-            YtEngageAction.REMOVE_LIKE -> "like/removelike"
-        }
-        authPost(endpoint) {
-            it.put("target", JSONObject().put("videoId", videoId)).put("params", "")
-        }
-    }
-
-    /** Subscribes/unsubscribes a channel. Returns false when not logged in or rejected. */
-    suspend fun setSubscription(channelId: String, subscribe: Boolean): Boolean = withContext(Dispatchers.IO) {
-        if (channelId.isEmpty()) return@withContext false
-        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken()
-        if (token.isNullOrEmpty()) return@withContext false
-        val endpoint = if (subscribe) "subscription/subscribe" else "subscription/unsubscribe"
-        authPost(endpoint) {
-            it.put("channelIds", JSONArray().put(channelId)).put("params", "")
-        }
-    }
-
-    private suspend fun authPost(endpoint: String, fill: (JSONObject) -> Unit): Boolean = withContext(Dispatchers.IO) {
-        val token = com.weebflix.app.data.auth.YouTubeAuthManager.getAccessToken() ?: return@withContext false
-        try {
-            val body = JSONObject().put("context", context(clients[0]))
-            fill(body)
-            val request = Request.Builder()
-                .url("https://www.youtube.com/youtubei/v1/$endpoint?key=${clients[0].key}&prettyPrint=false")
-                .addHeader("User-Agent", clients[0].ua)
-                .addHeader("Accept", "application/json")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Origin", "https://www.youtube.com")
-                .addHeader("Authorization", "Bearer $token")
-                .addHeader("X-Goog-AuthUser", "0")
-                .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-            client.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "$endpoint HTTP ${resp.code}: ${resp.body?.string()?.take(150)}")
-                    return@use false
-                }
-                true
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "$endpoint error: ${e.message}")
-            false
-        }
-    }
-
     // ---- public API used by the YouTube UI ----
 
     private var homeCache: YouTubeHome? = null
@@ -678,6 +620,11 @@ class YouTubeScraper : AnimeProvider {
     /** Clears the endless-feed dedup set so a pull-to-refresh produces fresh content. */
     fun resetFeed() {
         seenFeedIds.clear()
+    }
+
+    /** Excludes the given video ids from the endless feed so they don't duplicate the top section. */
+    fun markSeen(ids: Collection<String>) {
+        seenFeedIds.addAll(ids)
     }
 
     /**

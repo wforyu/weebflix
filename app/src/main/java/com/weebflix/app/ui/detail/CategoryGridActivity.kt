@@ -10,7 +10,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
@@ -23,7 +22,9 @@ import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
+import com.weebflix.app.ui.util.Insets
 import com.weebflix.app.ui.util.TvUtils
+import com.weebflix.app.ui.util.padSystemBars
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,10 +122,11 @@ class CategoryGridActivity : AppCompatActivity() {
         TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_category_grid)
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        Insets.edgeToEdge(this)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        findViewById<View>(R.id.rootLayout).padSystemBars()
 
         category = intent.getStringExtra(EXTRA_CATEGORY) ?: CATEGORY_ALL
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Semua"

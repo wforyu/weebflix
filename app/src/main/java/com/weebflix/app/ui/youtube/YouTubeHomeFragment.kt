@@ -22,8 +22,10 @@ import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
 import com.weebflix.app.ui.player.PlayerActivity
 import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class YouTubeHomeFragment : Fragment() {
 
@@ -37,11 +39,13 @@ class YouTubeHomeFragment : Fragment() {
     private var isLoading = false
     private var endReached = false
     private var loadJob: Job? = null
+    private var loadedOnce = false
 
     private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             updateLoginUi()
             Toast.makeText(requireContext(), "Login berhasil: ${YouTubeAuthManager.email()}", Toast.LENGTH_LONG).show()
+            refreshFeed()
         }
     }
 
@@ -103,7 +107,22 @@ class YouTubeHomeFragment : Fragment() {
         val wasEmpty = adapter.isEmpty
         val job = lifecycleScope.launch {
             val page = try {
-                scraper.nextFeedPage()
+                if (wasEmpty) {
+                    // First load: top "Langganan" section (logged in) + the first endless batch.
+                    if (YouTubeAuthManager.isLoggedIn()) {
+                        val section = withContext(Dispatchers.IO) {
+                            com.weebflix.app.data.scraper.YouTubeDataApi.getSubscriptionsFeed()
+                        }
+                        if (section.isNotEmpty()) {
+                            adapter.setSection(getString(R.string.yt_subscriptions), section)
+                            scraper.markSeen(section.map { it.videoId })
+                        }
+                    }
+                    loadedOnce = true
+                    withContext(Dispatchers.IO) { scraper.nextFeedPage() }
+                } else {
+                    withContext(Dispatchers.IO) { scraper.nextFeedPage() }
+                }
             } catch (e: Exception) {
                 emptyList()
             }
@@ -139,6 +158,23 @@ class YouTubeHomeFragment : Fragment() {
         }
     }
 
+    /** Refreshes only the top "Langganan" section after returning from the player (subscriptions
+     *  may have changed) without re-scraping the whole endless feed. */
+    private fun refreshSection() {
+        if (!loadedOnce || !YouTubeAuthManager.isLoggedIn()) return
+        lifecycleScope.launch {
+            val section = try {
+                withContext(Dispatchers.IO) {
+                    val subs = com.weebflix.app.data.scraper.YouTubeDataApi.getMySubscriptions()
+                    android.util.Log.i("YTSubs", "refreshSection: ${subs.size} channels")
+                    com.weebflix.app.data.scraper.YouTubeDataApi.getSubscriptionsFeed()
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (section.isNotEmpty()) adapter.setSection(getString(R.string.yt_subscriptions), section)
+        }
+    }
     private fun refreshFeed() {
         loadJob?.cancel()
         isLoading = false
@@ -165,6 +201,7 @@ class YouTubeHomeFragment : Fragment() {
                 .setPositiveButton("Keluar") { _, _ ->
                     YouTubeAuthManager.logout()
                     updateLoginUi()
+                    adapter.setSection(null, emptyList())
                     Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
                 }
                 .show()
@@ -196,6 +233,9 @@ class YouTubeHomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         updateLoginUi()
+        // Subscriptions may have changed while watching (subscribe button in player) — refresh
+        // only the top section, not the whole feed.
+        refreshSection()
     }
 
     private fun openVideo(video: YouTubeVideo) {

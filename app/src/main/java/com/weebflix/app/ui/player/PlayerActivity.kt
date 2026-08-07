@@ -782,11 +782,13 @@ class PlayerActivity : AppCompatActivity() {
         val target = !isYtLiked
         setLikeUi(target)
         setDislikeUi(false)
-        val action = if (target) com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.LIKE
-            else com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.REMOVE_LIKE
         lifecycleScope.launch {
             val ok = try {
-                withContext(Dispatchers.IO) { ytScraper.likeVideo(currentYtVideoId, action) }
+                withContext(Dispatchers.IO) {
+                    com.weebflix.app.data.scraper.YouTubeDataApi.rateVideo(
+                        currentYtVideoId, if (target) "like" else "none"
+                    )
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "like error: ${e.message}")
                 false
@@ -807,11 +809,13 @@ class PlayerActivity : AppCompatActivity() {
         val target = !isYtDisliked
         setDislikeUi(target)
         setLikeUi(false)
-        val action = if (target) com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.DISLIKE
-            else com.weebflix.app.data.scraper.YouTubeScraper.YtEngageAction.REMOVE_LIKE
         lifecycleScope.launch {
             val ok = try {
-                withContext(Dispatchers.IO) { ytScraper.likeVideo(currentYtVideoId, action) }
+                withContext(Dispatchers.IO) {
+                    com.weebflix.app.data.scraper.YouTubeDataApi.rateVideo(
+                        currentYtVideoId, if (target) "dislike" else "none"
+                    )
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "dislike error: ${e.message}")
                 false
@@ -837,7 +841,9 @@ class PlayerActivity : AppCompatActivity() {
         setSubscribeUi(target)
         lifecycleScope.launch {
             val ok = try {
-                withContext(Dispatchers.IO) { ytScraper.setSubscription(currentChannelId, target) }
+                withContext(Dispatchers.IO) {
+                    com.weebflix.app.data.scraper.YouTubeDataApi.setSubscription(currentChannelId, target)
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "subscribe error: ${e.message}")
                 false
@@ -865,6 +871,37 @@ class PlayerActivity : AppCompatActivity() {
         btnYtSubscribe.setBackgroundResource(
             if (subscribed) R.drawable.bg_yt_subscribed else R.drawable.bg_yt_subscribe
         )
+    }
+
+    /** After the first related bundle sets [currentChannelId], sync the subscribe/like/dislike
+     *  buttons with the real server state (exact forChannelId lookup + videos/rate). */
+    private fun syncYtEngagement() {
+        if (!com.weebflix.app.data.auth.YouTubeAuthManager.isLoggedIn()) return
+        lifecycleScope.launch {
+            if (currentChannelId.isNotEmpty()) {
+                val subscribed = try {
+                    withContext(Dispatchers.IO) {
+                        com.weebflix.app.data.scraper.YouTubeDataApi.isSubscribedExact(currentChannelId)
+                    }
+                } catch (e: Exception) {
+                    false
+                }
+                if (currentChannelId.isNotEmpty()) setSubscribeUi(subscribed)
+            }
+            if (currentYtVideoId.isNotEmpty()) {
+                val rating = try {
+                    withContext(Dispatchers.IO) {
+                        com.weebflix.app.data.scraper.YouTubeDataApi.getMyRating(currentYtVideoId)
+                    }
+                } catch (e: Exception) {
+                    ""
+                }
+                if (currentYtVideoId.isNotEmpty()) {
+                    setLikeUi(rating == "like")
+                    setDislikeUi(rating == "dislike")
+                }
+            }
+        }
     }
 
     /** Sizes the video area: fullscreen for normal providers, 16:9 at top for YouTube
@@ -4929,6 +4966,7 @@ class PlayerActivity : AppCompatActivity() {
                     ytLikeCount.text = page.likeCount
                     ytLikeCount.visibility = View.VISIBLE
                 }
+                syncYtEngagement()
                 ytCommentContinuation = page.commentContinuation
                 val comFresh = page.comments.filter { it.author.isNotEmpty() && it.text.isNotEmpty() }
                 if (comFresh.isNotEmpty()) {

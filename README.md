@@ -12,6 +12,7 @@ Aplikasi Android untuk nonton streaming anime, drakor, dan donghua dari berbagai
 | **DrakorKita** | `drakor.kita.mobi` | Drakor (Episode, Movie, Serie) — download-pipeline + Fast HLS |
 | **OppaDrama** | `http://45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
 | **Anichin** | `anichin.cafe` | Donghua/Anime (Latest, Ongoing, Completed, All Anime) — WordPress + animestream theme |
+| **Otakudesu** | `otakudesu.blog` | Anime (Latest, Ongoing, Complete) — WordPress, streaming via Blogspot + mirror download |
 | **YouTube** | — | Feed/search/trending + playback **tanpa iklan** (raw DASH), OAuth login, komentar, like/subscribe |
 
 Bisa switch provider langsung dari tab Home, dan setiap provider punya domain yang bisa dikonfigurasi di Settings.
@@ -22,7 +23,7 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 |-------|-----------|
 | **Splash Screen** | Logo "N" ribbon merah (#E50914) di background hitam, zoom-in Tudum-style animation |
 | **Multi-Provider Home** | Chip switcher untuk ganti antar provider, masing-masing dengan layout sendiri |
-| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita/OppaDrama) atau static hero (Samehadaku) atau 5 clickable sections (OppaDrama) atau Continue Watching + sections (Anichin) |
+| **Hero Banner** | Auto-scrolling ViewPager2 carousel (DrakorKita/OppaDrama) atau static hero (Samehadaku/Otakudesu) atau 5 clickable sections (OppaDrama) atau Continue Watching + sections (Anichin) |
 | **Continue Watching** | Simpan progress tontonan otomatis per provider, muncul di home dengan progress bar merah, tap untuk lanjut |
 | **Search** | Pencarian real-time dengan debounce 500ms + Riwayat pencarian (max 20, chip UI) |
 | **Ongoing** | Grid anime sedang tayang, fetch semua halaman via vertical infinite scroll (label jadi "Histori" saat provider YouTube) |
@@ -125,6 +126,7 @@ WeebFlix/app/src/main/
 │   │       ├── DrakorKitaScraper.kt    # Drakor scraper (download pipeline + P2P HLS)
 │   │       ├── OppaDramaScraper.kt     # Drakor scraper (token API + FileLions/Hydrax)
 │   │       ├── AnichinScraper.kt       # Donghua/Anime scraper
+│   │       ├── OtakudesuScraper.kt     # Anime scraper (Blogspot streaming)
 │   │       └── YouTube*.kt             # YouTubeScraper + YouTubeResolver + YouTubeCipher + YouTubeDashManifest + YouTubeModels
 │   └── ui/
 │       ├── splash/SplashActivity.kt
@@ -151,7 +153,7 @@ WeebFlix/app/src/main/
 
 ## Cara Kerja
 
-1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`, `OppaDramaScraper`, `AnichinScraper`, `YouTubeScraper`) saat app start
+1. **ProviderFactory** registrasi semua provider (`SamehadakuScraper`, `DrakorKitaScraper`, `OppaDramaScraper`, `AnichinScraper`, `OtakudesuScraper`, `YouTubeScraper`) saat app start
 2. **HomeFragment** tampilkan chip switcher — user pilih provider, fragment container swap
 3. **Scraper** fetch HTML dari website masing-masing pakai OkHttp (DrakorKita/Anichin pakai trust-all SSL certs)
 4. **Jsoup** parse HTML jadi data objects (`Anime`, `Episode`, `VideoServer`, `AnimeDetail`)
@@ -168,6 +170,7 @@ WeebFlix/app/src/main/
    - **OppaDrama (TurboVIP)**: WebView fallback (Google-drive 429 dari plain IP)
    - **Anichin (Premium)**: `anichin.stream/?id={id}` → unpack eval JS → direct m3u8 → ExoPlayer
    - **Anichin (old posts / Drive)**: Dailymotion/Mega/OK.ru/Rumble/abyssplayer/rubyvidhub embed → dimainkan langsung di WebView (`playEpisodePageViaWebView` + main-frame rewrite)
+   - **Otakudesu (Blogspot)**: iframe `#lightsVideo` → `blogger.com/video.g?token=` → WebView XHR interception (pipeline Blogspot yang sama dengan Samehadaku) → googlevideo.com → ExoPlayer
    - **YouTube**: `youtubei/v1/player` → streamingData adaptiveFormats (video-only + audio-only, signature decipher + n-param) → `MergingMediaSource` → ExoPlayer tanpa iklan
 7. **Watch History** simpan progress per provider ke SharedPreferences, tampilkan di Home
 8. **Android TV** — deteksi via `TvUtils` (UiModeManager + FEATURE_LEANBACK): fokus D-pad + outline merah, player pakai kontrol ExoPlayer bawaan + auto-select server ExoPlayer-friendly, landscape `layout-land`
@@ -200,6 +203,7 @@ Default:
 - DrakorKita: `https://drakor.kita.mobi`
 - OppaDrama: `http://45.11.57.192`
 - Anichin: `https://anichin.cafe`
+- Otakudesu: `https://otakudesu.blog`
 
 Bisa diganti dari menu Settings di aplikasi (per-provider, dengan validasi URL + reset).
 

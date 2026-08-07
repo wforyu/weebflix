@@ -24,6 +24,9 @@ object ProviderConfig {
     private const val KEY_BASE_URL_YOUTUBE = "base_url_youtube"
     private const val DEFAULT_BASE_URL_YOUTUBE = "https://www.youtube.com"
 
+    private const val KEY_BASE_URL_OTAKUDESU = "base_url_otakudesu"
+    private const val DEFAULT_BASE_URL_OTAKUDESU = "https://otakudesu.blog"
+
     private const val KEY_BASE_URL_LEGACY = "base_url"
 
     private const val KEY_YT_OAUTH_CLIENT_ID = "yt_oauth_client_id"
@@ -74,6 +77,7 @@ object ProviderConfig {
             "oppadrama" -> prefs.getString(KEY_BASE_URL_OPPADRAMA, DEFAULT_BASE_URL_OPPADRAMA) ?: DEFAULT_BASE_URL_OPPADRAMA
             "anichin" -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
             "youtube" -> prefs.getString(KEY_BASE_URL_YOUTUBE, DEFAULT_BASE_URL_YOUTUBE) ?: DEFAULT_BASE_URL_YOUTUBE
+            "otakudesu" -> prefs.getString(KEY_BASE_URL_OTAKUDESU, DEFAULT_BASE_URL_OTAKUDESU) ?: DEFAULT_BASE_URL_OTAKUDESU
             else -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
         }
     }
@@ -85,6 +89,7 @@ object ProviderConfig {
             "oppadrama" -> KEY_BASE_URL_OPPADRAMA
             "anichin" -> KEY_BASE_URL_ANICHIN
             "youtube" -> KEY_BASE_URL_YOUTUBE
+            "otakudesu" -> KEY_BASE_URL_OTAKUDESU
             else -> return
         }
         prefs.edit().putString(key, url.trimEnd('/')).apply()
@@ -97,6 +102,7 @@ object ProviderConfig {
             "oppadrama" -> KEY_BASE_URL_OPPADRAMA
             "anichin" -> KEY_BASE_URL_ANICHIN
             "youtube" -> KEY_BASE_URL_YOUTUBE
+            "otakudesu" -> KEY_BASE_URL_OTAKUDESU
             else -> return
         }
         prefs.edit().remove(key).apply()
@@ -109,6 +115,7 @@ object ProviderConfig {
             "oppadrama" -> DEFAULT_BASE_URL_OPPADRAMA
             "anichin" -> DEFAULT_BASE_URL_ANICHIN
             "youtube" -> DEFAULT_BASE_URL_YOUTUBE
+            "otakudesu" -> DEFAULT_BASE_URL_OTAKUDESU
             else -> DEFAULT_BASE_URL_ANICHIN
         }
     }

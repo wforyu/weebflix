@@ -94,6 +94,7 @@ class HomeFragment : Fragment() {
             ProviderFactory.OPPADRAMA_ID -> OppaDramaHomeFragment()
             ProviderFactory.ANICHIN_ID -> AnichinHomeFragment()
             ProviderFactory.YOUTUBE_ID -> YouTubeHomeFragment()
+            ProviderFactory.OTAKUDESU_ID -> OtakudesuHomeFragment()
             else -> SamehadakuHomeFragment()
         }
 

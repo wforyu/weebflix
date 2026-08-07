@@ -1,5 +1,8 @@
 package com.weebflix.app.data.scraper
 
+import org.json.JSONArray
+import org.json.JSONObject
+
 data class YouTubeVideo(
     val videoId: String = "",
     val title: String = "",
@@ -54,6 +57,36 @@ data class WatchNextBundle(
     val likeCount: String = "",
     val comments: List<YouTubeComment> = emptyList(),
     val commentContinuation: String = ""
+)
+
+/** A subscribed YouTube channel, as returned by the Data API v3 subscriptions.list. */
+data class YouTubeChannel(
+    val channelId: String = "",
+    val channelName: String = "",
+    val channelThumb: String = "",
+    val subscriptionId: String = ""
+) {
+    fun toJson(): JSONObject = JSONObject().apply {
+        put("channelId", channelId)
+        put("channelName", channelName)
+        put("channelThumb", channelThumb)
+        put("subscriptionId", subscriptionId)
+    }
+
+    companion object {
+        fun fromJson(json: JSONObject) = YouTubeChannel(
+            channelId = json.optString("channelId", ""),
+            channelName = json.optString("channelName", ""),
+            channelThumb = json.optString("channelThumb", ""),
+            subscriptionId = json.optString("subscriptionId", "")
+        )
+    }
+}
+
+/** One watch-history entry from the Data API v3 playlistItems?playlistId=HL. */
+data class YouTubeHistoryItem(
+    val video: YouTubeVideo = YouTubeVideo(),
+    val watchedAtMs: Long = 0
 )
 
 /** A single comment from youtubei/v1/next (commentThreadRenderer). */

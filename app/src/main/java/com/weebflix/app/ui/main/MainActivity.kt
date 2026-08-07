@@ -1,8 +1,8 @@
 package com.weebflix.app.ui.main
 
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
@@ -14,7 +14,9 @@ import com.weebflix.app.ui.home.HomeFragment
 import com.weebflix.app.ui.ongoing.OngoingFragment
 import com.weebflix.app.ui.search.SearchFragment
 import com.weebflix.app.ui.settings.SettingsFragment
+import com.weebflix.app.ui.util.Insets
 import com.weebflix.app.ui.util.TvUtils
+import com.weebflix.app.ui.util.padSystemBars
 import com.weebflix.app.ui.youtube.YouTubeHistoryFragment
 import com.weebflix.app.ui.youtube.YouTubeHomeFragment
 
@@ -35,13 +37,15 @@ class MainActivity : AppCompatActivity() {
         TvUtils.forceLandscapeOnTv(this)
         setContentView(R.layout.activity_main)
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        Insets.edgeToEdge(this)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         bottomNav = findViewById(R.id.bottomNav)
         bottomNav.itemIconTintList = null
+        findViewById<View>(R.id.fragmentContainer).padSystemBars(top = true, bottom = false)
+        bottomNav.padSystemBars(top = false, bottom = true)
 
         if (savedInstanceState == null) {
             showFragment(getHomeFragment())

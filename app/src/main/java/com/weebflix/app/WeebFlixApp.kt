@@ -6,6 +6,7 @@ import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.provider.AnimeProvider
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.SamehadakuScraper
+import com.weebflix.app.data.scraper.YouTubeSubscriptionStore
 
 class WeebFlixApp : Application() {
 
@@ -17,6 +18,7 @@ class WeebFlixApp : Application() {
         instance = this
         ProviderConfig.init(this)
         YouTubeAuthManager.init(this)
+        YouTubeSubscriptionStore.init(this)
         scraper = SamehadakuScraper()
         ProviderFactory.getAllProviders()
     }
