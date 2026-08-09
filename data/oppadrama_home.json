@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "My Life with the Walter Boys Season 3 Episode 10 END",
+      "url": "http://45.11.57.192/my-life-with-the-walter-boys-season-3-episode-10-end/",
+      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/My-Life-with-the-Walter-Boys-Season-3-2026.jpg?resize=246,350",
+      "episode": "Ep 10 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Space Rice Cake Episode 2",
       "url": "http://45.11.57.192/space-rice-cake-episode-2/",
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/08/Space-Rice-Cake-2026.jpg?resize=246,350",
@@ -134,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Spooky in Love Episode 7",
-      "url": "http://45.11.57.192/spooky-in-love-episode-7/",
-      "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Spooky-in-Love-2026.jpg?resize=246,350",
-      "episode": "Ep 7",
+      "title": "My Life with the Walter Boys Season 3 Episode 10 END",
+      "url": "http://45.11.57.192/my-life-with-the-walter-boys-season-3-episode-10-end/",
+      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/My-Life-with-the-Walter-Boys-Season-3-2026.jpg?resize=246,350",
+      "episode": "Ep 10 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Space Rice Cake Episode 2",
       "url": "http://45.11.57.192/space-rice-cake-episode-2/",
@@ -428,21 +443,6 @@
       "imageUrl": "http://i3.wp.com/45.11.57.192/wp-content/uploads/2026/07/Star-Trek-Strange-New-Worlds-Season-4-2026.jpg?resize=246,350",
       "episode": "Ep 3",
       "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie Hallow Road (2025) BluRay",
-      "url": "http://45.11.57.192/movie-hallow-road-2025-bluray/",
-      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2025/08/Hallow-Road-2025.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -1361,6 +1361,21 @@
   ],
   "cat4": [
     {
+      "title": "My Life with the Walter Boys Season 3",
+      "url": "http://45.11.57.192/my-life-with-the-walter-boys-season-3/",
+      "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/My-Life-with-the-Walter-Boys-Season-3-2026.jpg?resize=246,350",
+      "episode": "Completed",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Our Sticky Love",
       "url": "http://45.11.57.192/our-sticky-love/",
       "imageUrl": "http://i0.wp.com/45.11.57.192/wp-content/uploads/2026/08/Our-Sticky-Love-2026.jpg?resize=246,350",
@@ -1644,22 +1659,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Teach You a Lesson",
-      "url": "http://45.11.57.192/teach-you-a-lesson/",
-      "imageUrl": "http://i1.wp.com/45.11.57.192/wp-content/uploads/2026/06/Teach-You-a-Lesson-2026.jpg?resize=246,350",
-      "episode": "Completed",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
-  "timestamp": 1786258366399
+  "timestamp": 1786279474340
 }
