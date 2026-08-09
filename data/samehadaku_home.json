@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
+      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-1.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-6.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Mao",
       "url": "https://v2.samehadaku.how/anime/mao/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-6-1.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Koko wa Ore ni Makasete Saki ni Ike to Itte kara 10-nen ga Tattara Densetsu ni Natteita.",
-      "url": "https://v2.samehadaku.how/anime/koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Screenshot-761.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei shitara Slime Datta Ken Season 4",
-      "url": "https://v2.samehadaku.how/anime/tensei-shitara-slime-datta-ken-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tensei-shitara-Slime-Datta-Ken-Season-4-Episode-17.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
+      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-1.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-6.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Mao",
       "url": "https://v2.samehadaku.how/anime/mao/",
@@ -351,36 +381,6 @@
       "title": "Rakudai Kenja no Gakuin Musou",
       "url": "https://v2.samehadaku.how/anime/rakudai-kenja-no-gakuin-musou/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/RakudaiKenjanoGakuinMusouEpisode7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Katainaka no Ossan, Kensei ni Naru S2",
-      "url": "https://v2.samehadaku.how/anime/katainaka-no-ossan-kensei-ni-naru-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-8-1.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tomb Raider King",
-      "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tomb-Rider-King-Episode-5.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1786214032790
+  "timestamp": 1786238873907
 }
