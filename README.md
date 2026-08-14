@@ -13,7 +13,7 @@ Aplikasi Android untuk nonton streaming anime, drakor, dan donghua dari berbagai
 | **OppaDrama** | `http://45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
 | **Anichin** | `anichin.cafe` | Donghua/Anime (Latest, Ongoing, Completed, All Anime) — WordPress + animestream theme |
 | **Otakudesu** | `otakudesu.blog` | Anime (Latest, Ongoing, Complete) — WordPress, streaming via Blogspot + mirror download |
-| **YouTube** | — | Feed/search/trending + playback **tanpa iklan** (raw DASH), OAuth login, komentar, like/subscribe |
+| **YouTube** | — | Feed/search/trending + playback **tanpa iklan** (raw DASH), OAuth login, komentar, like/subscribe, channel detail, account bottom sheet (mini player) |
 
 Bisa switch provider langsung dari tab Home, dan setiap provider punya domain yang bisa dikonfigurasi di Settings.
 
@@ -29,12 +29,12 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 | **Ongoing** | Grid anime sedang tayang, fetch semua halaman via vertical infinite scroll (label jadi "Histori" saat provider YouTube) |
 | **Category Grid** | Full-screen 3-column grid untuk Semua Episode / Movie / Serie (DrakorKita) atau Drama Korea / China / Film Korea / Netflix (OppaDrama) atau Ongoing/Completed/All (Anichin) dengan infinite scroll |
 | **Detail Anime** | Banner parallax, sinopsis, info lengkap, daftar episode dengan spinner range (100 eps/chunk). Di TV: layout two-pane (banner kiri + episode kanan) |
-| **Video Player** | ExoPlayer (Media3), server picker floating, gesture (brightness/volume/seek), skip opening/outro, PiP, fullscreen, episode navigation (prev/next), progress bar loading untuk download besar |
-| **YouTube Player** | Mode portrait (rotate saat fullscreen), daftar Rekomendasi/related + infinite scroll, auto-play next video (countdown 10s), gear resolusi manual (Auto/1080p→144p), like/dislike, subscribe, section Komentar (collapsible) |
+| **Video Player** | ExoPlayer (Media3), server picker floating, gesture (brightness/volume/seek), **pinch-to-zoom 1x–4x** (fullscreen, semua provider), skip opening/outro, PiP, fullscreen, episode navigation (prev/next), progress bar loading untuk download besar |
+| **YouTube Player** | Mode portrait (rotate saat fullscreen), daftar Rekomendasi/related + infinite scroll, auto-play next video (countdown 10s), gear resolusi manual (Auto/1080p→144p), skip prev/next (`ytPlayHistory` + `ytUpNext`), like/dislike, subscribe, section Komentar (collapsible), default resolusi maks dari Settings |
 | **YouTube OAuth** | Login akun Google via browser sistem + loopback server (PKCE, scope `youtube` penuh, built-in credentials), token tersimpan di EncryptedSharedPreferences |
 | **Android TV** | LEANBACK_LAUNCHER + banner TV, D-pad focus/outline di semua card, hero carousel remote-friendly, player TV mode (auto-pilih server ExoPlayer-friendly + kontrol bawaan), layout-land two-pane, search pakai Leanback IME |
 | **Check Update** | Tombol "Periksa Pembaruan" di Settings → bandingkan dengan rilis GitHub terbaru (termasuk pre-release) |
-| **Settings** | Konfigurasi domain per provider dengan validasi URL, reset default, YouTube OAuth client config, About (versi + GIT_COMMIT + BUILD_DATE + credit developer) |
+| **Settings** | Konfigurasi domain per provider dengan validasi URL, reset default, YouTube OAuth client config, default resolusi maks YouTube (Auto/144→2160), About (versi + GIT_COMMIT + BUILD_DATE + credit developer) |
 | **Dark Theme** | Full Netflix dark mode (#141414) dengan accent merah (#E50914) |
 
 ## Tech Stack
@@ -143,6 +143,7 @@ WeebFlix/app/src/main/
 ├── res/
 │   ├── layout/          # XML layouts (Netflix dark theme)
 │   ├── layout-land/     # Layout landscape khusus TV (two-pane detail + card besar)
+│   ├── layout-sw600dp/  # Card variants TV/tablet (≥600dp: item_anime_card, item_youtube_feed, dll.)
 │   ├── drawable/        # Vector icons, backgrounds, gradients, tv_banner
 │   ├── animator/        # focus_scale.xml (animasi fokus D-pad TV)
 │   ├── values/          # colors, strings, themes
@@ -180,7 +181,7 @@ WeebFlix/app/src/main/
 Satu APK yang sama jalan di HP + Android TV (sideload):
 - **Phase 1** — LEANBACK_LAUNCHER di MainActivity, banner TV (`tv_banner`), `uses-feature` touchscreen/leanback `required="false"` (installable di TV box)
 - **Phase 2** — fokus D-pad (animasi scale + outline merah `#E50914`) di semua card/chip/YouTube items, hero carousel bisa dikontrol remote, player TV mode (`useController = isTvMode` + key handler MEDIA_*), orientation landscape di TV
-- **Phase 3** — `layout-land/` two-pane detail (banner kiri + episode kanan) + card variants lebih besar, WebView player D-pad → auto-select server ExoPlayer-friendly saat TV, search pakai Leanback IME
+- **Phase 3** — `layout-land/` two-pane detail (banner kiri + episode kanan) + card variants lebih besar, WebView player D-pad → auto-select server ExoPlayer-friendly saat TV, search pakai Leanback IME. `layout-sw600dp/` card variants (presisi TV/tablet class) + pinch-to-zoom 1x–4x (player)
 - Terverifikasi di emulator TV API 36 (`weebflix_tv`, tv_1080p); belum diuji di TV box fisik
 
 ## Video Server Routing
