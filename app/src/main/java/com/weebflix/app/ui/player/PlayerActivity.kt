@@ -16,6 +16,7 @@ import android.util.Log
 import android.util.Rational
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
@@ -52,6 +53,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
+import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.model.VideoServer
 import com.weebflix.app.data.model.WatchHistoryManager
 import com.weebflix.app.data.scraper.YouTubeScraper
@@ -270,6 +272,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnForward: ImageView
     private lateinit var btnPrevEpisodeNav: TextView
     private lateinit var btnNextEpisodeNav: TextView
+    private lateinit var btnYtPrev: ImageView
+    private lateinit var btnYtNext: ImageView
     private lateinit var btnBack: ImageView
     private lateinit var btnPip: ImageView
     private lateinit var btnFullscreen: ImageView
@@ -368,6 +372,7 @@ class PlayerActivity : AppCompatActivity() {
     private var ytRelatedEnded = false
     private var ytRelatedContinuation: String = ""
     private var ytUpNext: YouTubeVideo? = null
+    private val ytPlayHistory = ArrayDeque<YouTubeVideo>()
     private var ytCommentContinuation: String = ""
     private var ytLoadingComments = false
     private var ytCommentsEnded = false
@@ -629,6 +634,8 @@ class PlayerActivity : AppCompatActivity() {
         btnForward = findViewById(R.id.btnNextEp)
         btnPrevEpisodeNav = findViewById(R.id.btnPrevEpisode)
         btnNextEpisodeNav = findViewById(R.id.btnNextEpisode)
+        btnYtPrev = findViewById(R.id.btnYtPrev)
+        btnYtNext = findViewById(R.id.btnYtNext)
         btnBack = findViewById(R.id.btnBack)
         btnPip = findViewById(R.id.btnPip)
         btnFullscreen = findViewById(R.id.btnFullscreen)
@@ -831,6 +838,9 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = null
         playerArea.visibility = View.GONE
         ytDetailPanel.visibility = View.GONE
+        // Hide the (now empty) detail feed scroll too — otherwise it keeps its layout_weight
+        // and splits the screen with the home feed, pushing it to the bottom half.
+        ytFeedScroll.visibility = View.GONE
         ytHomeSwipe.visibility = View.VISIBLE
         ytBelowArea.visibility = View.VISIBLE
         ytMiniPlayer.visibility = View.VISIBLE
@@ -850,6 +860,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = exoPlayer
         playerArea.visibility = View.VISIBLE
         ytDetailPanel.visibility = View.VISIBLE
+        ytFeedScroll.visibility = View.VISIBLE
         ytHomeSwipe.visibility = View.GONE
         applyYtArea()
         showControls()
@@ -1820,6 +1831,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun playEpisodePageViaWebView(episodeUrl: String, server: VideoServer? = null, autoSelectJs: String? = null, skipInjections: Boolean = false, customCleanJs: String? = null) {
         ensureWebView()
+        resetVideoZoom()
         isWebViewPlayback = true
         webViewPlaybackUrl = episodeUrl
         exoPlayer?.pause()
@@ -2311,6 +2323,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun playVideoViaHtml5WebView(videoUrl: String) {
         ensureWebView()
+        resetVideoZoom()
         isWebViewPlayback = true
         webViewPlaybackUrl = videoUrl
 
@@ -4012,6 +4025,13 @@ class PlayerActivity : AppCompatActivity() {
     private var isGestureActive: Boolean = false
     private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek
 
+    // Pinch-to-zoom (fullscreen only, all providers). Applied to the visible video surface
+    // (playerView for ExoPlayer, webView for WebView playback). Range 1x..4x.
+    private var pinchScaleDetector: ScaleGestureDetector? = null
+    private var videoZoom = 1f
+    private var videoZoomBase = 1f
+    private val maxVideoZoom = 4f
+
     /** Bottom of the swipe/dead zone for the gesture overlay. When the bottom bar is a root-level
      *  view that sits below the gesture area (YouTube portrait: video is a 16:9 strip at the top)
      *  there is nothing to avoid, so the whole gesture area stays usable. In fullscreen players
@@ -4133,8 +4153,35 @@ class PlayerActivity : AppCompatActivity() {
             }
         })
 
+        pinchScaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                // Only zoom while the system bars are hidden (fullscreen).
+                if (!isSystemBarsHidden) return false
+                videoZoomBase = videoZoom
+                return true
+            }
+
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                if (!isSystemBarsHidden) return false
+                val target = (videoZoomBase * detector.scaleFactor).coerceIn(1f, maxVideoZoom)
+                videoZoom = target
+                applyVideoZoom(target, detector.focusX, detector.focusY)
+                return true
+            }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector) {
+                videoZoomBase = videoZoom
+            }
+        })
+
         gestureOverlay.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
+            // Feed the pinch detector first so a 2-finger gesture doesn't leak into the
+            // single-finger gestures (brightness/volume/seek/collapse) below.
+            pinchScaleDetector?.onTouchEvent(event)
+            val pinchActive = pinchScaleDetector?.isInProgress == true
+            if (!pinchActive) {
+                gestureDetector.onTouchEvent(event)
+            }
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
                 if (isSeekingGesture) {
                     isSeekingGesture = false
@@ -4148,6 +4195,40 @@ class PlayerActivity : AppCompatActivity() {
             }
             true
         }
+    }
+
+    /** Applies the pinch zoom to the visible video surface. Pivot follows the pinch focal
+     *  point so the zoom centers where the fingers are. Both surfaces (playerView for ExoPlayer,
+     *  webView for WebView playback) live in playerContainer which fills playerArea, so the
+     *  gestureOverlay's focus coordinates map 1:1 to them. For webViewPlayerControls (a root-level
+     *  full-screen overlay) the focus is converted by the on-screen offset of the two views. */
+    private fun applyVideoZoom(zoom: Float, focusX: Float, focusY: Float, overlay: View? = null) {
+        val surface = if (isWebViewPlayback) webView else playerView
+        if (surface == null || surface.visibility != View.VISIBLE) return
+        val ref = overlay ?: gestureOverlay
+        if (ref === surface) {
+            surface.pivotX = focusX
+            surface.pivotY = focusY
+        } else {
+            val refLoc = IntArray(2)
+            val surfLoc = IntArray(2)
+            ref.getLocationOnScreen(refLoc)
+            surface.getLocationOnScreen(surfLoc)
+            surface.pivotX = focusX + (refLoc[0] - surfLoc[0])
+            surface.pivotY = focusY + (refLoc[1] - surfLoc[1])
+        }
+        surface.scaleX = zoom
+        surface.scaleY = zoom
+    }
+
+    /** Resets pinch zoom back to 1x on both surfaces. */
+    private fun resetVideoZoom() {
+        videoZoom = 1f
+        videoZoomBase = 1f
+        playerView.scaleX = 1f
+        playerView.scaleY = 1f
+        webView?.scaleX = 1f
+        webView?.scaleY = 1f
     }
 
     private fun setupControls() {
@@ -4181,6 +4262,9 @@ class PlayerActivity : AppCompatActivity() {
         btnNextEpisodeNav.setOnClickListener {
             navigateToNextEpisode()
         }
+
+        btnYtPrev.setOnClickListener { playYtPrevVideo() }
+        btnYtNext.setOnClickListener { playYtNextVideo() }
 
         btnPip.setOnClickListener { enterPipMode() }
         btnFullscreen.setOnClickListener { toggleFullscreen() }
@@ -4225,14 +4309,16 @@ class PlayerActivity : AppCompatActivity() {
         wvBottomBar.setOnClickListener { wvScheduleAutoHide() }
 
         webViewPlayerControls.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_UP && !wvControlsVisible && isWebViewPlayback) {
+            pinchScaleDetector?.onTouchEvent(event)
+            val pinchActive = pinchScaleDetector?.isInProgress == true
+            if (event.actionMasked == MotionEvent.ACTION_UP && !pinchActive && !wvControlsVisible && isWebViewPlayback) {
                 val isControlHidingProvider = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.OPPADRAMA_ID ||
                     activeProviderId == com.weebflix.app.data.provider.ProviderFactory.DRAKORKITA_ID
                 if (!isControlHidingProvider) {
                     wvShowControls()
                 }
             }
-            false
+            pinchActive
         }
 
         wvSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -4389,6 +4475,7 @@ class PlayerActivity : AppCompatActivity() {
                 )
             }
         } else {
+            resetVideoZoom()
             if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
                 ytFullscreen = false
                 if (!isTvMode) {
@@ -4452,6 +4539,7 @@ class PlayerActivity : AppCompatActivity() {
     // Required when switching from WebView playback (which hides these views) back to
     // ExoPlayer — e.g. OppaDrama FileLions/Hydrax after TurboVIP ran in the WebView.
     private fun showExoPlayerUi() {
+        resetVideoZoom()
         isWebViewPlayback = false
         webViewPlayerControls.visibility = View.GONE
         webView?.stopLoading()
@@ -4914,6 +5002,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun playYouTubeVideo(videoId: String, seekMs: Long = startPositionMs) {
         currentYtVideoId = videoId
+        updateYtNavButtons()
         loadingPlayer.visibility = View.VISIBLE
         tvError.visibility = View.GONE
         tvLoadingProgress.visibility = View.GONE
@@ -5001,9 +5090,14 @@ class PlayerActivity : AppCompatActivity() {
             .build()
 
         val trackSelector = androidx.media3.exoplayer.trackselection.DefaultTrackSelector(this)
-        trackSelector.parameters = trackSelector.buildUponParameters()
+        val maxDefRes = ProviderConfig.getYtDefaultResolution()
+        val params = trackSelector.buildUponParameters()
             .setPreferredVideoMimeTypes("video/avc")
+            .apply {
+                if (maxDefRes > 0) setMaxVideoSize(1920, maxDefRes)
+            }
             .build()
+        trackSelector.parameters = params
         ytTrackSelector = trackSelector
         ytResolutionOptions = resolved.videoFormats
             .map { it.height }
@@ -5125,8 +5219,20 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     /** Plays a video tapped from the related list (same activity, no re-launch). */
-    private fun playYouTubeByVideo(video: YouTubeVideo) {
+    private fun playYouTubeByVideo(video: YouTubeVideo, recordHistory: Boolean = true) {
         if (video.videoId.isEmpty() || video.videoId == currentYtVideoId) return
+        if (recordHistory && currentYtVideoId.isNotEmpty()) {
+            ytPlayHistory.addLast(
+                YouTubeVideo(
+                    videoId = currentYtVideoId,
+                    title = episodeTitle.ifEmpty { animeTitle },
+                    channel = currentChannelName,
+                    channelId = currentChannelId,
+                    thumbnail = imageUrl
+                )
+            )
+            if (ytPlayHistory.size > 50) ytPlayHistory.removeFirst()
+        }
         cancelAutoPlay()
         pendingYtSeekMs = 0
         animeTitle = video.title
@@ -5142,6 +5248,37 @@ class PlayerActivity : AppCompatActivity() {
         ytRelatedAdapter.clear()
         ytFeedScroll.scrollTo(0, 0)
         playYouTubeVideo(video.videoId, 0L)
+    }
+
+    /** Skip-previous: replay the last video from this session's playback history. */
+    private fun playYtPrevVideo() {
+        val prev = ytPlayHistory.removeLastOrNull()
+        if (prev == null || prev.videoId.isEmpty()) {
+            Toast.makeText(this, "Tidak ada video sebelumnya", Toast.LENGTH_SHORT).show()
+            return
+        }
+        playYouTubeByVideo(prev, recordHistory = false)
+    }
+
+    /** Skip-next: play the up-next video (same as the auto-play target). */
+    private fun playYtNextVideo() {
+        val next = ytUpNext
+        if (next == null || next.videoId.isEmpty()) {
+            Toast.makeText(this, "Video berikutnya tidak tersedia", Toast.LENGTH_SHORT).show()
+            return
+        }
+        playYouTubeByVideo(next)
+    }
+
+    private fun updateYtNavButtons() {
+        val isYt = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID
+        if (!isYt) {
+            btnYtPrev.visibility = View.GONE
+            btnYtNext.visibility = View.GONE
+            return
+        }
+        btnYtPrev.visibility = if (ytPlayHistory.isNotEmpty()) View.VISIBLE else View.GONE
+        btnYtNext.visibility = if (ytUpNext != null) View.VISIBLE else View.GONE
     }
 
     private fun openChannelFromVideo(video: YouTubeVideo) {
@@ -5228,6 +5365,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun refreshYtUpNext() {
         ytUpNext = ytRelatedAdapter.peekFirst()
+        updateYtNavButtons()
     }
 
     private fun showYtResolutionDialog() {
@@ -5256,9 +5394,11 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun applyYtResolution(height: Int) {
         val ts = ytTrackSelector ?: return
+        val defRes = ProviderConfig.getYtDefaultResolution()
         if (height <= 0) {
             ts.parameters = ts.parameters.buildUpon()
                 .clearSelectionOverrides()
+                .setMaxVideoSize(1920, if (defRes > 0) defRes else 1080)
                 .build()
             ytCurrentResolution = 0
             Toast.makeText(this, "Resolusi: Auto", Toast.LENGTH_SHORT).show()
@@ -5287,6 +5427,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (group.getFormat(t).height == height) {
                     val override = androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOverride(g, t)
                     ts.parameters = ts.parameters.buildUpon()
+                        .setMaxVideoSize(1920, maxOf(height, defRes))
                         .setSelectionOverride(videoRendererIndex, groups, override)
                         .build()
                     ytCurrentResolution = height

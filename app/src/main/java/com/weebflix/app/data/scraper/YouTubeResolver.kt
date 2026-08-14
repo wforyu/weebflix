@@ -14,13 +14,10 @@ object YouTubeResolver {
     private const val TAG = "YouTubeResolver"
     const val INNERTUBE_WEB_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
     private const val INNERTUBE_ANDROID_VR_KEY = "AIzaSyB9VGVgUmYc0HeBp5dHnjg1WxNb0qk2X3k"
+    private const val INNERTUBE_ANDROID_KEY = "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_MzhuOLXZ0"
+    private const val INNERTUBE_ANDROID_MUSIC_KEY = "AIzaSyAOghZGza2MQSZkYuz4VlJ4v5wZ7Y4W4sQ"
+    private const val INNERTUBE_IOS_KEY = "AIzaSyB-63vPrnThHnHxe9cQ9QZQN9QZ9QZQZQ"
     private const val API = "https://www.youtube.com/youtubei/v1/player?key=%s&prettyPrint=false"
-
-    private val INVIOUS_INSTANCES = listOf(
-        "https://inv.nadeko.net",
-        "https://yewtu.be",
-        "https://invidious.nerdvpn.de"
-    )
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -39,6 +36,11 @@ object YouTubeResolver {
 
     @Volatile private var visitorData: String? = null
     private val visitorLock = Any()
+
+    /** Drops the cached visitor id so the next resolve bootstraps a fresh one (e.g. after a bot-gate). */
+    fun resetVisitor() {
+        visitorData = null
+    }
 
     /** Fetches a fresh visitor id via a lightweight WEB search (works on flagged IPs where player is gated). */
     private fun ensureVisitor(): String? {
@@ -76,18 +78,38 @@ object YouTubeResolver {
         memo[videoId]?.let { return it }
 
         val clients = listOf(
-            ClientContext("ANDROID_VR", "1.55.3", 30, embed = false, key = INNERTUBE_ANDROID_VR_KEY, ua = "com.google.android.youtube/19.09.37 (Linux; U; Android 13; en_US)"),
+            // ANDROID_VR must carry its real VR footprint (Oculus device + VR UA) — a mismatched UA
+            // (e.g. plain YouTube app UA) is what triggers "Sign in to confirm you're not a bot".
+            // Footprint verified against yt-dlp 2026-08; clientVersion must stay <= 1.65 to keep
+            // non-SABR DASH formats.
             ClientContext(
-                "ANDROID_MUSIC", "6.27.51", 30, embed = false, key = INNERTUBE_ANDROID_VR_KEY,
+                "ANDROID_VR", "1.65.10", 32, embed = false, key = INNERTUBE_ANDROID_VR_KEY,
+                ua = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+                osName = "Android", osVersion = "12L", deviceModel = "Quest 3", deviceMake = "Oculus"
+            ),
+            ClientContext(
+                "ANDROID", "21.26.364", 30, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip",
+                osName = "Android", osVersion = "11", deviceModel = "Pixel 5"
+            ),
+            ClientContext(
+                "ANDROID_MUSIC", "6.27.51", 30, embed = false, key = INNERTUBE_ANDROID_MUSIC_KEY,
                 ua = "com.google.android.apps.youtube.music/6.27.51 (Linux; U; Android 13; en_US)",
                 osName = "Android", osVersion = "13", deviceModel = "Pixel 7"
             ),
             ClientContext(
-                "IOS", "22.41.2", 0, embed = false, key = INNERTUBE_WEB_KEY,
-                ua = "com.google.ios.youtube/22.41.2 (iPhone14,3; U; CPU iOS 17_0_0 like Mac OS X; en_US)",
-                osName = "iPhone", osVersion = "17.0.0.20D5048c", deviceModel = "iPhone14,3"
+                "IOS", "19.43.2", 0, embed = false, key = INNERTUBE_IOS_KEY,
+                ua = "com.google.ios.youtube/19.43.2 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
+                osName = "iPhone", osVersion = "18.3.2.22D82", deviceModel = "iPhone16,2", deviceMake = "Apple"
             ),
-            ClientContext("MWEB", "2.20260731.00.00", 0, embed = false, key = INNERTUBE_WEB_KEY, ua = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"),
+            ClientContext(
+                "TVHTML5", "7.20260707.07.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)"
+            ),
+            ClientContext(
+                "MWEB", "2.20260731.00.00", 0, embed = false, key = INNERTUBE_WEB_KEY,
+                ua = "Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+            ),
             ClientContext("WEB_EMBEDDED_PLAYER", "1.20260731.00.00", 0, embed = true, key = INNERTUBE_WEB_KEY, ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
         )
 
@@ -126,11 +148,23 @@ object YouTubeResolver {
         }
         if (anonBr.isNotEmpty()) blockReason = anonBr
 
-        Log.w(TAG, "innertube failed, falling back to Invidious")
-        val invidious = fetchInvidious(videoId)
-        if (invidious != null) {
-            memo[videoId] = invidious
-            return invidious
+        // Bot-gate (LOGIN_REQUIRED / "not a bot"): the visitor id can be stale or flagged. Force a
+        // fresh visitor bootstrap and retry ANDROID_VR once before giving up. Without this a single
+        // flagged visitor bricks every video for the whole process lifetime.
+        if (blockReason.isNotEmpty()) {
+            Log.w(TAG, "bot-gate ($blockReason), re-bootstrapping visitor and retrying ANDROID_VR")
+            resetVisitor()
+            Thread.sleep(2500)
+            val retried = try {
+                fetchPlayer(videoId, clients[0], auth = false)
+            } catch (e: Exception) {
+                null
+            }
+            if (retried?.streams != null && !retried.streams.isEmpty) {
+                memo[videoId] = retried.streams
+                return retried.streams
+            }
+            if (retried != null && retried.blockReason.isNotEmpty()) blockReason = retried.blockReason
         }
 
         return ResolvedYouTube(videoId = videoId, title = "", blockReason = blockReason)
@@ -147,7 +181,8 @@ object YouTubeResolver {
         val ua: String,
         val osName: String? = null,
         val osVersion: String? = null,
-        val deviceModel: String? = null
+        val deviceModel: String? = null,
+        val deviceMake: String? = null
     )
 
     private data class PlayerResult(val streams: ResolvedYouTube?, val flagged: Boolean, val blockReason: String = "")
@@ -165,6 +200,7 @@ object YouTubeResolver {
                 if (ctx.osName != null) put("osName", ctx.osName)
                 if (ctx.osVersion != null) put("osVersion", ctx.osVersion)
                 if (ctx.deviceModel != null) put("deviceModel", ctx.deviceModel)
+                if (ctx.deviceMake != null) put("deviceMake", ctx.deviceMake)
             }
         val thirdParty = if (ctx.embed) JSONObject().put("embedUrl", "https://www.youtube.com") else null
         val body = JSONObject()
@@ -288,12 +324,6 @@ object YouTubeResolver {
         )
     }
 
-    private fun rangeOf(f: JSONObject, startKey: String, endKey: String): String {
-        val s = f.optLong(startKey, -1)
-        val e = f.optLong(endKey, -1)
-        return if (s >= 0 && e >= s) "$s-$e" else ""
-    }
-
     private fun pickThumb(thumb: JSONObject?): String {
         val arr = thumb?.optJSONArray("thumbnails") ?: return ""
         var best = ""
@@ -307,67 +337,6 @@ object YouTubeResolver {
             }
         }
         return best
-    }
-
-    // ---- Invidious fallback ----
-
-    private fun fetchInvidious(videoId: String): ResolvedYouTube? {
-        for (base in INVIOUS_INSTANCES) {
-            try {
-                val request = Request.Builder()
-                    .url("$base/api/v1/videos/$videoId?fields=title,author,authorThumbnails,viewCount,thumbnailUrl,adaptiveFormats")
-                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13)")
-                    .build()
-                val resp = client.newCall(request).execute()
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "invidious $base HTTP ${resp.code}")
-                    continue
-                }
-                val json = JSONObject(resp.body?.string() ?: "")
-                val video = mutableListOf<YouTubeStream>()
-                val audio = mutableListOf<YouTubeStream>()
-                val formats = json.optJSONArray("adaptiveFormats")
-                if (formats != null) {
-                    for (i in 0 until formats.length()) {
-                        val f = formats.getJSONObject(i)
-                        val type = f.optString("type", "")
-                        val isVideo = type.startsWith("video/")
-                        val stream = YouTubeStream(
-                            url = f.optString("url", ""),
-                            mimeType = type,
-                            bitrate = f.optLong("bitrate", 0),
-                            width = f.optInt("width", 0),
-                            height = f.optInt("height", 0),
-                            contentLength = f.optLong("clen", 0),
-                            itag = f.optInt("itag", 0),
-                            isVideo = isVideo,
-                            codecs = Regex("codecs=\"([^\"]+)\"").find(type)?.groupValues?.get(1) ?: "",
-                            frameRate = f.optInt("fps", 0),
-                            initRange = rangeOf(f, "initStart", "initEnd"),
-                            indexRange = rangeOf(f, "indexStart", "indexEnd")
-                        )
-                        if (isVideo) video += stream else audio += stream
-                    }
-                }
-                if (video.isNotEmpty() && audio.isNotEmpty()) {
-                    val thumbs = json.optJSONArray("authorThumbnails")
-                    val channelThumb = if (thumbs != null && thumbs.length() > 0) thumbs.getJSONObject(thumbs.length() - 1).optString("url", "") else ""
-                    return ResolvedYouTube(
-                        videoId = videoId,
-                        title = json.optString("title", ""),
-                        author = json.optString("author", ""),
-                        views = json.optString("viewCount", ""),
-                        thumbnail = json.optString("thumbnailUrl", ""),
-                        durationMs = json.optLong("lengthSeconds", 0) * 1000,
-                        videoFormats = video,
-                        audioFormats = audio
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "invidious $base failed: ${e.message}")
-            }
-        }
-        return null
     }
 
     /** Picks the best video format: prefer mp4, height <= 1080, highest height then bitrate. */

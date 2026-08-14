@@ -46,6 +46,22 @@ object YouTubeDataApi {
 
     // ---- Subscriptions ----
 
+    /** The logged-in user's own channel (channels.list?mine=true). Returns null if the account
+     *  has no channel or the request fails. */
+    suspend fun getMyChannel(): YouTubeChannel? = withContext(Dispatchers.IO) {
+        val t = token() ?: return@withContext null
+        val json = authGet(t, "$BASE/channels?part=snippet&mine=true") ?: return@withContext null
+        val items = json.optJSONArray("items") ?: return@withContext null
+        if (items.length() == 0) return@withContext null
+        val item = items.getJSONObject(0)
+        val sn = item.optJSONObject("snippet")
+        YouTubeChannel(
+            channelId = item.optString("id", ""),
+            channelName = sn?.optString("title", "") ?: "",
+            channelThumb = bestThumb(sn?.optJSONObject("thumbnails"))
+        )
+    }
+
     /** The authenticated user's subscribed channels. Also refreshes [YouTubeSubscriptionStore]. */
     suspend fun getMySubscriptions(maxResults: Int = 40): List<YouTubeChannel> = withContext(Dispatchers.IO) {
         val t = token() ?: return@withContext emptyList()

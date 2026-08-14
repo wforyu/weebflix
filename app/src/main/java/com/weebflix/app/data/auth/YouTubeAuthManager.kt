@@ -73,17 +73,49 @@ object YouTubeAuthManager {
 
     fun init(context: Context) {
         val appContext = context.applicationContext
-        val masterKey = MasterKey.Builder(appContext)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        prefs = EncryptedSharedPreferences.create(
-            appContext,
-            PREF,
-            masterKey,
-            PrefKeyEncryptionScheme.AES256_SIV,
-            PrefValueEncryptionScheme.AES256_GCM
-        )
+        prefs = buildEncryptedPrefs(appContext)
         migrateLegacyTokens(appContext)
+    }
+
+    /**
+     * Opens the EncryptedSharedPreferences store. The keyset on disk is tied to the app's
+     * Android Keystore master key — if the app is reinstalled with a different signing key
+     * (debug vs release, or a rebuild) that key no longer matches, so create() throws
+     * (e.g. `javax.crypto.AEADBadTagException`). Never let that crash the Application:
+     * wipe the corrupt store and rebuild it (the user just has to re-login), falling back
+     * to a plain file as a last resort.
+     */
+    private fun buildEncryptedPrefs(appContext: Context): SharedPreferences {
+        try {
+            val masterKey = MasterKey.Builder(appContext)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            return EncryptedSharedPreferences.create(
+                appContext,
+                PREF,
+                masterKey,
+                PrefKeyEncryptionScheme.AES256_SIV,
+                PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e1: Exception) {
+            Log.w(TAG, "EncryptedSharedPreferences init failed (${e1.javaClass.simpleName}: ${e1.message}); wiping corrupt store")
+            appContext.deleteSharedPreferences(PREF)
+            return try {
+                val masterKey = MasterKey.Builder(appContext)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    appContext,
+                    PREF,
+                    masterKey,
+                    PrefKeyEncryptionScheme.AES256_SIV,
+                    PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (e2: Exception) {
+                Log.w(TAG, "Rebuild failed too (${e2.javaClass.simpleName}: ${e2.message}); falling back to plain SharedPreferences")
+                appContext.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            }
+        }
     }
 
     /** One-time copy of tokens stored by the old plain SharedPreferences (pre-EncryptedSharedPreferences),

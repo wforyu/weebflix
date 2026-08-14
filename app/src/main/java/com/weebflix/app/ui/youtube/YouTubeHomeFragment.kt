@@ -15,9 +15,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.weebflix.app.R
 import com.weebflix.app.data.auth.YouTubeAuthManager
 import com.weebflix.app.data.provider.ProviderFactory
+import com.weebflix.app.data.scraper.YouTubeDataApi
 import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
 import com.weebflix.app.ui.player.PlayerActivity
@@ -202,17 +204,7 @@ class YouTubeHomeFragment : Fragment() {
 
     private fun onLoginClicked() {
         if (YouTubeAuthManager.isLoggedIn()) {
-            AlertDialog.Builder(requireContext())
-                .setTitle("Akun YouTube")
-                .setMessage("Masuk sebagai ${YouTubeAuthManager.email()}\n\nKeluar dari akun?")
-                .setNegativeButton("Batal", null)
-                .setPositiveButton("Keluar") { _, _ ->
-                    YouTubeAuthManager.logout()
-                    updateLoginUi()
-                    adapter.setSection(null, emptyList())
-                    Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
-                }
-                .show()
+            showAccountSheet()
         } else {
             if (!YouTubeAuthManager.isConfigured()) {
                 Toast.makeText(
@@ -224,6 +216,85 @@ class YouTubeHomeFragment : Fragment() {
             }
             loginLauncher.launch(Intent(requireContext(), YouTubeLoginActivity::class.java))
         }
+    }
+
+    /** YouTube-style account bottom sheet: account header, manage Google account,
+     *  your channel, add account, sign out. */
+    private fun showAccountSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val view = layoutInflater.inflate(R.layout.dialog_yt_account, null)
+        dialog.setContentView(view)
+
+        val avatar = view.findViewById<ImageView>(R.id.accAvatar)
+        val name = view.findViewById<TextView>(R.id.accName)
+        val email = view.findViewById<TextView>(R.id.accEmail)
+        val channelAvatar = view.findViewById<ImageView>(R.id.accChannelAvatar)
+
+        name.text = YouTubeAuthManager.displayName().ifEmpty { "Akun Google" }
+        email.text = YouTubeAuthManager.email()
+        val pic = YouTubeAuthManager.picture()
+        if (pic.isNotEmpty()) {
+            com.bumptech.glide.Glide.with(this)
+                .load(pic)
+                .placeholder(R.drawable.bg_card)
+                .into(avatar)
+        }
+
+        view.findViewById<View>(R.id.accManageGoogle).setOnClickListener {
+            dialog.dismiss()
+            runCatching {
+                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://myaccount.google.com/")))
+            }
+        }
+
+        // "Saluran Anda": fetch the user's own channel (Data API) and open it.
+        view.findViewById<View>(R.id.accMyChannel).setOnClickListener {
+            dialog.dismiss()
+            lifecycleScope.launch {
+                val channel = try {
+                    withContext(Dispatchers.IO) { YouTubeDataApi.getMyChannel() }
+                } catch (e: Exception) {
+                    null
+                }
+                if (!isAdded) return@launch
+                if (channel != null && channel.channelId.isNotEmpty()) {
+                    val intent = Intent(requireContext(), YouTubeChannelActivity::class.java).apply {
+                        putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_ID, channel.channelId)
+                        putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_NAME, channel.channelName)
+                        putExtra(YouTubeChannelActivity.EXTRA_CHANNEL_THUMB, channel.channelThumb)
+                    }
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(requireContext(), "Saluran tidak ditemukan", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        view.findViewById<View>(R.id.accAddAccount).setOnClickListener {
+            dialog.dismiss()
+            if (YouTubeAuthManager.isConfigured()) {
+                loginLauncher.launch(Intent(requireContext(), YouTubeLoginActivity::class.java))
+            } else {
+                Toast.makeText(requireContext(), "OAuth belum dikonfigurasi", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        view.findViewById<View>(R.id.accSignOut).setOnClickListener {
+            dialog.dismiss()
+            AlertDialog.Builder(requireContext())
+                .setTitle("Keluar dari akun?")
+                .setMessage("Anda akan keluar dari ${YouTubeAuthManager.email()}")
+                .setNegativeButton("Batal", null)
+                .setPositiveButton("Keluar") { _, _ ->
+                    YouTubeAuthManager.logout()
+                    updateLoginUi()
+                    adapter.setSection(null, emptyList())
+                    Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        }
+
+        dialog.show()
     }
 
     private fun updateLoginUi() {
@@ -239,10 +310,12 @@ class YouTubeHomeFragment : Fragment() {
             } else {
                 ytAccountAvatar.setImageDrawable(null)
             }
-            ytAccountName.text = YouTubeAuthManager.displayName()
-            ytAccountName.setTextColor(0xFFB3B3B3.toInt())
+            // YouTube-like header: show only the avatar when logged in (name lives in the
+            // account bottom sheet).
+            ytAccountName.visibility = View.GONE
         } else {
             ytAccountAvatar.visibility = View.GONE
+            ytAccountName.visibility = View.VISIBLE
             ytAccountName.setText(R.string.yt_login)
             ytAccountName.setTextColor(0xFFE50914.toInt())
         }

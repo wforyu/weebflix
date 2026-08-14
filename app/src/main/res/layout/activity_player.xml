@@ -460,6 +460,16 @@
                 android:orientation="horizontal">
 
                 <ImageView
+                    android:id="@+id/btnYtPrev"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_yt_skip_previous"
+                    android:contentDescription="Video sebelumnya"
+                    android:scaleType="centerInside"
+                    android:visibility="gone" />
+
+                <ImageView
                     android:id="@+id/btnPlayPause"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
@@ -487,6 +497,17 @@
                     android:contentDescription="Forward 10s"
                     android:scaleType="centerInside"
                     android:layout_marginStart="4dp" />
+
+                <ImageView
+                    android:id="@+id/btnYtNext"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_yt_skip_next"
+                    android:contentDescription="Video berikutnya"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="4dp"
+                    android:visibility="gone" />
 
                 <View
                     android:layout_width="0dp"

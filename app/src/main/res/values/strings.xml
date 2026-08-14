@@ -99,6 +99,9 @@
     <string name="build_type">Tipe Build</string>
     <string name="yt_login">Masuk</string>
     <string name="yt_logout">Keluar dari akun</string>
+    <string name="yt_default_resolution_title">Default Resolusi Maks (YouTube)</string>
+    <string name="yt_default_resolution_hint">Batas resolusi tertinggi saat memutar video YouTube. Resolusi manual lewat gear tetap bisa dipilih per video.</string>
+    <string name="yt_resolution_auto">Auto</string>
     <string name="check_update">Periksa Pembaruan</string>
     <string name="update_checking">Memeriksa pembaruan…</string>
     <string name="update_latest">Sudah versi terbaru</string>

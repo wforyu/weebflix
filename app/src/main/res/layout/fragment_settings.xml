@@ -230,6 +230,34 @@
                 android:textColor="@color/netflix_red"
                 android:textSize="15sp"
                 android:textAllCaps="false" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/yt_default_resolution_title"
+                android:textColor="@color/netflix_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/yt_default_resolution_hint"
+                android:textColor="@color/netflix_text_secondary"
+                android:textSize="13sp"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btnYtResolution"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_chip"
+                android:text="@string/yt_resolution_auto"
+                android:textColor="@color/netflix_text_primary"
+                android:textSize="15sp"
+                android:textAllCaps="false" />
         </LinearLayout>
 
         <LinearLayout

@@ -34,6 +34,8 @@ object ProviderConfig {
     private const val KEY_YT_OAUTH_REDIRECT = "yt_oauth_redirect"
     private const val DEFAULT_YT_OAUTH_REDIRECT = "http://localhost:8080/callback"
 
+    private const val KEY_YT_DEFAULT_RESOLUTION = "yt_default_resolution"
+
     // Built-in OAuth credentials (Google Cloud "Web application" client) so users can log
     // in without touching Settings. NOTE: a client secret embedded in an APK can be
     // extracted — acceptable for a private/friends build, NOT for public distribution
@@ -149,6 +151,14 @@ object ProviderConfig {
 
     fun setYtOAuthRedirectUri(value: String) {
         prefs.edit().putString(KEY_YT_OAUTH_REDIRECT, value.trim().ifEmpty { DEFAULT_YT_OAUTH_REDIRECT }).apply()
+    }
+
+    // ---- YouTube default max resolution (0 = Auto / no limit) ----
+
+    fun getYtDefaultResolution(): Int = prefs.getInt(KEY_YT_DEFAULT_RESOLUTION, 0)
+
+    fun setYtDefaultResolution(height: Int) {
+        prefs.edit().putInt(KEY_YT_DEFAULT_RESOLUTION, height.coerceIn(0, 2160)).apply()
     }
 
     fun reset() {

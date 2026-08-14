@@ -50,6 +50,7 @@ class SettingsFragment : Fragment() {
     private lateinit var etYtRedirect: EditText
     private lateinit var btnYtAuthSave: Button
     private lateinit var btnYtLogout: Button
+    private lateinit var btnYtResolution: Button
 
     private var selectedProviderId: String = ProviderConfig.activeProviderId
 
@@ -82,6 +83,7 @@ class SettingsFragment : Fragment() {
         etYtRedirect = view.findViewById(R.id.etYtRedirect)
         btnYtAuthSave = view.findViewById(R.id.btnYtAuthSave)
         btnYtLogout = view.findViewById(R.id.btnYtLogout)
+        btnYtResolution = view.findViewById(R.id.btnYtResolution)
 
         setupProviderChips()
         loadProviderSettings(selectedProviderId)
@@ -101,6 +103,8 @@ class SettingsFragment : Fragment() {
             updateYtAuthStatus()
             Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
         }
+
+        btnYtResolution.setOnClickListener { showYtResolutionDialog() }
 
         btnCheckUpdate.setOnClickListener {
             checkForUpdate()
@@ -189,8 +193,38 @@ class SettingsFragment : Fragment() {
             etYtClientId.setText(ProviderConfig.getYtOAuthClientId())
             etYtClientSecret.setText(ProviderConfig.getYtOAuthClientSecret())
             etYtRedirect.setText(ProviderConfig.getYtOAuthRedirectUri())
+            updateYtResolutionLabel()
             updateYtAuthStatus()
         }
+    }
+
+    private fun updateYtResolutionLabel() {
+        val res = ProviderConfig.getYtDefaultResolution()
+        btnYtResolution.text = if (res <= 0) {
+            getString(R.string.yt_resolution_auto)
+        } else {
+            "${res}p"
+        }
+    }
+
+    private fun showYtResolutionDialog() {
+        val options = listOf(0, 144, 240, 360, 480, 720, 1080, 1440, 2160)
+        val labels = options.map { if (it == 0) getString(R.string.yt_resolution_auto) else "${it}p" }
+        val current = ProviderConfig.getYtDefaultResolution()
+        val checked = options.indexOfFirst { it == current }.coerceAtLeast(0)
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.yt_default_resolution_title))
+            .setSingleChoiceItems(labels.toTypedArray(), checked) { d, which ->
+                ProviderConfig.setYtDefaultResolution(options[which])
+                updateYtResolutionLabel()
+                d.dismiss()
+                Toast.makeText(
+                    requireContext(),
+                    "Default resolusi: ${labels[which]}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .show()
     }
 
     private fun updateYtAuthStatus() {
