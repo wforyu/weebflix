@@ -2,7 +2,7 @@
 
 Aplikasi Android untuk nonton streaming anime, drakor, dan donghua dari berbagai provider, dengan UI ala Netflix. Multi-provider + YouTube (tanpa iklan), Android TV support, tanpa daftar, langsung jalan.
 
-**Versi:** `2.0.2-beta` (versionCode 102) — pre-release.
+**Versi:** `2.0.3-beta` (versionCode 103) — pre-release.
 
 ## Provider
 
@@ -59,7 +59,7 @@ Bisa switch provider langsung dari tab Home, dan setiap provider punya domain ya
 
 | Parameter | Value |
 |-----------|-------|
-| Versi | `2.0.2-beta` (versionCode 102) |
+| Versi | `2.0.3-beta` (versionCode 103) |
 | Gradle | 9.5.0 |
 | AGP | 9.3.0 |
 | KSP | 2.2.10-2.0.2 (for Glide) |

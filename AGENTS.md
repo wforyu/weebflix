@@ -7,7 +7,7 @@
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=102`, `versionName=2.0.2-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=103`, `versionName=2.0.3-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
@@ -505,7 +505,7 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
 - **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek), **pinch-to-zoom video 1x–4x** (fullscreen, semua provider, ExoPlayer & WebView), skip opening/outro (smart windows: intro = first `min(120s, 12%)` OR mid-episode `210s–min(330s, 30%)` if episode ≥11min; outro = last `min(120s, 8%)`), auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation; YouTube: skip prev/next (`ytPlayHistory` + `ytUpNext`) + gear resolusi + default resolusi maks dari Settings
-- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); About section shows app version (`2.0.2-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
+- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); About section shows app version (`2.0.3-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
 - **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
 - **Domain Switching:** Change scraper base URL per provider from Settings
 
