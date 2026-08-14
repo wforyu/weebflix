@@ -571,14 +571,22 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Detail/related panel: visible in the normal expanded player, replaced by the
-                 home feed when the player is collapsed into the mini player. -->
-            <LinearLayout
-                android:id="@+id/ytDetailPanel"
+            <!-- Single scroll feed (YouTube-style): title/meta/actions/comments/recommendations
+                 all scroll together under the pinned video. Replaced by the home feed when the
+                 player is collapsed into the mini player. -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/ytFeedScroll"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/ytDetailPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
             <TextView
                 android:id="@+id/ytDetailTitle"
@@ -712,9 +720,9 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/ytCommentList"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="wrap_content"
                 android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:paddingBottom="16dp"
                 android:visibility="gone" />
 
@@ -732,13 +740,15 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/ytRelatedList"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="wrap_content"
                 android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:paddingTop="8dp"
                 android:paddingBottom="24dp" />
-            </LinearLayout>
-            <!-- /ytDetailPanel -->
+                </LinearLayout>
+                <!-- /ytDetailPanel -->
+            </androidx.core.widget.NestedScrollView>
+            <!-- /ytFeedScroll -->
 
             <!-- Home feed: fills the screen while the player is collapsed into the mini player.
                  Pulling down on the feed refreshes it with a fresh random batch. -->

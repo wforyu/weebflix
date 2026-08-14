@@ -35,6 +35,7 @@ import androidx.core.view.WindowCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -331,6 +332,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var playerArea: FrameLayout
     private lateinit var ytBelowArea: View
+    private lateinit var ytFeedScroll: NestedScrollView
     private lateinit var ytDetailTitle: TextView
     private lateinit var ytDetailMeta: TextView
     private lateinit var ytRelatedList: RecyclerView
@@ -535,6 +537,7 @@ class PlayerActivity : AppCompatActivity() {
         initViews()
         setupYtRelatedList()
         setupYtComments()
+        setupYtFeedScroll()
         setupYtHomeList()
         applyYtArea()
         setupGestureDetector()
@@ -671,6 +674,7 @@ class PlayerActivity : AppCompatActivity() {
 
         playerArea = findViewById(R.id.playerArea)
         ytBelowArea = findViewById(R.id.ytBelowArea)
+        ytFeedScroll = findViewById(R.id.ytFeedScroll)
         ytDetailTitle = findViewById(R.id.ytDetailTitle)
         ytDetailMeta = findViewById(R.id.ytDetailMeta)
         ytRelatedList = findViewById(R.id.ytRelatedList)
@@ -711,33 +715,38 @@ class PlayerActivity : AppCompatActivity() {
         )
         ytRelatedList.layoutManager = LinearLayoutManager(this)
         ytRelatedList.adapter = ytRelatedAdapter
-        ytRelatedList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy <= 0) return
-                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) {
-                    loadMoreRelated()
-                }
-            }
-        })
     }
 
     private fun setupYtComments() {
         ytCommentAdapter = com.weebflix.app.ui.youtube.adapter.YouTubeCommentAdapter()
         ytCommentList.layoutManager = LinearLayoutManager(this)
         ytCommentList.adapter = ytCommentAdapter
-        ytCommentList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy <= 0) return
-                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) {
-                    loadMoreComments()
-                }
-            }
-        })
         val toggle = View.OnClickListener { toggleYtComments() }
         ytCommentHeader.setOnClickListener(toggle)
         btnYtCommentToggle.setOnClickListener(toggle)
+    }
+
+    /** The whole below-video panel is one scroll feed now (title/meta/actions/comments/related
+     *  scroll away together like real YouTube). The lists inside it are fully expanded
+     *  (nestedScrollingEnabled=false), so infinite scroll fires from the feed's scroll position. */
+    private fun setupYtFeedScroll() {
+        ytFeedScroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            val child = ytFeedScroll.getChildAt(0) ?: return@setOnScrollChangeListener
+            if (scrollY + ytFeedScroll.height >= child.height - 600) {
+                loadMoreRelated()
+                if (ytCommentsExpanded) loadMoreComments()
+            }
+        }
+    }
+
+    /** With the lists expanded inside the feed, a page that is shorter than the screen never
+     *  reaches the scroll bottom — keep fetching until the feed actually fills the viewport. */
+    private fun maybeAutoFillYtFeed() {
+        ytFeedScroll.post {
+            if (isFinishing || ytRelatedEnded) return@post
+            val child = ytFeedScroll.getChildAt(0) ?: return@post
+            if (child.height < ytFeedScroll.height) loadMoreRelated()
+        }
     }
 
     // ===== Mini player (YouTube) =====
@@ -5131,6 +5140,7 @@ class PlayerActivity : AppCompatActivity() {
         ytLoadingRelated = false
         ytRelatedEnded = false
         ytRelatedAdapter.clear()
+        ytFeedScroll.scrollTo(0, 0)
         playYouTubeVideo(video.videoId, 0L)
     }
 
@@ -5209,6 +5219,7 @@ class PlayerActivity : AppCompatActivity() {
             }
             ytLoadingRelated = false
             refreshYtUpNext()
+            maybeAutoFillYtFeed()
         }
         ytRelatedList.post {
             if (job.isActive && !isFinishing) ytRelatedAdapter.setLoading()
