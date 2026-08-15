@@ -70,7 +70,6 @@ class YouTubeHistoryFragment : Fragment() {
         if (!::adapter.isInitialized) return
         loadingLayout.visibility = View.VISIBLE
         val local = WatchHistoryManager.getAllByProvider(requireContext(), ProviderFactory.YOUTUBE_ID)
-            .filterNot { it.isFinished }
         viewLifecycleOwner.lifecycleScope.launch {
             val server = if (YouTubeAuthManager.isLoggedIn()) {
                 try {

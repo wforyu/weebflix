@@ -204,6 +204,30 @@
             android:text="+10s" />
     </LinearLayout>
 
+    <!-- Zoom Indicator (pinch-to-zoom percentage) -->
+    <LinearLayout
+        android:id="@+id/zoomIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="90dp"
+        android:background="@drawable/bg_gesture_indicator"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/zoomText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:text="100%" />
+    </LinearLayout>
+
     <!-- Netflix-style Top Controls Bar -->
     <LinearLayout
         android:id="@+id/topBar"
@@ -780,13 +804,57 @@
                 android:layout_weight="1"
                 android:visibility="gone">
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/ytHomeList"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="24dp" />
+                    android:orientation="vertical">
+
+                    <!-- Search bar: lets you search YouTube while the video keeps playing in the mini player -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp"
+                        android:paddingTop="6dp">
+
+                        <EditText
+                            android:id="@+id/ytHomeSearchInput"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_chip_yt"
+                            android:drawableStart="@drawable/ic_search_yt"
+                            android:drawablePadding="8dp"
+                            android:hint="Cari di YouTube"
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#909090"
+                            android:textSize="15sp" />
+
+                        <ImageView
+                            android:id="@+id/btnYtHomeSearchClear"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_close"
+                            android:contentDescription="Bersihkan pencarian"
+                            android:scaleType="centerInside"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/ytHomeList"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingBottom="24dp" />
+                </LinearLayout>
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
         </LinearLayout>
     </LinearLayout>

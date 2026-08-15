@@ -94,8 +94,6 @@ object WatchHistoryManager {
             )
         )
 
-        entries.removeAll { it.isFinished }
-
         val sorted = entries.sortedByDescending { it.timestamp }.take(MAX_ENTRIES)
         saveAll(context, sorted)
     }

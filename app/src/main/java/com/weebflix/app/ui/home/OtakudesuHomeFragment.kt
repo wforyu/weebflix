@@ -303,6 +303,7 @@ class OtakudesuHomeFragment : Fragment() {
     private fun loadContinueWatching() {
         if (!isAdded) return
         val entries = WatchHistoryManager.getAllByProvider(requireContext(), ProviderFactory.OTAKUDESU_ID)
+            .filterNot { it.isFinished }
         if (entries.isNotEmpty()) {
             continueWatchingSection.visibility = View.VISIBLE
             continueWatchingAdapter.submitList(entries)

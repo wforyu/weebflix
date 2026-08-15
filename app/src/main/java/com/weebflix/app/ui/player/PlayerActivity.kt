@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.os.SystemClock
+import android.text.TextWatcher
 import android.util.Log
 import android.util.Rational
 import android.view.GestureDetector
@@ -19,10 +20,12 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -62,6 +65,8 @@ import com.weebflix.app.ui.youtube.YouTubeChannelActivity
 import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
 import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -316,6 +321,11 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var seekIndicator: LinearLayout
     private lateinit var seekIcon: ImageView
     private lateinit var seekText: TextView
+    private lateinit var zoomIndicator: LinearLayout
+    private lateinit var zoomText: TextView
+    private var pinchOverlayRef: View? = null
+    private val zoomHideHandler = Handler(Looper.getMainLooper())
+    private val zoomHideRunnable = Runnable { if (::zoomIndicator.isInitialized) zoomIndicator.visibility = View.GONE }
 
     private var exoPlayer: ExoPlayer? = null
     private var episodeUrl: String = ""
@@ -355,6 +365,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var ytHomeSwipe: SwipeRefreshLayout
     private lateinit var ytHomeList: RecyclerView
     private lateinit var ytHomeAdapter: YouTubeFeedAdapter
+    private lateinit var ytHomeSearchInput: EditText
+    private lateinit var btnYtHomeSearchClear: ImageView
     private lateinit var ytMiniPlayer: View
     private lateinit var btnMiniClose: android.widget.ImageView
     private lateinit var miniPlayerView: androidx.media3.ui.PlayerView
@@ -363,6 +375,9 @@ class PlayerActivity : AppCompatActivity() {
     private var ytHomeLoading = false
     private var ytHomeEnded = false
     private var ytHomeJob: kotlinx.coroutines.Job? = null
+    private var ytHomeSearching = false
+    private var ytHomeSearchQuery = ""
+    private var ytHomeSearchJob: kotlinx.coroutines.Job? = null
 
     private val ytScraper by lazy {
         com.weebflix.app.data.provider.ProviderFactory.getProvider(com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) as YouTubeScraper
@@ -407,6 +422,7 @@ class PlayerActivity : AppCompatActivity() {
     private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
     private val maxVolume by lazy { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
     private var currentVolume: Int = 0
+    private var volumeFloat = 0f
     private var currentBrightness: Float = 0.5f
 
     private var controlsVisible: Boolean = true
@@ -428,6 +444,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private var nextEpisodeUrl: String = ""
     private var nextEpisodeTitle: String = ""
+    private var chainedNextEpisodeUrl: String = ""
+    private var chainedNextEpisodeTitle: String = ""
     private var autoPlayCountdown: Int = 0
     private var autoPlayActive: Boolean = false
     private var turboRetryCount: Int = 0
@@ -481,6 +499,7 @@ class PlayerActivity : AppCompatActivity() {
     private var isPipMode: Boolean = false
 
     private val progressUpdateHandler = Handler(Looper.getMainLooper())
+    private var lastHistorySaveMs = 0L
     private val progressUpdateRunnable = object : Runnable {
         override fun run() {
             exoPlayer?.let { player ->
@@ -488,6 +507,13 @@ class PlayerActivity : AppCompatActivity() {
                     checkSkipButtonsVisibility()
                     checkAutoPlay()
                     updateSeekBarFromPlayer()
+                    // Throttled periodic save so watch history survives app kills and
+                    // long mini-player sessions (only saved on destroy otherwise).
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastHistorySaveMs > 5000) {
+                        lastHistorySaveMs = now
+                        saveWatchHistory()
+                    }
                 }
             }
             progressUpdateHandler.postDelayed(this, 500)
@@ -569,6 +595,7 @@ class PlayerActivity : AppCompatActivity() {
         tvEpisodeTitle.text = if (episodeTitle.isNotEmpty()) episodeTitle else "Episode $episodeNumber"
 
         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        volumeFloat = currentVolume.toFloat()
         currentBrightness = getScreenBrightness()
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessText.text = "${(currentBrightness * 100).toInt()}%"
@@ -678,6 +705,8 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator = findViewById(R.id.seekIndicator)
         seekIcon = findViewById(R.id.seekIcon)
         seekText = findViewById(R.id.seekText)
+        zoomIndicator = findViewById(R.id.zoomIndicator)
+        zoomText = findViewById(R.id.zoomText)
 
         playerArea = findViewById(R.id.playerArea)
         ytBelowArea = findViewById(R.id.ytBelowArea)
@@ -696,6 +725,8 @@ class PlayerActivity : AppCompatActivity() {
         ytDetailPanel = findViewById(R.id.ytDetailPanel)
         ytHomeSwipe = findViewById(R.id.ytHomeSwipe)
         ytHomeList = findViewById(R.id.ytHomeList)
+        ytHomeSearchInput = findViewById(R.id.ytHomeSearchInput)
+        btnYtHomeSearchClear = findViewById(R.id.btnYtHomeSearchClear)
         ytMiniPlayer = findViewById(R.id.ytMiniPlayer)
         btnMiniClose = findViewById(R.id.btnMiniClose)
         miniPlayerView = findViewById(R.id.miniPlayerView)
@@ -778,24 +809,96 @@ class PlayerActivity : AppCompatActivity() {
         })
         ytHomeSwipe.setColorSchemeResources(R.color.netflix_red)
         ytHomeSwipe.setOnRefreshListener { refreshYtHome() }
+
+        btnYtHomeSearchClear.setOnClickListener { ytHomeSearchInput.setText("") }
+        ytHomeSearchInput.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.action == android.view.KeyEvent.ACTION_DOWN &&
+                    event.keyCode == android.view.KeyEvent.KEYCODE_ENTER)
+            ) {
+                runYtHomeSearch(ytHomeSearchInput.text.toString().trim(), debounce = false)
+                true
+            } else {
+                false
+            }
+        }
+        ytHomeSearchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                onYtHomeSearchChanged()
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
 
-    /** Pull-to-refresh on the mini-player feed: drops the seen-id dedup set so a fresh random
-     *  batch of Indonesian uploads loads, then clears the spinner once the new page lands. */
-    private fun refreshYtHome() {
+    /** Search toggle on the mini-player feed: typing shows search results in the same list,
+     *  clearing the query restores the endless feed. The current video keeps playing in the
+     *  mini player the whole time. */
+    private fun onYtHomeSearchChanged() {
+        val q = ytHomeSearchInput.text.toString().trim()
+        btnYtHomeSearchClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
+        if (q.isEmpty()) {
+            if (ytHomeSearching) exitYtHomeSearch()
+        } else {
+            runYtHomeSearch(q)
+        }
+    }
+
+    private fun runYtHomeSearch(query: String, debounce: Boolean = true) {
+        if (query.isEmpty()) return
+        ytHomeSearchJob?.cancel()
         ytHomeJob?.cancel()
+        ytHomeSearching = true
+        ytHomeSearchQuery = query
+        ytHomeAdapter.clear()
+        ytHomeAdapter.setLoading()
+        ytHomeSearchJob = lifecycleScope.launch {
+            if (debounce) delay(500)
+            val results = try {
+                withContext(Dispatchers.IO) { ytScraper.searchVideos(query) }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (ytHomeSearching && ytHomeSearchQuery == query && !isFinishing) {
+                ytHomeAdapter.append(results, endOfFeed = results.isEmpty())
+            }
+        }
+    }
+
+    private fun exitYtHomeSearch() {
+        ytHomeSearchJob?.cancel()
+        ytHomeSearching = false
+        ytHomeSearchQuery = ""
         ytHomeAdapter.clear()
         ytHomeLoading = false
         ytHomeEnded = false
         ytScraper.resetFeed()
         loadMoreYtHome()
+    }
+
+    /** Pull-to-refresh on the mini-player feed: in search mode re-runs the current query,
+     *  otherwise drops the seen-id dedup set so a fresh random batch of Indonesian uploads
+     *  loads; clears the spinner once the new page lands. */
+    private fun refreshYtHome() {
+        if (ytHomeSearching) {
+            runYtHomeSearch(ytHomeSearchQuery, debounce = false)
+        } else {
+            ytHomeJob?.cancel()
+            ytHomeAdapter.clear()
+            ytHomeLoading = false
+            ytHomeEnded = false
+            ytScraper.resetFeed()
+            loadMoreYtHome()
+        }
         lifecycleScope.launch {
             ytHomeJob?.join()
+            ytHomeSearchJob?.join()
             if (!isFinishing) ytHomeSwipe.isRefreshing = false
         }
     }
 
     private fun loadMoreYtHome() {
+        if (ytHomeSearching) return
         if (ytHomeLoading || ytHomeEnded || ytHomeJob?.isActive == true) return
         ytHomeLoading = true
         val job = lifecycleScope.launch {
@@ -4166,23 +4269,40 @@ class PlayerActivity : AppCompatActivity() {
                 val target = (videoZoomBase * detector.scaleFactor).coerceIn(1f, maxVideoZoom)
                 videoZoom = target
                 applyVideoZoom(target, detector.focusX, detector.focusY)
+                showZoomIndicator()
                 return true
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
                 videoZoomBase = videoZoom
+                zoomHideHandler.removeCallbacks(zoomHideRunnable)
+                zoomHideHandler.postDelayed(zoomHideRunnable, 1200)
             }
         })
 
         gestureOverlay.setOnTouchListener { _, event ->
-            // Feed the pinch detector first so a 2-finger gesture doesn't leak into the
-            // single-finger gestures (brightness/volume/seek/collapse) below.
+            val action = event.actionMasked
+            val pointerCount = event.pointerCount
+            pinchOverlayRef = gestureOverlay
+
+            // Two or more fingers down = pinch-zoom intent. Drop any in-progress single-finger
+            // gesture (seek/volume/brightness/collapse) immediately so the pinch never fires a
+            // seek on release and doesn't fight the seek indicator. Without this, a 2-finger
+            // pinch that starts as a 1-finger drag keeps its sticky seek gesture and seeks on
+            // lift — the "zoom conflicts with the duration swipe" bug.
+            if (pointerCount >= 2) {
+                cancelSingleFingerGesture()
+            }
+
             pinchScaleDetector?.onTouchEvent(event)
             val pinchActive = pinchScaleDetector?.isInProgress == true
-            if (!pinchActive) {
+
+            // Feed the single-finger gestures only while fewer than 2 fingers are down.
+            if (pointerCount < 2 && !pinchActive) {
                 gestureDetector.onTouchEvent(event)
             }
-            if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
+
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                 if (isSeekingGesture) {
                     isSeekingGesture = false
                     seekBy(seekDelta.toFloat())
@@ -4192,9 +4312,38 @@ class PlayerActivity : AppCompatActivity() {
                 hideVolumeIndicator()
                 isGestureActive = false
                 gestureType = 0
+                seekDelta = 0L
+                isSeekingGesture = false
+            } else if (action == MotionEvent.ACTION_POINTER_UP) {
+                // One finger lifted. If fewer than 2 remain the pinch is over — drop the stale
+                // single-finger state so the leftover finger can't be mistaken for a seek.
+                if (event.pointerCount - 1 < 2) {
+                    cancelSingleFingerGesture()
+                }
             }
             true
         }
+    }
+
+    /** Aborts an in-progress single-finger gesture (seek/volume/brightness/collapse) without
+     *  applying any accumulated effect. Called when a second finger lands (pinch start) or a
+     *  pinch finger lifts back to a single finger. */
+    private fun cancelSingleFingerGesture() {
+        if (!isGestureActive && !isSeekingGesture && gestureType == 0 && seekDelta == 0L) return
+        isSeekingGesture = false
+        seekDelta = 0L
+        isGestureActive = false
+        gestureType = 0
+        hideSeekIndicator()
+        hideBrightnessIndicator()
+        hideVolumeIndicator()
+    }
+
+    private fun showZoomIndicator() {
+        if (!::zoomIndicator.isInitialized) return
+        zoomText.text = "${Math.round(videoZoom * 100)}%"
+        zoomIndicator.visibility = View.VISIBLE
+        zoomHideHandler.removeCallbacks(zoomHideRunnable)
     }
 
     /** Applies the pinch zoom to the visible video surface. Pivot follows the pinch focal
@@ -4205,7 +4354,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun applyVideoZoom(zoom: Float, focusX: Float, focusY: Float, overlay: View? = null) {
         val surface = if (isWebViewPlayback) webView else playerView
         if (surface == null || surface.visibility != View.VISIBLE) return
-        val ref = overlay ?: gestureOverlay
+        val ref = overlay ?: pinchOverlayRef ?: gestureOverlay
         if (ref === surface) {
             surface.pivotX = focusX
             surface.pivotY = focusY
@@ -4229,6 +4378,8 @@ class PlayerActivity : AppCompatActivity() {
         playerView.scaleY = 1f
         webView?.scaleX = 1f
         webView?.scaleY = 1f
+        zoomHideHandler.removeCallbacks(zoomHideRunnable)
+        if (::zoomIndicator.isInitialized) zoomIndicator.visibility = View.GONE
     }
 
     private fun setupControls() {
@@ -4309,6 +4460,7 @@ class PlayerActivity : AppCompatActivity() {
         wvBottomBar.setOnClickListener { wvScheduleAutoHide() }
 
         webViewPlayerControls.setOnTouchListener { _, event ->
+            pinchOverlayRef = webViewPlayerControls
             pinchScaleDetector?.onTouchEvent(event)
             val pinchActive = pinchScaleDetector?.isInProgress == true
             if (event.actionMasked == MotionEvent.ACTION_UP && !pinchActive && !wvControlsVisible && isWebViewPlayback) {
@@ -4417,11 +4569,16 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun handleVolumeGesture(distanceY: Float) {
         val sensitivity = maxVolume.toFloat() / (gestureOverlay.height.toFloat() * 0.4f)
-        val delta = (distanceY * sensitivity).toInt()
-        if (delta == 0) return
-        currentVolume = (currentVolume + delta).coerceIn(0, maxVolume)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
-        val percent = (currentVolume * 100f / maxVolume).toInt()
+        // Accumulate as a float so fractional movements carry over between events (like the
+        // brightness gesture) instead of being truncated to zero every event, which made the
+        // volume feel stuttery/jerky on small movements.
+        volumeFloat = (volumeFloat + distanceY * sensitivity).coerceIn(0f, maxVolume.toFloat())
+        val newVolume = volumeFloat.toInt()
+        if (newVolume != currentVolume) {
+            currentVolume = newVolume
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+        }
+        val percent = (volumeFloat * 100f / maxVolume).toInt()
         volumeProgress.progress = percent
         volumeText.text = "$percent%"
         showVolumeIndicator()
@@ -4533,6 +4690,7 @@ class PlayerActivity : AppCompatActivity() {
         brightnessIndicator.visibility = View.GONE
         volumeIndicator.visibility = View.GONE
         seekIndicator.visibility = View.GONE
+        zoomIndicator.visibility = View.GONE
     }
 
     // Restore the custom ExoPlayer UI (playerView + topBar/bottomBar/center controls).
@@ -4669,6 +4827,10 @@ class PlayerActivity : AppCompatActivity() {
             val nextEpNum = Regex("""(\d+)""").find(nextEpisodeTitle)?.groupValues?.getOrElse(1) { "" } ?: ""
             val savedNextUrl = nextEpisodeUrl
             val savedNextTitle = nextEpisodeTitle
+            // Hand the pre-fetched next-next episode along so the new activity already knows
+            // its own "next" (the chain prefetch) instead of waiting for a fresh navigation fetch.
+            val chainUrl = chainedNextEpisodeUrl
+            val chainTitle = chainedNextEpisodeTitle
             val intent = Intent(this, PlayerActivity::class.java).apply {
                 putExtra("url", savedNextUrl)
                 putExtra("title", savedNextTitle)
@@ -4677,7 +4839,8 @@ class PlayerActivity : AppCompatActivity() {
                 putExtra("imageUrl", imageUrl)
                 putExtra("animeUrl", animeUrl)
                 putExtra("providerId", activeProviderId)
-                putExtra("nextEpisodeUrl", "")
+                putExtra("nextEpisodeUrl", chainUrl)
+                putExtra("nextEpisodeTitle", chainTitle)
             }
             startActivity(intent)
             finish()
@@ -4695,9 +4858,11 @@ class PlayerActivity : AppCompatActivity() {
                 if (!isFinishing && nextNav.nextEpisodeUrl.isNotEmpty()) {
                     withContext(Dispatchers.Main) {
                         if (!isFinishing) {
-                            nextEpisodeUrl = nextNav.nextEpisodeUrl
-                            nextEpisodeTitle = nextNav.nextEpisodeTitle
-                            updateEpisodeNavButtons()
+                            // Keep the immediate next episode in nextEpisodeUrl (used by the
+                            // auto-play / next button). The next-next episode is stored separately
+                            // and handed to the next activity so it knows its next immediately.
+                            chainedNextEpisodeUrl = nextNav.nextEpisodeUrl
+                            chainedNextEpisodeTitle = nextNav.nextEpisodeTitle
                         }
                     }
                 }
@@ -5221,6 +5386,8 @@ class PlayerActivity : AppCompatActivity() {
     /** Plays a video tapped from the related list (same activity, no re-launch). */
     private fun playYouTubeByVideo(video: YouTubeVideo, recordHistory: Boolean = true) {
         if (video.videoId.isEmpty() || video.videoId == currentYtVideoId) return
+        // Persist the video we're leaving before its fields get overwritten below.
+        saveWatchHistory()
         if (recordHistory && currentYtVideoId.isNotEmpty()) {
             ytPlayHistory.addLast(
                 YouTubeVideo(
