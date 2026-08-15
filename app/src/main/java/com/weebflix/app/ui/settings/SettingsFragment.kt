@@ -32,6 +32,7 @@ import org.json.JSONObject
 class SettingsFragment : Fragment() {
 
     private lateinit var chipGroupProviders: ChipGroup
+    private lateinit var swMissavEnabled: android.widget.Switch
     private lateinit var tvCurrentProvider: TextView
     private lateinit var etBaseUrl: EditText
     private lateinit var btnSave: Button
@@ -65,6 +66,7 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         chipGroupProviders = view.findViewById(R.id.chipGroupProviders)
+        swMissavEnabled = view.findViewById(R.id.swMissavEnabled)
         tvCurrentProvider = view.findViewById(R.id.tvCurrentProvider)
         etBaseUrl = view.findViewById(R.id.etBaseUrl)
         btnSave = view.findViewById(R.id.btnSave)
@@ -87,6 +89,7 @@ class SettingsFragment : Fragment() {
 
         setupProviderChips()
         loadProviderSettings(selectedProviderId)
+        setupProviderVisibility()
         setupAppInfo()
 
         btnYtAuthSave.setOnClickListener {
@@ -135,7 +138,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupProviderChips() {
-        val providers = ProviderFactory.getAllProviders()
+        val providers = ProviderFactory.getEnabledProviders()
         chipGroupProviders.removeAllViews()
 
         providers.forEach { provider ->
@@ -165,7 +168,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun updateChipSelection() {
-        val providers = ProviderFactory.getAllProviders()
+        val providers = ProviderFactory.getEnabledProviders()
         for (i in 0 until chipGroupProviders.childCount) {
             val chip = chipGroupProviders.getChildAt(i) as? Chip
             val provider = providers.getOrNull(i)
@@ -178,6 +181,27 @@ class SettingsFragment : Fragment() {
                     if (provider.id == selectedProviderId) 0xFFFFFFFF.toInt() else 0xFFB3B3B3.toInt()
                 )
             }
+        }
+    }
+
+    private fun setupProviderVisibility() {
+        swMissavEnabled.isChecked = ProviderConfig.isProviderEnabled(ProviderFactory.MISSAV_ID)
+        swMissavEnabled.setOnCheckedChangeListener { _, isChecked ->
+            ProviderConfig.setProviderEnabled(ProviderFactory.MISSAV_ID, isChecked)
+            if (!isChecked && selectedProviderId == ProviderFactory.MISSAV_ID) {
+                val firstEnabled = ProviderFactory.getEnabledProviders().firstOrNull()
+                if (firstEnabled != null) {
+                    selectedProviderId = firstEnabled.id
+                    loadProviderSettings(firstEnabled.id)
+                }
+            }
+            setupProviderChips()
+            updateChipSelection()
+            Toast.makeText(
+                requireContext(),
+                if (isChecked) "MissAV ditampilkan" else "MissAV disembunyikan",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

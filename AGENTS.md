@@ -7,7 +7,7 @@
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=103`, `versionName=2.0.3-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=104`, `versionName=2.0.4-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
@@ -31,6 +31,7 @@ WeebFlix/app/src/main/
 │   │       ├── OppaDramaScraper.kt    # Drakor scraper (Jsoup) — implements AnimeProvider
 │   │       ├── AnichinScraper.kt     # Donghua/Anime scraper (Jsoup) — implements AnimeProvider
 │   │       └── OtakudesuScraper.kt   # Anime scraper (Jsoup, Blogspot streaming) — implements AnimeProvider
+│   │       └── MissavScraper.kt      # JAV scraper (Jsoup + m3u8 regex) — implements AnimeProvider
 │   └── ui/
 │       ├── splash/SplashActivity.kt      # Splash with animated N logo
 │       ├── main/MainActivity.kt          # Bottom nav host (Home/Search/Ongoing/Settings)
@@ -39,7 +40,8 @@ WeebFlix/app/src/main/
 │       │   ├── SamehadakuHomeFragment.kt # Samehadaku home (static hero + 3 rows)
 │       │   ├── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
 │   │       ├── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
-│   │       └── AnichinHomeFragment.kt  # Anichin home (Continue Watching + latest + ongoing + completed + all anime)
+│   │       ├── AnichinHomeFragment.kt  # Anichin home (Continue Watching + latest + ongoing + completed + all anime)
+│   │       └── MissavHomeFragment.kt   # MissAV home (static hero + Continue Watching + latest + popular)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
 │       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
@@ -79,7 +81,7 @@ Graf ketergantungan antar-kelas (di-generate dari import aktual, 2026-08). Layer
 ├─────────────────────────────────────────────────────────────────────┤
 │ DATA LAYER (scraper / provider / auth / model / config)             │
 │   ├─ scrapers: Samehadaku, DrakorKita, Anichin, OppaDrama, Otakudesu,  │
-│   │             YouTube                                               │
+│   │             MissAV, YouTube                                        │
 │   ├─ provider: AnimeProvider (interface) + ProviderFactory (registry)│
 │   ├─ auth:    YouTubeAuthManager + LoopbackOAuthServer              │
 │   ├─ model:   Models, WatchHistoryManager, ProviderDataCache,       │
@@ -115,6 +117,7 @@ flowchart TB
     ProviderFactory --> DrakorKitaScraper
     ProviderFactory --> OppaDramaScraper
     ProviderFactory --> OtakudesuScraper
+    ProviderFactory --> MissavScraper
     ProviderFactory --> SamehadakuScraper
     ProviderFactory --> YouTubeScraper
 
@@ -131,6 +134,9 @@ flowchart TB
     OtakudesuScraper --> ProviderConfig
     OtakudesuScraper --> Models
     OtakudesuScraper --> AnimeProvider
+    MissavScraper --> ProviderConfig
+    MissavScraper --> Models
+    MissavScraper --> AnimeProvider
     SamehadakuScraper --> ProviderConfig
     SamehadakuScraper --> Models
     SamehadakuScraper --> AnimeProvider
@@ -194,6 +200,11 @@ flowchart TB
     OtakudesuHomeFragment --> AnimeDetailActivity
     OtakudesuHomeFragment --> CategoryGridActivity
     OtakudesuHomeFragment --> PlayerActivity
+    MissavHomeFragment --> ProviderFactory
+    MissavHomeFragment --> WatchHistoryManager
+    MissavHomeFragment --> AnimeDetailActivity
+    MissavHomeFragment --> CategoryGridActivity
+    MissavHomeFragment --> PlayerActivity
 
     %% UI: search / ongoing / detail / settings
     SearchFragment --> AnimeDetailActivity
@@ -255,7 +266,7 @@ flowchart TB
 | `data/model/ProviderDataCache` | (mandiri — cache memory/disk home data) |
 | `data/model/GitHubDataFetcher` | ProviderDataCache |
 | `data/provider/AnimeProvider` | Models (interface kontrak scraper) |
-| `data/provider/ProviderFactory` | ProviderConfig, 6 scraper (Samehadaku/DrakorKita/Anichin/OppaDrama/YouTube/Otakudesu) |
+| `data/provider/ProviderFactory` | ProviderConfig, 7 scraper (Samehadaku/DrakorKita/Anichin/OppaDrama/YouTube/Otakudesu/MissAV) |
 | `data/scraper/*` (5 scraper lama) | ProviderConfig, Models, AnimeProvider |
 | `data/scraper/YouTubeScraper` | ProviderConfig, Models, AnimeProvider, YouTubeResolver |
 | `data/scraper/YouTubeResolver` | YouTubeAuthManager, YouTubeCipher |
@@ -274,6 +285,7 @@ flowchart TB
 | `ui/home/OppaDramaHomeFragment` | Models, WatchHistoryManager, ProviderFactory, OppaDramaScraper, ContinueWatchingAdapter, HeroPagerAdapter, NetflixCardAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
 | `ui/home/AnichinHomeFragment` | Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity |
 | `ui/home/OtakudesuHomeFragment` | Models, WatchHistoryManager, ProviderFactory, ProviderDataCache, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
+| `ui/home/MissavHomeFragment` | Models, WatchHistoryManager, ProviderFactory, AnimeAdapter, ContinueWatchingAdapter, LatestEpisodeAdapter, AnimeDetailActivity, CategoryGridActivity, PlayerActivity |
 | `ui/search/SearchFragment` | WeebFlixApp, SearchGridAdapter, SearchHistoryAdapter, AnimeDetailActivity |
 | `ui/ongoing/OngoingFragment` | ProviderConfig, Models, ProviderFactory, SearchGridAdapter, AnimeDetailActivity |
 | `ui/detail/AnimeDetailActivity` | WeebFlixApp, Models, ProviderFactory, EpisodeListAdapter, PlayerActivity |
@@ -338,6 +350,7 @@ java/com/weebflix/app/
 │       ├── AnichinScraper.kt    #   donghua
 │       ├── OppaDramaScraper.kt  #   drakor
 │       ├── OtakudesuScraper.kt  #   anime (WordPress + Blogspot streaming)
+│       └── MissavScraper.kt     #   JAV (Jsoup + m3u8 regex, trust-all SSL)
 │       └── YouTube*             #   YouTubeScraper + YouTubeResolver + YouTubeCipher + YouTubeDashManifest + YouTubeModels + YouTubeDataApi + YouTubeSubscriptionStore
 │
 └── ui/                          # SEMUA Android views + navigasi + adapters. Boleh akses data HANYA lewat ProviderFactory/interface
@@ -364,7 +377,8 @@ Urutan mengikuti dependency graph (bawah dulu, atas terakhir). Item ✅ otomatis
 6. **`ui/detail/CategoryGridActivity.kt`** — MANUAL hanya kalau provider punya kategori khusus (bercabang ke scraper konkret Anichin/DrakorKita/OppaDrama).
 7. **`ui/player/PlayerActivity.kt`** — MANUAL hanya kalau provider punya tipe server baru (ExoPlayer vs WebView). Lihat tabel "Per-Provider Server Routing" di atas.
 8. **`data/model/ProviderDataCache` + `.github/workflows/scrape-providers.yml` + `scripts/scrape_providers.py`** — opsional, hanya kalau mau pre-scrape cache GitHub untuk home provider itu.
-9. **Testing** — build: `.\gradlew.bat installDebug`; verifikasi chip muncul, home load, detail, player, settings domain-switch.
+9. **Provider visibility toggle** (opsional, pola MissAV): `ProviderConfig.KEY_PROVIDER_ENABLED_{NEW}` + `isProviderEnabled(id)`/`setProviderEnabled(id, enabled)`; `ProviderFactory.getEnabledProviders()` dipakai oleh `HomeFragment.setupProviderChips()`/`scrollToSelectedChip()`/`selectProvider()` fallback + `SettingsFragment.setupProviderChips()`/`setupProviderVisibility()`; switch di `fragment_settings.xml` (section Visibilitas Provider). ⚠ Default MissAV = **hidden** (`getBoolean(..., false)`) — user harus enable manual via Settings setelah instal/update.
+10. **Testing** — build: `.\gradlew.bat installDebug`; verifikasi chip muncul, home load, detail, player, settings domain-switch.
 
 ## Coding Rules (di-generate dari pola existing, 2026-08)
 Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola kode yang sudah ada; verifikasi = build + on-device (tidak ada unit test: `app/src/test` & `app/src/androidTest` kosong).
@@ -493,6 +507,19 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - **CategoryGridActivity:** generic path sudah jalan (fallback ke interface method) — `CATEGORY_EPISODES` → `getLatestEpisodes`, `CATEGORY_ONGOING` → `getOngoingAnime`, `CATEGORY_COMPLETED`/`CATEGORY_POPULAR` → `getPopularAnime`
 - **Player routing:** tidak perlu perubahan `PlayerActivity` — `getEpisodeServers` mengembalikan server bernama "Blogspot" dengan `url` = iframe `blogger.com/video.g`; deteksi Blogspot (`server.name.contains("Blogspot") || server.url.contains("blogger.com")`) dan pipeline XHR-nya generic (bukan provider-gated)
 
+### MissAV
+- Website: `https://missav.ws` (default)
+- Content: JAV (Latest Release, Popular/Weekly, Search)
+- Scraper: `MissavScraper.kt` — Jsoup CSS selectors + m3u8 regex
+- Key methods: `getLatestEpisodes(page)` (`/id/release?page=N`), `getOngoingAnime(page)` (`/id/release?sort=published_at&page=N`), `getPopularAnime(page)` (`/id/release?sort=weekly_views&page=N`), `searchAnime(query)` (`/id/search/{q}`), `getAnimeDetail(url)`, `getEpisodeServers(url)`, `getEpisodeNavigation(url)`
+- **Card structure:** `.thumbnail.group` → `a[href*='/id/']` (video cover) + poster `img` + duration `span` (format `H:MM:SS`). Title full dari `.my-2 a`. Detail page regex `/(?:[a-z]{2}/)?id/([^/?]+)` untuk slug; episode URL = `{base}/id/{slug}`
+- **Detail:** `h1` judul, info box `div.space-y-2` (`meta-info-item`), sinopsis, poster `meta[property='og:image']`. Setiap video = **1 episode** (`episodeNumber="1"`) — JAV tidak punya episode list
+- **Playback (2026-08-16):** video page (`/id/{slug}`) berisi `source = 'https://{cdn}.surrit.com/.../playlist.m3u8'` — m3u8 regex `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`). `getEpisodeServers` return 1 `VideoServer` (`name="MissAV HLS"`, `dataType="hls"`, `videoUrl` = m3u8) → `PlayerActivity` routes `.m3u8` → **ExoPlayer**
+- **⚠ Referer wajib:** CDN `surrit.com` (m3u8 + segments) butuh `Referer: https://missav.ws/` + `Origin: https://missav.ws` — sudah ditambahkan di OkHttp interceptor + `defaultRequestProperties` di `initExoPlayerRemote` (`PlayerActivity.kt` L207/L3938). `cleanHls` (buffer longgar 30s/120s) juga mencakup `surrit.com` (L3980)
+- **⚠ Trust-all SSL:** OkHttpClient pakai trust-all cert (situs punya cert tidak standar). **DNS poisoning:** Telkomsel `internetbaik` me-resolve `missav.ws` → proxy filter (`internetbaik.telkomsel.com`, cert mismatch) yang return HTTP 200 body kosong — bukan bug app; user wajib ganti DNS (static 8.8.8.8/1.1.1.1 atau Private DNS `dns.google`)
+- **Home:** Provider-specific home (`MissavHomeFragment.kt`) — copy pola `SamehadakuHomeFragment` (static hero + Continue Watching + Eps Terbaru + Popular). "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`)
+- **⚠ Default hidden:** `provider_enabled_missav` default `false` — MissAV TIDAK muncul di chip Home sampai user enable manual via Settings → Visibilitas Provider. Bila `active_provider` terpaksa ke missav saat hidden, HomeFragment fallback ke provider pertama yang enabled.
+
 ## Features
 - **Home:** Provider chip switcher, each provider has its own home fragment:
   - Samehadaku: Static hero + Continue Watching + Latest Episode + Ongoing + Popular (infinite scroll). Each section header has a "Lihat Semua >" button → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_POPULAR`)
@@ -500,12 +527,13 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
   - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
   - Anichin: Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal infinite scroll per section). Each section header has a "Lihat Semua >" button → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`/`CATEGORY_ALL`)
   - Otakudesu: Copy pola Samehadaku — static hero + Continue Watching + Latest Episode + Ongoing + Completed (infinite scroll). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`)
+  - MissAV: Copy pola Samehadaku — static hero + Continue Watching + Eps Terbaru + Popular (infinite scroll). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`)
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
 - **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek — volume akumulasi float kontinu biar smooth, bukan step int), **pinch-to-zoom video 1x–4x** (fullscreen, semua provider, ExoPlayer & WebView), skip opening/outro (smart windows: intro = first `min(120s, 12%)` OR mid-episode `210s–min(330s, 30%)` if episode ≥11min; outro = last `min(120s, 8%)`), auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation; YouTube: skip prev/next (`ytPlayHistory` + `ytUpNext`) + gear resolusi + default resolusi maks dari Settings; **mini player** dengan home feed + **search langsung dari feed** (lihat bullet Mini player di Achieved)
-- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); About section shows app version (`2.0.3-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
+- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); **provider visibility toggle** (hide/show MissAV — `provider_enabled_missav`, switch `swMissavEnabled` in Settings → Visibilitas Provider; **default hidden** setelah instal/update, user enable manual); About section shows app version (`2.0.4-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
 - **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
 - **Domain Switching:** Change scraper base URL per provider from Settings
 
@@ -531,6 +559,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 | OppaDrama | Hydrax | `abyssplayer.com/?v={id}` → SoTrym `const datas` → AES-CTR progressive MP4 on `*.sssrr.org` (only `[0, 65536)` encrypted) | **ExoPlayer** (`hydrax://` URI + `HydraxDataSource` — decrypts leading 64KB, passes tail raw). moov at START → fast start |
 | DrakorKita | Download 480p/720p/1080p | `ajax_dl_all.php` → `/download/{dlId}` → `dlfilemob.php?id={dlId}` → `https://c1hd.load.my.id/1fichier/{fileId}` | **ExoPlayer** direct MP4 (progressive, NO .mp4 ext, Range **ignored 200**, moov at END of file) — see "DrakorKita Download-Pipeline" below. **If ExoPlayer fails → `playDrakorKitaEpisodePage()` WebView fallback (one retry via `drakorDlFallbackTried`)** |
 | Otakudesu | Blogspot | `#lightsVideo iframe` → `www.blogger.com/video.g?token=...&origin=...` | **ExoPlayer** (pipeline Blogspot generic — XHR intercept batchexecute → googlevideo). Deteksi: `server.name.contains("Blogspot")` / `server.url.contains("blogger.com")` — sama dengan Samehadaku |
+| MissAV | MissAV HLS | video page `source = '...surrit.com/.../playlist.m3u8'` | **ExoPlayer** (`.m3u8` route). CDN `surrit.com` butuh `Referer`/`Origin: https://missav.ws/` (interceptor + `defaultRequestProperties` + cleanHls 30s/120s) |
 
 `SamehadakuScraper.resolveServerVideoUrl()` guards direct videos: if `server.url` already ends in a direct-video suffix → returned unchanged (no AJAX re-fetch); the AJAX `player_ajax` iframe src is also checked with `isDirectVideoUrl()` before Blogger/filedon branches.
 
@@ -661,8 +690,17 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - Video resolution: TANPA perubahan `PlayerActivity` — pipeline Blogspot generic (XHR intercept batchexecute → googlevideo → ExoPlayer)
 - **Redirect 404:** slug/URL invalid → 302 ke `https://otakudesu.io/` (bukan anti-bot; jangan dianggap Cloudflare challenge)
 
+### MissAV
+- Website: `https://missav.ws`
+- Card selectors: `.thumbnail.group` → `a[href*='/id/']` (video + poster `img` + duration `span` H:MM:SS), title `.my-2 a`. Grid di `/id/release` & `/id/search/{q}`
+- Detail: `h1`, info `div.space-y-2` (`meta-info-item`), sinopsis, poster `meta[property='og:image']`; setiap video = 1 episode
+- Episode servers: video page (`/id/{slug}`) regex `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`) → `VideoServer(name="MissAV HLS", dataType="hls", videoUrl=m3u8)`
+- Navigation: prev/next = cari link `/id/{slug}` di bawah player (`.player-wrap`/kontainer sekitar), derivate slug dari regex `/id/([^/?]+)`
+- Video resolution: `.m3u8` route ExoPlayer; CDN `surrit.com` butuh `Referer`/`Origin: https://missav.ws/` (interceptor + `defaultRequestProperties` + cleanHls)
+- **⚠ DNS poisoning:** Telkomsel `internetbaik` resolve `missav.ws` → proxy filter yang return HTTP 200 body kosong; bukan bug app — user wajib ganti DNS
+
 ## Common Tasks
-- **Add new provider:** Implement `AnimeProvider` interface, register in `ProviderFactory`, add chip in `HomeFragment`, add config key in `ProviderConfig`
+- **Add new provider:** Implement `AnimeProvider` interface, register in `ProviderFactory`, add chip in `HomeFragment`, add config key in `ProviderConfig` (lihat checklist "Checklist tambah provider baru" di atas)
 - **Add new section to Home:** Add RecyclerView in provider's home fragment layout, create adapter, load data in fragment
 - **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
 - **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation
@@ -723,6 +761,7 @@ Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pemba
 | Episode order reversed | Fix scraper selector and sorting logic |
 | DrakorKita SSL errors | Trust-all SSL certificates on OkHttpClient |
 | DrakorKita dead domains | Auto-rewrite old domain URLs to current domain in scraper |
+| MissAV home/content kosong (HTTP 200 body kosong) | Telkomsel `internetbaik` DNS poisoning me-resolve `missav.ws` → proxy filter (`internetbaik.telkomsel.com`) — bukan bug app. Ganti DNS device (static 8.8.8.8/1.1.1.1 atau Private DNS `dns.google`). Verified: `curl --resolve missav.ws:443:<Cloudflare IP>` → 200 full content |
 | Stale WebView callbacks | `resolveGeneration` counter prevents old callbacks from being processed |
 | Video plays few seconds then disconnects (turboviplay CDN) | Added Referer/Origin headers for `turboviplay.com` domain in OkHttp interceptor and ExoPlayer `defaultRequestProperties` |
 | HTML embed page played directly as video URL | Generic `server.videoUrl` check now requires `isDirectVideo` (`.mp4`/`.m3u8`/`.mpd`/`googlevideo.com`) before passing to ExoPlayer |

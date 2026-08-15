@@ -3,6 +3,7 @@ package com.weebflix.app.data.provider
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
+import com.weebflix.app.data.scraper.MissavScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
 import com.weebflix.app.data.scraper.OtakudesuScraper
 import com.weebflix.app.data.scraper.SamehadakuScraper
@@ -16,6 +17,7 @@ object ProviderFactory {
     const val ANICHIN_ID = "anichin"
     const val YOUTUBE_ID = "youtube"
     const val OTAKUDESU_ID = "otakudesu"
+    const val MISSAV_ID = "missav"
 
     private val providers = mutableMapOf<String, AnimeProvider>()
 
@@ -39,8 +41,15 @@ object ProviderFactory {
             providers[OTAKUDESU_ID] = OtakudesuScraper().also {
                 it.baseUrl = ProviderConfig.getBaseUrl(OTAKUDESU_ID)
             }
+            providers[MISSAV_ID] = MissavScraper().also {
+                it.baseUrl = ProviderConfig.getBaseUrl(MISSAV_ID)
+            }
         }
         return providers.values.toList()
+    }
+
+    fun getEnabledProviders(): List<AnimeProvider> {
+        return getAllProviders().filter { ProviderConfig.isProviderEnabled(it.id) }
     }
 
     fun getProvider(id: String): AnimeProvider {

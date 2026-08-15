@@ -204,6 +204,9 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("drakorkita.stream") || chain.request().url.host in drakorP2pHosts) {
                                 request.addHeader("Referer", "https://drakorkita.stream/")
                                     .addHeader("Origin", "https://drakorkita.stream")
+                            } else if (chain.request().url.host.contains("surrit.com")) {
+                                request.addHeader("Referer", "https://missav.ws/")
+                                    .addHeader("Origin", "https://missav.ws")
                             }
                             chain.proceed(request.build())
                         }
@@ -3932,6 +3935,11 @@ class PlayerActivity : AppCompatActivity() {
                         "Referer" to "https://drakorkita.stream/",
                         "Origin" to "https://drakorkita.stream"
                     ))
+                } else if (videoUrl.contains("surrit.com")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://missav.ws/",
+                        "Origin" to "https://missav.ws"
+                    ))
                 }
             }
         }
@@ -3969,7 +3977,7 @@ class PlayerActivity : AppCompatActivity() {
         val cleanHls = videoUrl.contains("/hls2/") || videoUrl.contains(".urlset/") ||
             videoUrl.contains("dramiyos-cdn.com") || videoUrl.contains("acek-cdn.com") ||
             videoUrl.contains("minochinos") || videoUrl.contains("anichin.stream") ||
-            videoUrl.contains("1a-1791.com")
+            videoUrl.contains("1a-1791.com") || videoUrl.contains("surrit.com")
         val loadControl = if (cleanHls) {
             DefaultLoadControl.Builder()
                 .setBufferDurationsMs(

@@ -27,6 +27,9 @@ object ProviderConfig {
     private const val KEY_BASE_URL_OTAKUDESU = "base_url_otakudesu"
     private const val DEFAULT_BASE_URL_OTAKUDESU = "https://otakudesu.blog"
 
+    private const val KEY_BASE_URL_MISSAV = "base_url_missav"
+    private const val DEFAULT_BASE_URL_MISSAV = "https://missav.ws"
+
     private const val KEY_BASE_URL_LEGACY = "base_url"
 
     private const val KEY_YT_OAUTH_CLIENT_ID = "yt_oauth_client_id"
@@ -35,6 +38,10 @@ object ProviderConfig {
     private const val DEFAULT_YT_OAUTH_REDIRECT = "http://localhost:8080/callback"
 
     private const val KEY_YT_DEFAULT_RESOLUTION = "yt_default_resolution"
+
+    // Visibility toggle — lets users hide/show a provider (e.g. MissAV) without
+    // removing it from the app. Only MissAV is toggleable for now; others default on.
+    private const val KEY_PROVIDER_ENABLED_MISSAV = "provider_enabled_missav"
 
     // Built-in OAuth credentials (Google Cloud "Web application" client) so users can log
     // in without touching Settings. NOTE: a client secret embedded in an APK can be
@@ -80,6 +87,7 @@ object ProviderConfig {
             "anichin" -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
             "youtube" -> prefs.getString(KEY_BASE_URL_YOUTUBE, DEFAULT_BASE_URL_YOUTUBE) ?: DEFAULT_BASE_URL_YOUTUBE
             "otakudesu" -> prefs.getString(KEY_BASE_URL_OTAKUDESU, DEFAULT_BASE_URL_OTAKUDESU) ?: DEFAULT_BASE_URL_OTAKUDESU
+            "missav" -> prefs.getString(KEY_BASE_URL_MISSAV, DEFAULT_BASE_URL_MISSAV) ?: DEFAULT_BASE_URL_MISSAV
             else -> prefs.getString(KEY_BASE_URL_ANICHIN, DEFAULT_BASE_URL_ANICHIN) ?: DEFAULT_BASE_URL_ANICHIN
         }
     }
@@ -92,6 +100,7 @@ object ProviderConfig {
             "anichin" -> KEY_BASE_URL_ANICHIN
             "youtube" -> KEY_BASE_URL_YOUTUBE
             "otakudesu" -> KEY_BASE_URL_OTAKUDESU
+            "missav" -> KEY_BASE_URL_MISSAV
             else -> return
         }
         prefs.edit().putString(key, url.trimEnd('/')).apply()
@@ -105,6 +114,7 @@ object ProviderConfig {
             "anichin" -> KEY_BASE_URL_ANICHIN
             "youtube" -> KEY_BASE_URL_YOUTUBE
             "otakudesu" -> KEY_BASE_URL_OTAKUDESU
+            "missav" -> KEY_BASE_URL_MISSAV
             else -> return
         }
         prefs.edit().remove(key).apply()
@@ -118,6 +128,7 @@ object ProviderConfig {
             "anichin" -> DEFAULT_BASE_URL_ANICHIN
             "youtube" -> DEFAULT_BASE_URL_YOUTUBE
             "otakudesu" -> DEFAULT_BASE_URL_OTAKUDESU
+            "missav" -> DEFAULT_BASE_URL_MISSAV
             else -> DEFAULT_BASE_URL_ANICHIN
         }
     }
@@ -125,6 +136,22 @@ object ProviderConfig {
     var baseUrl: String
         get() = getBaseUrl(activeProviderId)
         set(value) = setBaseUrl(activeProviderId, value)
+
+    // ---- Provider visibility (hide/show in Home chips + Settings chips) ----
+
+    fun isProviderEnabled(providerId: String): Boolean {
+        return when (providerId) {
+            "missav" -> prefs.getBoolean(KEY_PROVIDER_ENABLED_MISSAV, false)
+            else -> true
+        }
+    }
+
+    fun setProviderEnabled(providerId: String, enabled: Boolean) {
+        when (providerId) {
+            "missav" -> prefs.edit().putBoolean(KEY_PROVIDER_ENABLED_MISSAV, enabled).apply()
+        }
+    }
+
 
     // ---- YouTube OAuth credentials (set from Settings) ----
 

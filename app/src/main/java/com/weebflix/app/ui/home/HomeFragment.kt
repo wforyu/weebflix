@@ -37,13 +37,15 @@ class HomeFragment : Fragment() {
         setupProviderChips()
 
         if (savedInstanceState == null) {
-            val savedProviderId = ProviderConfig.activeProviderId
+            val enabled = ProviderFactory.getEnabledProviders().map { it.id }
+            var savedProviderId = ProviderConfig.activeProviderId
+            if (savedProviderId !in enabled) savedProviderId = enabled.firstOrNull() ?: ProviderFactory.SAMEHADAKU_ID
             selectProvider(savedProviderId)
         }
     }
 
     private fun setupProviderChips() {
-        val providers = ProviderFactory.getAllProviders()
+        val providers = ProviderFactory.getEnabledProviders()
         chipGroupProviders.removeAllViews()
 
         providers.forEach { provider ->
@@ -77,7 +79,7 @@ class HomeFragment : Fragment() {
 
         for (i in 0 until chipGroupProviders.childCount) {
             val chip = chipGroupProviders.getChildAt(i) as? Chip
-            val provider = ProviderFactory.getAllProviders().getOrNull(i)
+            val provider = ProviderFactory.getEnabledProviders().getOrNull(i)
             if (chip != null && provider != null) {
                 chip.isChecked = provider.id == providerId
                 chip.chipBackgroundColor = android.content.res.ColorStateList.valueOf(
@@ -95,6 +97,7 @@ class HomeFragment : Fragment() {
             ProviderFactory.ANICHIN_ID -> AnichinHomeFragment()
             ProviderFactory.YOUTUBE_ID -> YouTubeHomeFragment()
             ProviderFactory.OTAKUDESU_ID -> OtakudesuHomeFragment()
+            ProviderFactory.MISSAV_ID -> MissavHomeFragment()
             else -> SamehadakuHomeFragment()
         }
 
@@ -113,7 +116,7 @@ class HomeFragment : Fragment() {
     private fun scrollToSelectedChip() {
         for (i in 0 until chipGroupProviders.childCount) {
             val chip = chipGroupProviders.getChildAt(i) as? Chip
-            val provider = ProviderFactory.getAllProviders().getOrNull(i)
+            val provider = ProviderFactory.getEnabledProviders().getOrNull(i)
             if (chip != null && provider != null && provider.id == currentProviderId) {
                 chip.post {
                     val chipParent = chip.parent as? View
