@@ -705,7 +705,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
 - **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation
 - **Modify player behavior:** Edit `PlayerActivity.kt`, check `ResolveMode` enum for provider-specific paths
-- **Release APK:** Run `.\gradlew.bat assembleRelease` (unsigned by default, see keystore.md for signing)
+- **Release APK:** Run `.\gradlew.bat assembleRelease` (signed dengan **debug keystore** `CN=Android Debug` sejak 2026-08-16 — keystore release lama hilang; lihat keystore.md). Signature release = signature debug → auto-update (Check Update) bisa nimpa build debug/installed. ⚠ JANGAN ganti ke keystore lain tanpa uninstall semua device sekali.
 
 ### Build & Release Pre-release (agar Check Update di app berfungsi) — CHECKLIST 2026-08-04
 Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pembaruan" di Settings tidak akan mendeteksi update:
