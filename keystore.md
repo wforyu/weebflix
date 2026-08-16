@@ -1,13 +1,13 @@
 # Keystore Info
 
-## ⚠ 2026-08-16: Release APK kini di-sign dengan DEBUG keystore
+## ⚠ 2026-08-16: Release APK di-sign dengan RELEASE keystore (tidak hilang)
 
-Keystore release lama (`webflix-release.jks`) **hilang** (gitignored, tidak pernah di-commit, tidak ada backup). Supaya **auto-update (Check Update) bisa nimpa versi yang terinstall**, release APK sekarang di-sign dengan **debug keystore** (`~/.android/debug.keystore`, `CN=Android Debug`) — signature SAMA dengan build debug yang dipasang lewat `installDebug`/`adb install`. Ini berarti:
+Keystore release lama (`webflix-release.jks`) **masih ada** di project root — awalnya dikira hilang karena gitignored + tidak ada backup, tapi ternyata filenya ada. Fingerprint cert-nya (`fe27099a...`) **identik dengan semua rilis resmi** (v2.0.0-beta s/d v2.0.4-beta, `CN=WebFlix`), jadi **auto-update (Check Update) antar-versi rilis mulus tanpa uninstall**.
 
-- APK rilis `assembleRelease` bisa di-install di atas build debug yang ada (tanpa uninstall, data aman)
-- **Konsekuensi:** semua build (debug + release) share satu signature → cocok untuk distribusi pribadi
-- Konfigurasi: `app/build.gradle.kts` → `buildTypes.release { signingConfig = signingConfigs.getByName("debug") }`
-- **JANGAN pindah ke keystore lain** (mis. regenerasi `webflix-release.jks`) — itu bikin signature beda → auto-update gagal lagi. Kalau terpaksa ganti, semua device harus uninstall dulu (sekali), baru update berikutnya jalan.
+- Release APK `assembleRelease` di-sign dengan `webflix-release.jks` (alias `webflix`, password `webflix123`)
+- ⚠ **Catatan:** build release TIDAK bisa nimpa build **debug** yang terpasang lewat `installDebug`/`adb install` (signature beda) — kalau device-nya masih build debug, uninstall dulu sekali, baru update berikutnya jalan.
+- Konfigurasi: `app/build.gradle.kts` → `signingConfigs.release` + `buildTypes.release { signingConfig = signingConfigs.getByName("release") }`
+- **JANGAN pindah ke keystore lain** — itu bikin signature beda → auto-update gagal. Kalau terpaksa ganti, semua device harus uninstall dulu (sekali).
 
 ## Release Keystore (histori — tidak dipakai lagi)
 
@@ -25,13 +25,13 @@ Keystore release lama (`webflix-release.jks`) **hilang** (gitignored, tidak pern
 ## Build Signed Release APK
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"
 
-# Build signed release (debug keystore — lihat catatan di atas)
+# Build signed release (release keystore — lihat catatan di atas)
 .\gradlew.bat assembleRelease
 
 # APK output
-# app/build/outputs/apk/release/app-release.apk (signed, CN=Android Debug)
+# app/build/outputs/apk/release/app-release.apk (signed, CN=WebFlix)
 ```
 
 ## Verify Signature
@@ -59,3 +59,4 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 - `app/build.gradle.kts` signing config references this keystore
 - Debug builds use Android's default debug keystore (no password needed)
 - **DO NOT** commit keystore or passwords to public repos
+- **Backup** `webflix-release.jks` ke lokasi aman di luar repo — ini keystore satu-satunya untuk auto-update release
