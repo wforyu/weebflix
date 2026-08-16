@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
+      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-5.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Mao",
       "url": "https://v2.samehadaku.how/anime/mao/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-9.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Nige Jouzu no Wakagimi S2",
-      "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-4.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Koko wa Ore ni Makasete Saki ni Ike to Itte kara 10-nen ga Tattara Densetsu ni Natteita.",
-      "url": "https://v2.samehadaku.how/anime/koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
+      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-5.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Mao",
       "url": "https://v2.samehadaku.how/anime/mao/",
@@ -351,36 +381,6 @@
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Rakudai Kenja no Gakuin Musou",
-      "url": "https://v2.samehadaku.how/anime/rakudai-kenja-no-gakuin-musou/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Rakudai-Kenja-no-Gakuin-Musou-Episode-8.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tomb Raider King",
-      "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tomb-Rider-King-Episode-6.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1786818336123
+  "timestamp": 1786842549792
 }
