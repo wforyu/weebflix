@@ -290,7 +290,9 @@ class MissavScraper : AnimeProvider {
         )
         val m = pattern.find(html) ?: return html
         return try {
-            val payload = m.groupValues[1]
+            // MissAV packs its m3u8 URLs inside a single-quoted JS literal, so quotes are
+            // escaped as \' — unescape before token replacement or the downstream regex misses.
+            val payload = m.groupValues[1].replace("\\'", "'")
             val a = m.groupValues[2].toInt()
             val c = m.groupValues[3].toInt()
             val words = m.groupValues[4].split('|')
