@@ -1,13 +1,13 @@
 # Agents.md
 
 ## Build & Run
-- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat installDebug`
-- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio1\jbr"; .\gradlew.bat assembleRelease`
+- **Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat installDebug`
+- **Release Build:** `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease`
 - **Gradle:** 9.5.0, AGP 9.3.0, KSP 2.2.10-2.0.2 (for Glide)
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=104`, `versionName=2.0.4-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=105`, `versionName=2.0.5-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
@@ -514,7 +514,7 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - Key methods: `getLatestEpisodes(page)` (`/id/release?page=N`), `getOngoingAnime(page)` (`/id/release?sort=published_at&page=N`), `getPopularAnime(page)` (`/id/release?sort=weekly_views&page=N`), `searchAnime(query)` (`/id/search/{q}`), `getAnimeDetail(url)`, `getEpisodeServers(url)`, `getEpisodeNavigation(url)`
 - **Card structure:** `.thumbnail.group` → `a[href*='/id/']` (video cover) + poster `img` + duration `span` (format `H:MM:SS`). Title full dari `.my-2 a`. Detail page regex `/(?:[a-z]{2}/)?id/([^/?]+)` untuk slug; episode URL = `{base}/id/{slug}`
 - **Detail:** `h1` judul, info box `div.space-y-2` (`meta-info-item`), sinopsis, poster `meta[property='og:image']`. Setiap video = **1 episode** (`episodeNumber="1"`) — JAV tidak punya episode list
-- **Playback (2026-08-16):** video page (`/id/{slug}`) berisi `source = 'https://{cdn}.surrit.com/.../playlist.m3u8'` — m3u8 regex `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`). `getEpisodeServers` return 1 `VideoServer` (`name="MissAV HLS"`, `dataType="hls"`, `videoUrl` = m3u8) → `PlayerActivity` routes `.m3u8` → **ExoPlayer**
+- **Playback (2026-08-16; fix 2026-08-16):** video page (`/id/{slug}`) kini membungkus source m3u8 dalam **packed eval JS** `eval(function(p,a,c,k,e,d){...}('...',16,16,'m3u8|...|source'.split('|'),0,{}))` — payload-nya pakai **quote di-escape** (`\'`): `source='https://surrit.com/{uuid}/playlist.m3u8'`, `source842='https://surrit.com/{uuid}/720p/video/playlist.m3u8'`, `source1280='https://surrit.com/{uuid}/1080p/video/playlist.m3u8'`. ⚠ **Bug fix:** `unpackPackedJs()` dulu TIDAK meng-unescape `\'` → hasil `source=\'...\'` → regex m3u8 gagal match → "No m3u8 found" / tidak bisa putar. Fix (`MissavScraper.kt`): `payload.replace("\\'", "'")` sebelum token replacement (verifikasi live 2026-08-16: uuid `fe5aa46d-d745-4b30-bd2b-23342fba1a30`). Regex tetap `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`). `getEpisodeServers` return 1 `VideoServer` (`name="MissAV HLS"`, `dataType="hls"`, `videoUrl` = m3u8) → `PlayerActivity` routes `.m3u8` → **ExoPlayer**
 - **⚠ Referer wajib:** CDN `surrit.com` (m3u8 + segments) butuh `Referer: https://missav.ws/` + `Origin: https://missav.ws` — sudah ditambahkan di OkHttp interceptor + `defaultRequestProperties` di `initExoPlayerRemote` (`PlayerActivity.kt` L207/L3938). `cleanHls` (buffer longgar 30s/120s) juga mencakup `surrit.com` (L3980)
 - **⚠ Trust-all SSL:** OkHttpClient pakai trust-all cert (situs punya cert tidak standar). **DNS poisoning:** Telkomsel `internetbaik` me-resolve `missav.ws` → proxy filter (`internetbaik.telkomsel.com`, cert mismatch) yang return HTTP 200 body kosong — bukan bug app; user wajib ganti DNS (static 8.8.8.8/1.1.1.1 atau Private DNS `dns.google`)
 - **Home:** Provider-specific home (`MissavHomeFragment.kt`) — copy pola `SamehadakuHomeFragment` (static hero + Continue Watching + Eps Terbaru + Popular). "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`)
