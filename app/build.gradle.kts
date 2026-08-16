@@ -31,19 +31,12 @@ android {
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file("../webflix-release.jks")
-            storePassword = "webflix123"
-            keyAlias = "webflix"
-            keyPassword = "webflix123"
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            // Release di-sign dengan debug keystore supaya signature sama dengan build
+            // debug yang terinstall → auto-update (Check Update) bisa nimpa versi lama.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
