@@ -7,7 +7,7 @@
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=106`, `versionName=2.0.6-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=109`, `versionName=2.0.9-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
@@ -41,13 +41,13 @@ WeebFlix/app/src/main/
 │       │   ├── DrakorKitaHomeFragment.kt # DrakorKita home (auto-scroll hero + 3 rows)
 │   │       ├── OppaDramaHomeFragment.kt # DrakorKita home (5 clickable sections + h-scroll)
 │   │       ├── AnichinHomeFragment.kt  # Anichin home (Continue Watching + latest + ongoing + completed + all anime)
-│   │       └── MissavHomeFragment.kt   # MissAV home (static hero + Continue Watching + latest + popular)
+│   │       └── MissavHomeFragment.kt   # MissAV home (static hero + Continue Watching + latest + ongoing + popular + uncensored)
 │       ├── search/SearchFragment.kt      # Real-time search with history
 │       ├── ongoing/OngoingFragment.kt    # Grid with vertical infinite scroll
 │       ├── settings/SettingsFragment.kt  # Per-provider domain config (Fragment, not Activity)
 │       ├── detail/
 │       │   ├── AnimeDetailActivity.kt    # Parallax detail + episode list
-│       │   └── CategoryGridActivity.kt   # Full-screen 3-col grid (DrakorKita categories)
+│   │   └── CategoryGridActivity.kt   # Full-screen 3-col grid (all providers) + auto-fill
 │       ├── player/PlayerActivity.kt      # ExoPlayer + WebView + multi-provider server resolution
 │       └── adapter/
 │           ├── LatestEpisodeAdapter.kt   # Samehadaku episode cards
@@ -517,7 +517,7 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - **Playback (2026-08-16; fix 2026-08-16):** video page (`/id/{slug}`) kini membungkus source m3u8 dalam **packed eval JS** `eval(function(p,a,c,k,e,d){...}('...',16,16,'m3u8|...|source'.split('|'),0,{}))` — payload-nya pakai **quote di-escape** (`\'`): `source='https://surrit.com/{uuid}/playlist.m3u8'`, `source842='https://surrit.com/{uuid}/720p/video/playlist.m3u8'`, `source1280='https://surrit.com/{uuid}/1080p/video/playlist.m3u8'`. ⚠ **Bug fix:** `unpackPackedJs()` dulu TIDAK meng-unescape `\'` → hasil `source=\'...\'` → regex m3u8 gagal match → "No m3u8 found" / tidak bisa putar. Fix (`MissavScraper.kt`): `payload.replace("\\'", "'")` sebelum token replacement (verifikasi live 2026-08-16: uuid `fe5aa46d-d745-4b30-bd2b-23342fba1a30`). Regex tetap `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`). `getEpisodeServers` return 1 `VideoServer` (`name="MissAV HLS"`, `dataType="hls"`, `videoUrl` = m3u8) → `PlayerActivity` routes `.m3u8` → **ExoPlayer**
 - **⚠ Referer wajib:** CDN `surrit.com` (m3u8 + segments) butuh `Referer: https://missav.ws/` + `Origin: https://missav.ws` — sudah ditambahkan di OkHttp interceptor + `defaultRequestProperties` di `initExoPlayerRemote` (`PlayerActivity.kt` L207/L3938). `cleanHls` (buffer longgar 30s/120s) juga mencakup `surrit.com` (L3980)
 - **⚠ Trust-all SSL:** OkHttpClient pakai trust-all cert (situs punya cert tidak standar). **DNS poisoning:** Telkomsel `internetbaik` me-resolve `missav.ws` → proxy filter (`internetbaik.telkomsel.com`, cert mismatch) yang return HTTP 200 body kosong — bukan bug app; user wajib ganti DNS (static 8.8.8.8/1.1.1.1 atau Private DNS `dns.google`)
-- **Home:** Provider-specific home (`MissavHomeFragment.kt`) — copy pola `SamehadakuHomeFragment` (static hero + Continue Watching + Eps Terbaru + Popular). "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`)
+- **Home:** Provider-specific home (`MissavHomeFragment.kt`) — copy pola `SamehadakuHomeFragment` (static hero + Continue Watching + Eps Terbaru + Popular + Uncensored). "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`/`CATEGORY_UNCENSORED`). Setiap section punya infinite scroll horizontal; CategoryGridActivity punya infinite scroll vertical + auto-fill kalau konten kurang dari viewport
 - **⚠ Default hidden:** `provider_enabled_missav` default `false` — MissAV TIDAK muncul di chip Home sampai user enable manual via Settings → Visibilitas Provider. Bila `active_provider` terpaksa ke missav saat hidden, HomeFragment fallback ke provider pertama yang enabled.
 
 ## Features
@@ -527,13 +527,13 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
   - OppaDrama: 5 clickable section headers (Eps Terbaru, Drama Korea, Drama China, Film Korea, Netflix) + horizontal infinite scroll per section
   - Anichin: Continue Watching + Latest Episodes + Ongoing + Completed + All Anime (horizontal infinite scroll per section). Each section header has a "Lihat Semua >" button → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`/`CATEGORY_ALL`)
   - Otakudesu: Copy pola Samehadaku — static hero + Continue Watching + Latest Episode + Ongoing + Completed (infinite scroll). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_ONGOING`/`CATEGORY_COMPLETED`)
-  - MissAV: Copy pola Samehadaku — static hero + Continue Watching + Eps Terbaru + Popular (infinite scroll). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`)
+  - MissAV: Copy pola Samehadaku — static hero + Continue Watching + Eps Terbaru + Popular + Uncensored (infinite scroll per section). "Lihat Semua >" → `CategoryGridActivity` (`CATEGORY_EPISODES`/`CATEGORY_POPULAR`/`CATEGORY_UNCENSORED`)
 - **Search:** Real-time search with debounce (500ms) + Search history (SharedPreferences, max 20)
 - **Ongoing:** Full paginated grid of all ongoing anime with vertical infinite scroll + footer loading
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
 - **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek — volume akumulasi float kontinu biar smooth, bukan step int), **pinch-to-zoom video 1x–4x** (fullscreen, semua provider, ExoPlayer & WebView), skip opening/outro (smart windows: intro = first `min(120s, 12%)` OR mid-episode `210s–min(330s, 30%)` if episode ≥11min; outro = last `min(120s, 8%)`), auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation; YouTube: skip prev/next (`ytPlayHistory` + `ytUpNext`) + gear resolusi + default resolusi maks dari Settings; **mini player** dengan home feed + **search langsung dari feed** (lihat bullet Mini player di Achieved)
-- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); **provider visibility toggle** (hide/show MissAV — `provider_enabled_missav`, switch `swMissavEnabled` in Settings → Visibilitas Provider; **default hidden** setelah instal/update, user enable manual); About section shows app version (`2.0.4-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
+- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); **provider visibility toggle** (hide/show MissAV — `provider_enabled_missav`, switch `swMissavEnabled` in Settings → Visibilitas Provider; **default hidden** setelah instal/update, user enable manual); About section shows app version (`2.0.9-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
 - **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
 - **Domain Switching:** Change scraper base URL per provider from Settings
 
@@ -697,6 +697,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - Episode servers: video page (`/id/{slug}`) regex `source\s*=\s*'([^']+playlist\.m3u8)'` (fallback `.m3u8`) → `VideoServer(name="MissAV HLS", dataType="hls", videoUrl=m3u8)`
 - Navigation: prev/next = cari link `/id/{slug}` di bawah player (`.player-wrap`/kontainer sekitar), derivate slug dari regex `/id/([^/?]+)`
 - Video resolution: `.m3u8` route ExoPlayer; CDN `surrit.com` butuh `Referer`/`Origin: https://missav.ws/` (interceptor + `defaultRequestProperties` + cleanHls)
+- **Uncensored:** endpoint `/id/uncensored-leak?page=N`, method `getUncensoredAnime(page)` di `MissavScraper` (not in `AnimeProvider` interface). Home section visible kalau ada data; "Lihat Semua" → `CategoryGridActivity` (`CATEGORY_UNCENSORED`)
 - **⚠ DNS poisoning:** Telkomsel `internetbaik` resolve `missav.ws` → proxy filter yang return HTTP 200 body kosong; bukan bug app — user wajib ganti DNS
 
 ## Common Tasks
@@ -705,7 +706,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
 - **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation
 - **Modify player behavior:** Edit `PlayerActivity.kt`, check `ResolveMode` enum for provider-specific paths
-- **Release APK:** Run `.\gradlew.bat assembleRelease` (signed dengan **release keystore** `webflix-release.jks`, `CN=WebFlix`, `fe27099a...` — keystore ternyata tidak hilang, masih ada di project root; lihat keystore.md). Signature release = signature semua rilis resmi (v2.0.0-beta s/d v2.0.6-beta) → auto-update (Check Update) antar-versi rilis mulus tanpa uninstall. ⚠ Build release TIDAK bisa nimpa build **debug** (`installDebug`) — kalau device masih build debug, uninstall dulu sekali. JANGAN pindah ke keystore lain tanpa uninstall semua device sekali.
+- **Release APK:** Run `.\gradlew.bat assembleRelease` (signed dengan **release keystore** `webflix-release.jks`, `CN=WebFlix`, `fe27099a...` — keystore ternyata tidak hilang, masih ada di project root; lihat keystore.md). Signature release = signature semua rilis resmi (v2.0.0-beta s/d v2.0.9-beta) → auto-update (Check Update) antar-versi rilis mulus tanpa uninstall. ⚠ Build release TIDAK bisa nimpa build **debug** (`installDebug`) — kalau device masih build debug, uninstall dulu sekali. JANGAN pindah ke keystore lain tanpa uninstall semua device sekali.
 
 ### Build & Release Pre-release (agar Check Update di app berfungsi) — CHECKLIST 2026-08-04
 Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pembaruan" di Settings tidak akan mendeteksi update:
