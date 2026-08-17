@@ -229,9 +229,6 @@ class CategoryGridActivity : AppCompatActivity() {
                         items.addAll(newItems)
                         gridAdapter.notifyItemRangeInserted(start, newItems.size)
                         currentPage++
-                        if (category == CATEGORY_UNCENSORED) {
-                            hasMore = false
-                        }
                     }
 
                     isLoading = false

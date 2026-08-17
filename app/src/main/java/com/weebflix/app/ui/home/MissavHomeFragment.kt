@@ -63,14 +63,17 @@ class MissavHomeFragment : Fragment() {
     private var latestPage = 1
     private var ongoingPage = 1
     private var popularPage = 1
+    private var uncensoredPage = 1
 
     private var latestLoading = false
     private var ongoingLoading = false
     private var popularLoading = false
+    private var uncensoredLoading = false
 
     private var latestHasMore = true
     private var ongoingHasMore = true
     private var popularHasMore = true
+    private var uncensoredHasMore = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -147,9 +150,11 @@ class MissavHomeFragment : Fragment() {
         latestPage = 1
         ongoingPage = 1
         popularPage = 1
+        uncensoredPage = 1
         latestHasMore = true
         ongoingHasMore = true
         popularHasMore = true
+        uncensoredHasMore = true
         sectionUncensored.visibility = View.GONE
         loadData()
     }
@@ -236,6 +241,19 @@ class MissavHomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = uncensoredAdapter
             isNestedScrollingEnabled = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dx > 0) {
+                        val lm = recyclerView.layoutManager as LinearLayoutManager
+                        val lastVisible = lm.findLastCompletelyVisibleItemPosition()
+                        val total = lm.itemCount
+                        if (lastVisible >= total - 3 && !uncensoredLoading && uncensoredHasMore) {
+                            loadMoreUncensored()
+                        }
+                    }
+                }
+            })
         }
 
         continueWatchingAdapter = ContinueWatchingAdapter { entry ->
@@ -293,8 +311,8 @@ class MissavHomeFragment : Fragment() {
         ongoingItems.clear(); ongoingItems.addAll(ongoing)
         popularItems.clear(); popularItems.addAll(popular)
         uncensoredItems.clear(); uncensoredItems.addAll(uncensored)
-        latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty()
-        latestPage = 1; ongoingPage = 1; popularPage = 1
+        latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty(); uncensoredHasMore = uncensored.isNotEmpty()
+        latestPage = 1; ongoingPage = 1; popularPage = 1; uncensoredPage = 1
         if (uncensored.isNotEmpty()) { sectionUncensored.visibility = View.VISIBLE }
         if (latestItems.isNotEmpty()) {
             heroEpisode = Episode(
@@ -428,6 +446,36 @@ class MissavHomeFragment : Fragment() {
                 if (isAdded) {
                     popularHasMore = false
                     popularLoading = false
+                }
+            }
+        }
+    }
+
+    private fun loadMoreUncensored() {
+        if (uncensoredLoading || !uncensoredHasMore) return
+        uncensoredLoading = true
+        val nextPage = uncensoredPage + 1
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val provider = ProviderFactory.getProvider(ProviderFactory.MISSAV_ID)
+                val newItems = withContext(Dispatchers.IO) {
+                    (provider as? com.weebflix.app.data.scraper.MissavScraper)?.getUncensoredAnime(nextPage) ?: emptyList()
+                }
+                if (isAdded) {
+                    if (newItems.isEmpty()) {
+                        uncensoredHasMore = false
+                    } else {
+                        uncensoredItems.addAll(newItems)
+                        uncensoredPage = nextPage
+                        uncensoredAdapter.submitList(uncensoredItems.toList())
+                    }
+                    uncensoredLoading = false
+                }
+            } catch (e: Exception) {
+                if (isAdded) {
+                    uncensoredHasMore = false
+                    uncensoredLoading = false
                 }
             }
         }
