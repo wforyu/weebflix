@@ -35,11 +35,14 @@ class MissavHomeFragment : Fragment() {
     private lateinit var rvLatestEpisodes: RecyclerView
     private lateinit var rvOngoingAnime: RecyclerView
     private lateinit var rvPopularAnime: RecyclerView
+    private lateinit var rvUncensored: RecyclerView
     private lateinit var rvContinueWatching: RecyclerView
     private lateinit var continueWatchingSection: View
     private lateinit var headerLatestEpisodes: View
     private lateinit var headerOngoingAnime: View
     private lateinit var headerPopularAnime: View
+    private lateinit var headerUncensored: View
+    private lateinit var sectionUncensored: View
     private lateinit var ivHero: android.widget.ImageView
     private lateinit var tvHeroTitle: TextView
     private lateinit var tvHeroEpisode: TextView
@@ -47,6 +50,7 @@ class MissavHomeFragment : Fragment() {
     private lateinit var latestAdapter: NetflixCardAdapter
     private lateinit var ongoingAdapter: NetflixCardAdapter
     private lateinit var popularAdapter: NetflixCardAdapter
+    private lateinit var uncensoredAdapter: NetflixCardAdapter
     private lateinit var continueWatchingAdapter: ContinueWatchingAdapter
 
     private var heroEpisode: Episode? = null
@@ -54,6 +58,7 @@ class MissavHomeFragment : Fragment() {
     private val latestItems = mutableListOf<Anime>()
     private val ongoingItems = mutableListOf<Anime>()
     private val popularItems = mutableListOf<Anime>()
+    private val uncensoredItems = mutableListOf<Anime>()
 
     private var latestPage = 1
     private var ongoingPage = 1
@@ -83,11 +88,14 @@ class MissavHomeFragment : Fragment() {
         rvLatestEpisodes = view.findViewById(R.id.rvLatestEpisodes)
         rvOngoingAnime = view.findViewById(R.id.rvOngoingAnime)
         rvPopularAnime = view.findViewById(R.id.rvPopularAnime)
+        rvUncensored = view.findViewById(R.id.rvUncensored)
         rvContinueWatching = view.findViewById(R.id.rvContinueWatching)
         continueWatchingSection = view.findViewById(R.id.continueWatchingSection)
         headerLatestEpisodes = view.findViewById(R.id.headerLatestEpisodes)
         headerOngoingAnime = view.findViewById(R.id.headerOngoingAnime)
         headerPopularAnime = view.findViewById(R.id.headerPopularAnime)
+        headerUncensored = view.findViewById(R.id.headerUncensored)
+        sectionUncensored = view.findViewById(R.id.sectionUncensored)
         ivHero = view.findViewById(R.id.ivHero)
         tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
         tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
@@ -126,6 +134,7 @@ class MissavHomeFragment : Fragment() {
         headerLatestEpisodes.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_EPISODES, "Rilis Terbaru") }
         headerOngoingAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_ONGOING, "Update Terbaru") }
         headerPopularAnime.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_POPULAR, "Populer Mingguan") }
+        headerUncensored.setOnClickListener { openCategory(CategoryGridActivity.CATEGORY_UNCENSORED, "Uncensored") }
 
         loadData()
     }
@@ -134,12 +143,14 @@ class MissavHomeFragment : Fragment() {
         latestItems.clear()
         ongoingItems.clear()
         popularItems.clear()
+        uncensoredItems.clear()
         latestPage = 1
         ongoingPage = 1
         popularPage = 1
         latestHasMore = true
         ongoingHasMore = true
         popularHasMore = true
+        sectionUncensored.visibility = View.GONE
         loadData()
     }
 
@@ -216,6 +227,17 @@ class MissavHomeFragment : Fragment() {
             })
         }
 
+        uncensoredAdapter = NetflixCardAdapter { anime ->
+            val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
+            intent.putExtra("url", anime.url)
+            startActivity(intent)
+        }
+        rvUncensored.apply {
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+            adapter = uncensoredAdapter
+            isNestedScrollingEnabled = false
+        }
+
         continueWatchingAdapter = ContinueWatchingAdapter { entry ->
             val intent = Intent(requireContext(), PlayerActivity::class.java)
             intent.putExtra("url", entry.episodeUrl)
@@ -247,7 +269,7 @@ class MissavHomeFragment : Fragment() {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
                     }, cached.category2.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
-                    })
+                    }, emptyList())
                     launch(Dispatchers.IO) { refreshMissavData(provider) }
                     return@launch
                 }
@@ -263,15 +285,17 @@ class MissavHomeFragment : Fragment() {
         }
     }
 
-    private fun applyMissavData(latest: List<Anime>, ongoing: List<Anime>, popular: List<Anime>) {
+    private fun applyMissavData(latest: List<Anime>, ongoing: List<Anime>, popular: List<Anime>, uncensored: List<Anime>) {
         if (!isAdded) return
         loadingLayout.visibility = View.GONE
         swipeRefresh.isRefreshing = false
         latestItems.clear(); latestItems.addAll(latest)
         ongoingItems.clear(); ongoingItems.addAll(ongoing)
         popularItems.clear(); popularItems.addAll(popular)
+        uncensoredItems.clear(); uncensoredItems.addAll(uncensored)
         latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty()
         latestPage = 1; ongoingPage = 1; popularPage = 1
+        if (uncensored.isNotEmpty()) { sectionUncensored.visibility = View.VISIBLE }
         if (latestItems.isNotEmpty()) {
             heroEpisode = Episode(
                 title = latestItems.first().title,
@@ -285,7 +309,7 @@ class MissavHomeFragment : Fragment() {
             tvHeroEpisode.text = if (epNum != null) "Durasi $epNum" else ""
             if (heroEpisode?.imageUrl?.isNotEmpty() == true) { Glide.with(requireContext()).load(heroEpisode?.imageUrl).centerCrop().into(ivHero) }
         }
-        latestAdapter.submitList(latestItems.toList()); ongoingAdapter.submitList(ongoingItems.toList()); popularAdapter.submitList(popularItems.toList())
+        latestAdapter.submitList(latestItems.toList()); ongoingAdapter.submitList(ongoingItems.toList()); popularAdapter.submitList(popularItems.toList()); uncensoredAdapter.submitList(uncensoredItems.toList())
         loadContinueWatching()
     }
 
@@ -295,10 +319,13 @@ class MissavHomeFragment : Fragment() {
         } }
         val ongoing = withContext(Dispatchers.IO) { provider.getOngoingAnime(1) }
         val popular = withContext(Dispatchers.IO) { provider.getPopularAnime(1) }
+        val uncensored = withContext(Dispatchers.IO) {
+            (provider as? com.weebflix.app.data.scraper.MissavScraper)?.getUncensoredAnime(1) ?: emptyList()
+        }
         if (!isAdded) return
         withContext(Dispatchers.Main) { applyMissavData(latest.map {
             Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, type = "JAV")
-        }, ongoing, popular) }
+        }, ongoing, popular, uncensored) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
             hero = latest.map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) },
             latestEpisodes = latest.map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },

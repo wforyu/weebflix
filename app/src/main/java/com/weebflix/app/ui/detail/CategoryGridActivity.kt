@@ -21,6 +21,7 @@ import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.AnichinScraper
 import com.weebflix.app.data.scraper.DrakorKitaScraper
+import com.weebflix.app.data.scraper.MissavScraper
 import com.weebflix.app.data.scraper.OppaDramaScraper
 import com.weebflix.app.ui.util.Insets
 import com.weebflix.app.ui.util.TvUtils
@@ -45,6 +46,7 @@ class CategoryGridActivity : AppCompatActivity() {
         const val CATEGORY_DRAMA_CHINA = "drama_china"
         const val CATEGORY_FILM_KOREA = "film_korea"
         const val CATEGORY_NETFLIX = "netflix"
+        const val CATEGORY_UNCENSORED = "uncensored"
     }
 
     private lateinit var rvGrid: RecyclerView
@@ -198,7 +200,9 @@ class CategoryGridActivity : AppCompatActivity() {
                             else -> provider.getAllAnime(currentPage)
                         }
                     } else {
-                        if (category == CATEGORY_ALL && activeProvider is AnichinScraper) {
+                        if (category == CATEGORY_UNCENSORED && activeProvider is MissavScraper) {
+                            activeProvider.getUncensoredAnime(currentPage)
+                        } else if (category == CATEGORY_ALL && activeProvider is AnichinScraper) {
                             activeProvider.getAllAnime(currentPage)
                         } else {
                             when (category) {
@@ -225,6 +229,9 @@ class CategoryGridActivity : AppCompatActivity() {
                         items.addAll(newItems)
                         gridAdapter.notifyItemRangeInserted(start, newItems.size)
                         currentPage++
+                        if (category == CATEGORY_UNCENSORED) {
+                            hasMore = false
+                        }
                     }
 
                     isLoading = false

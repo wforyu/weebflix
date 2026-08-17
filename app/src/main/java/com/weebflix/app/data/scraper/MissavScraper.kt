@@ -157,6 +157,16 @@ class MissavScraper : AnimeProvider {
         }
     }
 
+    suspend fun getUncensoredAnime(page: Int): List<Anime> = withContext(Dispatchers.IO) {
+        try {
+            val doc = fetchDocument("$baseUrl/id/uncensored-leak?page=$page")
+            parseThumbnailCards(doc)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     override suspend fun searchAnime(query: String): List<Anime> = withContext(Dispatchers.IO) {
         try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
