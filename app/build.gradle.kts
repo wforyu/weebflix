@@ -25,8 +25,8 @@ android {
         applicationId = "com.weebflix.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 108
-        versionName = "2.0.8-beta"
+        versionCode = 109
+        versionName = "2.0.9-beta"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
     }

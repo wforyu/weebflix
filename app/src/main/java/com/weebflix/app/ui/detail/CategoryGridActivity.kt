@@ -230,18 +230,31 @@ class CategoryGridActivity : AppCompatActivity() {
                         gridAdapter.notifyItemRangeInserted(start, newItems.size)
                         currentPage++
                     }
-
-                    isLoading = false
                 }
+
+                isLoading = false
+                if (!isFinishing) maybeAutoFill()
             } catch (e: Exception) {
                 if (!isFinishing) {
                     loadingLayout.visibility = View.GONE
-                    isLoading = false
                     if (items.isEmpty()) {
                         tvEmpty.visibility = View.VISIBLE
                     } else {
                         Toast.makeText(this@CategoryGridActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
+                }
+                isLoading = false
+            }
+        }
+    }
+
+    private fun maybeAutoFill() {
+        if (!hasMore || isLoading) return
+        rvGrid.post {
+            if (!isFinishing && rvGrid.height > 0) {
+                val childHeight = rvGrid.computeVerticalScrollRange()
+                if (childHeight <= rvGrid.height && hasMore) {
+                    loadMore()
                 }
             }
         }
