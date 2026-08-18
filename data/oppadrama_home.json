@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "High&Low: The Story of S.W.O.R.D. Episode 10 END",
+      "url": "http://45.11.57.125/highlow-the-story-of-s-w-o-r-d-episode-10-end/",
+      "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/HighLow-The-Story-of-S.W.O.R.D.-2015.jpg?resize=246,350",
+      "episode": "Ep 10 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie One Second Champion (2020) BluRay",
       "url": "http://45.11.57.125/movie-one-second-champion-2020-bluray/",
       "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/One-Second-Champion-2021.jpg?resize=246,350",
@@ -80,21 +95,6 @@
       "url": "http://45.11.57.125/mystic-nine-episode-30-end/",
       "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/07/Mystic-Nine-2026-1.jpg?resize=246,350",
       "episode": "Ep 30 END",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "High&Low: The Story of S.W.O.R.D. Episode 5",
-      "url": "http://45.11.57.125/highlow-the-story-of-s-w-o-r-d-episode-5/",
-      "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/HighLow-The-Story-of-S.W.O.R.D.-2015.jpg?resize=246,350",
-      "episode": "Ep 5",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -153,6 +153,21 @@
   ],
   "latest": [
     {
+      "title": "High&Low: The Story of S.W.O.R.D. Episode 10 END",
+      "url": "http://45.11.57.125/highlow-the-story-of-s-w-o-r-d-episode-10-end/",
+      "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/HighLow-The-Story-of-S.W.O.R.D.-2015.jpg?resize=246,350",
+      "episode": "Ep 10 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie One Second Champion (2020) BluRay",
       "url": "http://45.11.57.125/movie-one-second-champion-2020-bluray/",
       "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/One-Second-Champion-2021.jpg?resize=246,350",
@@ -232,21 +247,6 @@
       "url": "http://45.11.57.125/mystic-nine-episode-30-end/",
       "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/07/Mystic-Nine-2026-1.jpg?resize=246,350",
       "episode": "Ep 30 END",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "High&Low: The Story of S.W.O.R.D. Episode 5",
-      "url": "http://45.11.57.125/highlow-the-story-of-s-w-o-r-d-episode-5/",
-      "imageUrl": "http://i3.wp.com/45.11.57.125/wp-content/uploads/2026/08/HighLow-The-Story-of-S.W.O.R.D.-2015.jpg?resize=246,350",
-      "episode": "Ep 5",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1787015101545
+  "timestamp": 1787035151635
 }
