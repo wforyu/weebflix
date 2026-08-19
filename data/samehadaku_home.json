@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-10-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Mujikaku Seijo",
       "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-8-3.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-11.jpg",
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-10-2.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Mujikaku Seijo",
       "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
@@ -366,21 +381,6 @@
       "title": "Mahou Shoujo Lyrical Nanoha EXGV",
       "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-5.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mao",
-      "url": "https://v2.samehadaku.how/anime/mao/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-9.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1787078085332
+  "timestamp": 1787101533596
 }
