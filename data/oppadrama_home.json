@@ -1,6 +1,66 @@
 {
   "hero": [
     {
+      "title": "The Love Lab Episode 12 END",
+      "url": "http://45.11.57.188/the-love-lab-episode-12-end/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/06/The-Love-Lab-2026.jpg?resize=246,350",
+      "episode": "Ep 12 END",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Lucky 2026 Episode 7 END",
+      "url": "http://45.11.57.188/lucky-2026-episode-7-end/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/07/Lucky-2026.jpg?resize=246,350",
+      "episode": "Ep 7 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Love Against Time Episode 3",
+      "url": "http://45.11.57.188/love-against-time-episode-3/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Love-Against-Time-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Lioness Season 3 Episode 3",
+      "url": "http://45.11.57.188/lioness-season-3-episode-3/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Lioness-Season-3-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Your Love So Invincible Episode 5",
       "url": "http://45.11.57.188/your-love-so-invincible-episode-5/",
       "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/07/Your-Love-So-Invincible-2026.jpg?resize=246,350",
@@ -89,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Take a Hike! Episode 5",
-      "url": "http://45.11.57.188/take-a-hike-episode-5/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/08/Take-a-Hike-2026.jpg?resize=246,350",
-      "episode": "Ep 5",
+      "title": "The Love Lab Episode 12 END",
+      "url": "http://45.11.57.188/the-love-lab-episode-12-end/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/06/The-Love-Lab-2026.jpg?resize=246,350",
+      "episode": "Ep 12 END",
       "type": "TV Show",
       "status": "",
       "score": "",
@@ -106,10 +168,10 @@
       "latestUpdate": ""
     },
     {
-      "title": "Blades of the Guardians Season 2 Episode 8 END",
-      "url": "http://45.11.57.188/blades-of-the-guardians-season-2-episode-8-end/",
-      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/Blades-of-the-Guardians-Season-2-2026.jpg?resize=246,350",
-      "episode": "Ep 8 END",
+      "title": "Lucky 2026 Episode 7 END",
+      "url": "http://45.11.57.188/lucky-2026-episode-7-end/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/07/Lucky-2026.jpg?resize=246,350",
+      "episode": "Ep 7 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -121,11 +183,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Movie Toy Story 5 (2026) WEBDL",
-      "url": "http://45.11.57.188/movie-toy-story-5-2026-webdl/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/08/Toy-Story-5-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "Love Against Time Episode 3",
+      "url": "http://45.11.57.188/love-against-time-episode-3/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Love-Against-Time-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "TV Show",
       "status": "",
       "score": "",
       "studio": "",
@@ -136,11 +198,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Movie Rocks (2020) WEBRip",
-      "url": "http://45.11.57.188/movie-rocks-2020-webrip/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/08/Rocks-2020.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "Lioness Season 3 Episode 3",
+      "url": "http://45.11.57.188/lioness-season-3-episode-3/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Lioness-Season-3-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,9 +211,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Your Love So Invincible Episode 5",
       "url": "http://45.11.57.188/your-love-so-invincible-episode-5/",
@@ -383,66 +443,6 @@
       "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/07/All-or-Nothing-2026.jpg?resize=246,350",
       "episode": "Ep 4",
       "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "1 Night 2 Days Season 4 Episode 339",
-      "url": "http://45.11.57.188/1-night-2-days-season-4-episode-339/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
-      "episode": "Ep 339",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "High&Low: The Story of S.W.O.R.D. Episode 10 END",
-      "url": "http://45.11.57.188/highlow-the-story-of-s-w-o-r-d-episode-10-end/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/08/HighLow-The-Story-of-S.W.O.R.D.-2015.jpg?resize=246,350",
-      "episode": "Ep 10 END",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie One Second Champion (2020) BluRay",
-      "url": "http://45.11.57.188/movie-one-second-champion-2020-bluray/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/08/One-Second-Champion-2021.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Furious Season 1 Episode 6",
-      "url": "http://45.11.57.188/furious-season-1-episode-6/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Furious-Season-1-2026.jpg?resize=246,350",
-      "episode": "Ep 6",
-      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1787101538935
+  "timestamp": 1787121562542
 }
