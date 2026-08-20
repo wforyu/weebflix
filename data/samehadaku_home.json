@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Tomb Raider King",
+      "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tomb-Rider-King-Episode-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Lv999 no Murabito",
+      "url": "https://v2.samehadaku.how/anime/lv999-no-murabito/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Lv999-no-Murabito-Episode-9.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
       "url": "https://v2.samehadaku.how/anime/heroine-seijo-iie-all-works-maid-desu-hokori/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Heroine-Seijo-Iie-All-Works-Maid-desu-Hokori-Episode-9.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Grand Blue Season 3",
-      "url": "https://v2.samehadaku.how/anime/grand-blue-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Grand-Blue-Season-3-Episode-7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Buchigire Reijou wa Houfuku",
-      "url": "https://v2.samehadaku.how/anime/buchigire-reijou-wa-houfuku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Buchigire-Reijou-wa-Houfuku-Episode-7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Tomb Raider King",
+      "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Tomb-Rider-King-Episode-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Lv999 no Murabito",
+      "url": "https://v2.samehadaku.how/anime/lv999-no-murabito/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Lv999-no-Murabito-Episode-9.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
       "url": "https://v2.samehadaku.how/anime/heroine-seijo-iie-all-works-maid-desu-hokori/",
@@ -351,36 +381,6 @@
       "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
       "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4-5.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/One-Piece-Episode-1174.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-11.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1787164274104
+  "timestamp": 1787187935379
 }
