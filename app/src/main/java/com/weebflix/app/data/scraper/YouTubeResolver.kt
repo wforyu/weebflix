@@ -2,6 +2,9 @@ package com.weebflix.app.data.scraper
 
 import android.util.Log
 import com.weebflix.app.data.auth.YouTubeAuthManager
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -18,12 +21,30 @@ object YouTubeResolver {
     private const val INNERTUBE_ANDROID_MUSIC_KEY = "AIzaSyAOghZGza2MQSZkYuz4VlJ4v5wZ7Y4W4sQ"
     private const val INNERTUBE_IOS_KEY = "AIzaSyB-63vPrnThHnHxe9cQ9QZQN9QZ9QZQZQ"
     private const val API = "https://www.youtube.com/youtubei/v1/player?key=%s&prettyPrint=false"
+    private var poTokenManagerInit = false
+
+    /** In-memory cookie jar to persist session cookies (VISITOR_INFO1_LIVE etc.) across requests. */
+    private val cookieStore = mutableMapOf<String, List<Cookie>>()
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .followRedirects(true)
+            .cookieJar(object : CookieJar {
+                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                    val key = url.host
+                    val existing = cookieStore[key]?.toMutableList() ?: mutableListOf()
+                    for (c in cookies) {
+                        existing.removeAll { it.name == c.name }
+                        existing.add(c)
+                    }
+                    cookieStore[key] = existing
+                }
+                override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                    return cookieStore[url.host] ?: emptyList()
+                }
+            })
             .build()
     }
 
@@ -74,43 +95,79 @@ object YouTubeResolver {
         }
     }
 
+    fun initPoToken(context: android.content.Context) {
+        if (poTokenManagerInit) return
+        poTokenManagerInit = true
+        Thread {
+            try {
+                PoTokenManager.init(context)
+            } catch (e: Exception) {
+                Log.w(TAG, "PoToken init failed: ${e.message}")
+            }
+        }.start()
+    }
+
     fun resolve(videoId: String): ResolvedYouTube {
         memo[videoId]?.let { return it }
 
         val clients = listOf(
-            // ANDROID_VR must carry its real VR footprint (Oculus device + VR UA) — a mismatched UA
-            // (e.g. plain YouTube app UA) is what triggers "Sign in to confirm you're not a bot".
-            // Footprint verified against yt-dlp 2026-08; clientVersion must stay <= 1.65 to keep
-            // non-SABR DASH formats.
+            // VISIONOS: Apple Vision Pro client — new default (yt-dlp 2026.08.19).
+            // Returns direct adaptive URLs + m3u8. NO PO token needed. Best no-auth client.
             ClientContext(
-                "ANDROID_VR", "1.65.10", 32, embed = false, key = INNERTUBE_ANDROID_VR_KEY,
-                ua = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
-                osName = "Android", osVersion = "12L", deviceModel = "Quest 3", deviceMake = "Oculus"
+                "VISIONOS", "1.02", 0, embed = false, key = INNERTUBE_WEB_KEY,
+                ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+                deviceMake = "Apple", deviceModel = "RealityDevice17,1",
+                osName = "visionOS", osVersion = "26.5.23O471"
             ),
+            // ANDROID 21.x: still returns direct URLs (not SABR) with correct UA
             ClientContext(
                 "ANDROID", "21.26.364", 30, embed = false, key = INNERTUBE_ANDROID_KEY,
-                ua = "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip",
-                osName = "Android", osVersion = "11", deviceModel = "Pixel 5"
+                ua = "com.google.android.youtube/21.26.364 (Linux; U; Android 14; en_US; sdk_gphone64_x86_64 Build/SE1A.220630.002.A1)",
+                osName = "Android", osVersion = "14", deviceModel = "sdk_gphone64_x86_64",
+                usePoToken = true
             ),
+            // ANDROID 19.x: older, may still return direct URLs
             ClientContext(
-                "ANDROID_MUSIC", "6.27.51", 30, embed = false, key = INNERTUBE_ANDROID_MUSIC_KEY,
-                ua = "com.google.android.apps.youtube.music/6.27.51 (Linux; U; Android 13; en_US)",
-                osName = "Android", osVersion = "13", deviceModel = "Pixel 7"
+                "ANDROID", "19.29.37", 30, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "com.google.android.youtube/19.29.37 (Linux; U; Android 14; en_US; sdk_gphone64_x86_64 Build/SE1A.220630.002.A1)",
+                osName = "Android", osVersion = "14", deviceModel = "sdk_gphone64_x86_64",
+                usePoToken = true
             ),
-            ClientContext(
-                "IOS", "19.43.2", 0, embed = false, key = INNERTUBE_IOS_KEY,
-                ua = "com.google.ios.youtube/19.43.2 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
-                osName = "iPhone", osVersion = "18.3.2.22D82", deviceModel = "iPhone16,2", deviceMake = "Apple"
-            ),
+            // TVHTML5 (Cobalt): may return f=18 (360p muxed)
             ClientContext(
                 "TVHTML5", "7.20260707.07.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
                 ua = "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)"
             ),
+            // MWEB: needs GVS PO token
             ClientContext(
                 "MWEB", "2.20260731.00.00", 0, embed = false, key = INNERTUBE_WEB_KEY,
-                ua = "Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+                ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+                usePoToken = true
             ),
-            ClientContext("WEB_EMBEDDED_PLAYER", "1.20260731.00.00", 0, embed = true, key = INNERTUBE_WEB_KEY, ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+            // IOS: may work on some networks
+            ClientContext(
+                "IOS", "19.43.2", 0, embed = false, key = INNERTUBE_IOS_KEY,
+                ua = "com.google.ios.youtube/19.43.2 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
+                osName = "iPhone", osVersion = "18.3.2.22D82", deviceModel = "iPhone16,2", deviceMake = "Apple",
+                usePoToken = true
+            ),
+            // WEB_EMBEDDED: returns f=18 muxed for embeddable videos
+            ClientContext("WEB_EMBEDDED_PLAYER", "1.20260731.00.00", 0, embed = true, key = INNERTUBE_WEB_KEY, ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
+            // ANDROID_MUSIC: needs login
+            ClientContext(
+                "ANDROID_MUSIC", "6.27.51", 30, embed = false, key = INNERTUBE_ANDROID_MUSIC_KEY,
+                ua = "com.google.android.apps.youtube.music/6.27.51 (Linux; U; Android 13; en_US)",
+                osName = "Android", osVersion = "13", deviceModel = "Pixel 7",
+                usePoToken = true
+            ),
+            // ANDROID_VR: DEAD since 2026-08-17 (CDN 403s all segments). Last resort only.
+            ClientContext(
+                "ANDROID_VR", "1.65.10", 32, embed = false, key = INNERTUBE_ANDROID_VR_KEY,
+                ua = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+                osName = "Android", osVersion = "12L", deviceModel = "Quest 3", deviceMake = "Oculus",
+                usePoToken = true,
+                skipStreamingPot = true
+            )
         )
 
         fun tryClients(auth: Boolean): Pair<ResolvedYouTube?, String> {
@@ -149,10 +206,9 @@ object YouTubeResolver {
         if (anonBr.isNotEmpty()) blockReason = anonBr
 
         // Bot-gate (LOGIN_REQUIRED / "not a bot"): the visitor id can be stale or flagged. Force a
-        // fresh visitor bootstrap and retry ANDROID_VR once before giving up. Without this a single
-        // flagged visitor bricks every video for the whole process lifetime.
+        // fresh visitor bootstrap and retry the first client once before giving up.
         if (blockReason.isNotEmpty()) {
-            Log.w(TAG, "bot-gate ($blockReason), re-bootstrapping visitor and retrying ANDROID_VR")
+            Log.w(TAG, "bot-gate ($blockReason), re-bootstrapping visitor and retrying ${clients[0].clientName}")
             resetVisitor()
             Thread.sleep(2500)
             val retried = try {
@@ -182,13 +238,33 @@ object YouTubeResolver {
         val osName: String? = null,
         val osVersion: String? = null,
         val deviceModel: String? = null,
-        val deviceMake: String? = null
+        val deviceMake: String? = null,
+        val params: String? = null,
+        val usePoToken: Boolean = false,
+        val skipStreamingPot: Boolean = false
     )
 
     private data class PlayerResult(val streams: ResolvedYouTube?, val flagged: Boolean, val blockReason: String = "")
 
     private fun fetchPlayer(videoId: String, ctx: ClientContext, auth: Boolean): PlayerResult {
         val visitor = ensureVisitor()
+
+        // Always generate streaming PO token (GVS auth) when PoTokenManager is ready
+        var poToken: String? = null
+        var streamingPot: String? = null
+        if (PoTokenManager.isReady()) {
+            try {
+                val tokens = PoTokenManager.getTokens(videoId, visitor)
+                streamingPot = tokens?.streamingPot?.takeIf { it.isNotEmpty() }
+                if (ctx.usePoToken) {
+                    poToken = tokens?.playerPot?.takeIf { it.isNotEmpty() }
+                    if (poToken != null) Log.d(TAG, "PO token obtained for ${ctx.clientName}")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "PO token failed for ${ctx.clientName}: ${e.message}")
+            }
+        }
+
         val clientJson = JSONObject()
             .put("clientName", ctx.clientName)
             .put("clientVersion", ctx.clientVersion)
@@ -208,6 +284,24 @@ object YouTubeResolver {
             .put("videoId", videoId)
             .put("contentCheckOk", true)
             .put("racyCheckOk", true)
+            .put("playbackContext", JSONObject().put("contentPlaybackContext", JSONObject().put("html5Preference", "HTML5_PREF_WANTS")))
+            .apply {
+                if (ctx.params != null) put("params", ctx.params)
+                if (poToken != null) {
+                    put("serviceIntegrityDimensions", JSONObject().put("poToken", poToken))
+                }
+            }
+
+        val clientNameNumber = when (ctx.clientName) {
+            "WEB", "WEB_EMBEDDED_PLAYER", "MWEB" -> 1
+            "ANDROID_VR" -> 28
+            "ANDROID" -> 3
+            "ANDROID_MUSIC" -> 18
+            "IOS" -> 5
+            "TVHTML5" -> 7
+            "VISIONOS" -> 101
+            else -> 1
+        }
 
         val request = Request.Builder()
             .url(String.format(API, ctx.key))
@@ -215,12 +309,11 @@ object YouTubeResolver {
             .addHeader("Accept", "application/json")
             .addHeader("Content-Type", "application/json")
             .addHeader("Origin", "https://www.youtube.com")
+            .addHeader("Referer", "https://www.youtube.com/")
+            .addHeader("X-Youtube-Client-Name", clientNameNumber.toString())
+            .addHeader("X-Youtube-Client-Version", ctx.clientVersion)
             .apply { if (visitor != null) addHeader("X-Goog-Visitor-Id", visitor) }
             .apply {
-                // Logged-in requests bypass the LOGIN_REQUIRED bot-gate, but YouTube currently
-                // rejects OAuth bearer innertube calls with HTTP 400 INVALID_ARGUMENT (open
-                // YouTube.js #916/#803, affects all third-party clients). Auth is therefore a
-                // best-effort first pass only -- resolve() falls back to anonymous requests.
                 if (auth) {
                     YouTubeAuthManager.getAccessToken()?.let { token ->
                         Log.d(TAG, "player ${ctx.clientName} auth=Bearer")
@@ -235,7 +328,9 @@ object YouTubeResolver {
         val respJson = client.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful) {
                 Log.w(TAG, "player ${ctx.clientName} HTTP ${resp.code}")
-                return PlayerResult(null, flagged = resp.code == 400 || (auth && (resp.code == 401 || resp.code == 403)))
+                // HTTP 400 from non-auth = dead client (IOS/WEB common), not IP flag; only flag
+                // auth 401/403 (OAuth token rejected = account-level flag → re-bootstrap visitor).
+                return PlayerResult(null, flagged = auth && (resp.code == 401 || resp.code == 403))
             }
             JSONObject(resp.body?.string() ?: "")
         }
@@ -250,16 +345,48 @@ object YouTubeResolver {
             return PlayerResult(null, flagged = false, blockReason = if (blocked) reason else "")
         }
 
-        val streaming = respJson.optJSONObject("streamingData") ?: return PlayerResult(null, flagged = false)
+        val streaming = respJson.optJSONObject("streamingData") ?: run {
+            Log.w(TAG, "client ${ctx.clientName}: streamingData is null")
+            return PlayerResult(null, flagged = false)
+        }
         val formats = streaming.optJSONArray("adaptiveFormats") ?: JSONObject.NULL
-        if (formats !is org.json.JSONArray || formats.length() == 0) return PlayerResult(null, flagged = false)
+        if (formats !is org.json.JSONArray || formats.length() == 0) {
+            val hls = streaming.optString("hlsManifestUrl", "")
+            val dash = streaming.optString("dashManifestUrl", "")
+            Log.w(TAG, "client ${ctx.clientName}: adaptiveFormats missing/empty (keys=${streaming.keys().asSequence().toList()} hls=${hls.isNotEmpty()} dash=${dash.isNotEmpty()})")
+            // If we have HLS/DASH manifest, use it directly via ExoPlayer
+            if (hls.isNotEmpty() || dash.isNotEmpty()) {
+                val manifest = if (hls.isNotEmpty()) hls else dash
+                val details = respJson.optJSONObject("videoDetails")
+                return PlayerResult(
+                    ResolvedYouTube(
+                        videoId = videoId,
+                        title = details?.optString("title") ?: "",
+                        author = details?.optString("author") ?: "",
+                        views = details?.optString("viewCount") ?: "",
+                        thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
+                        durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
+                        videoFormats = listOf(YouTubeStream(url = manifest, mimeType = "application/x-mpegURL", isVideo = true)),
+                        audioFormats = emptyList()
+                    ), flagged = false
+                )
+            }
+            return PlayerResult(null, flagged = false)
+        }
 
         val ops = if (needsCipher(formats)) YouTubeCipher.getCipherOps(client) else null
         val video = mutableListOf<YouTubeStream>()
         val audio = mutableListOf<YouTubeStream>()
+        if (formats.length() > 0) {
+            val sample = formats.getJSONObject(0)
+            val hasUrl = sample.has("url") && sample.opt("url") != null && sample.optString("url", "").isNotEmpty()
+            val hasCipher = sample.has("signatureCipher")
+            val hasSabr = sample.has("protobufAdaptiveFormat") || sample.has("sabrStreamUrl")
+            Log.d(TAG, "client ${ctx.clientName} fmt[0]: itag=${sample.optInt("itag")} mime=${sample.optString("mimeType")} url=$hasUrl signatureCipher=$hasCipher sabr=$hasSabr keys=${sample.keys().asSequence().toList()}")
+        }
         for (i in 0 until formats.length()) {
             val f = formats.getJSONObject(i)
-            val stream = parseFormat(f, ops) ?: continue
+            val stream = parseFormat(f, ops, if (ctx.skipStreamingPot) null else streamingPot) ?: continue
             if (stream.url.isNullOrEmpty() && stream.url.isEmpty()) continue
             if (stream.isVideo) video += stream else audio += stream
         }
@@ -291,7 +418,7 @@ object YouTubeResolver {
         return false
     }
 
-    private fun parseFormat(f: JSONObject, ops: List<YouTubeCipher.Op>?): YouTubeStream? {
+    private fun parseFormat(f: JSONObject, ops: List<YouTubeCipher.Op>?, streamingPot: String? = null): YouTubeStream? {
         val mimeType = f.optString("mimeType", "")
         val isVideo = mimeType.startsWith("video/")
         var url = f.optString("url", "")
@@ -304,8 +431,11 @@ object YouTubeResolver {
             }
         }
         if (url.isEmpty()) return null
-        // android/vr clients carry no 'n'; web does — skip if present (would 403)
-        if (url.contains("&n=") || url.contains("?n=")) return null
+        // Append streaming PO token (pot) to googlevideo.com URLs for WEB/MWEB clients
+        if (streamingPot != null && url.contains("googlevideo.com")) {
+            url = if (url.contains("&pot=") || url.contains("?pot=")) url
+            else "$url&pot=$streamingPot"
+        }
         val init = f.optJSONObject("initRange")
         val idx = f.optJSONObject("indexRange")
         return YouTubeStream(

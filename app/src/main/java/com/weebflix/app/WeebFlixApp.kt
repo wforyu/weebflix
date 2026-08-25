@@ -21,6 +21,8 @@ class WeebFlixApp : Application() {
         YouTubeSubscriptionStore.init(this)
         scraper = SamehadakuScraper()
         ProviderFactory.getAllProviders()
+        // Pre-initialize PO Token BotGuard in background (for YouTube playback)
+        com.weebflix.app.data.scraper.YouTubeResolver.initPoToken(this)
     }
 
     fun getActiveProvider(): AnimeProvider {
