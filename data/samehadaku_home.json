@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-16.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/web-1-16.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Screenshot-806.jpg",
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-16.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
@@ -366,21 +381,6 @@
       "title": "Black Torch",
       "url": "https://v2.samehadaku.how/anime/black-torch/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/web-1-13.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mao",
-      "url": "https://v2.samehadaku.how/anime/mao/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4-7.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1787661728050
+  "timestamp": 1787682970996
 }
