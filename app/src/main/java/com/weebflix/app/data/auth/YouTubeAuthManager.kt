@@ -10,9 +10,14 @@ import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionSc
 import androidx.security.crypto.MasterKey
 import com.weebflix.app.data.config.ProviderConfig
 import com.weebflix.app.data.scraper.YouTubeResolver
+import okhttp3.Cookie
+import okhttp3.CookieJar
 import okhttp3.FormBody
+import okhttp3.HttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -48,9 +53,12 @@ object YouTubeAuthManager {
     private const val KEY_EMAIL = "email"
     private const val KEY_NAME = "user_name"
     private const val KEY_PICTURE = "user_picture"
+    private const val KEY_YT_COOKIES = "yt_session_cookies"
+    private const val KEY_YT_COOKIES_AT = "yt_session_cookies_at"
 
     private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
     private const val AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+    private const val INNERTUBE_WEB_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
     // `youtube` penuh untuk Data API v3; `openid` + `email` + `profile` agar
     // `oauth2/v2/userinfo` mengembalikan nama + foto akun (dipakai di header home).
     private const val SCOPE =
@@ -245,6 +253,7 @@ object YouTubeAuthManager {
                     ?.let { prefs.edit().putString(KEY_REFRESH, it).apply() }
                 fetchEmail(at)
                 fetchUserInfo()
+                fetchYouTubeCookies()
                 null
             }
         } catch (e: Exception) {
@@ -298,6 +307,138 @@ object YouTubeAuthManager {
             Log.w(TAG, "userinfo failed: ${e.message}")
             false
         }
+    }
+
+    /** Fetches YouTube session cookies by bootstrapping a web session with the OAuth access token.
+     *  YouTube blocks Bearer auth on innertube player, but accepts cookie-based auth.
+     *  This method hits YouTube endpoints that set session cookies in response, then stores them
+     *  for use by the resolver (Cookie header + SAPISIDHASH instead of Authorization: Bearer). */
+    fun fetchYouTubeCookies() {
+        val at = getAccessToken() ?: return
+        Thread {
+            try {
+                val cookieMap = mutableMapOf<String, String>()
+                val jar = object : CookieJar {
+                    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                        for (c in cookies) cookieMap[c.name] = c.value
+                    }
+                    override fun loadForRequest(url: HttpUrl) = emptyList<Cookie>()
+                }
+                val httpClient = client.newBuilder()
+                    .cookieJar(jar)
+                    .followRedirects(true)
+                    .build()
+                val ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+                // Step 1: Hit YouTube homepage with Bearer to capture Set-Cookie headers
+                try {
+                    val req1 = Request.Builder()
+                        .url("https://www.youtube.com/")
+                        .addHeader("Authorization", "Bearer $at")
+                        .addHeader("User-Agent", ua)
+                        .build()
+                    httpClient.newCall(req1).execute().close()
+                    Log.d(TAG, "Cookie bootstrap step 1: ${cookieMap.size} cookies captured")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cookie bootstrap step 1 failed: ${e.message}")
+                }
+
+                // Step 2: Hit Google OAuth endpoint with prompt=none to auto-authorize & set cookies
+                val email = email()
+                if (email.isNotEmpty()) {
+                    try {
+                        val oauthUrl = "$AUTH_URL?" +
+                            "client_id=${enc(clientId)}" +
+                            "&redirect_uri=${enc(redirectUri)}" +
+                            "&response_type=token" +
+                            "&scope=${enc("https://www.googleapis.com/auth/youtube")}" +
+                            "&login_hint=${enc(email)}" +
+                            "&prompt=none"
+                        val req2 = Request.Builder()
+                            .url(oauthUrl)
+                            .addHeader("Authorization", "Bearer $at")
+                            .addHeader("User-Agent", ua)
+                            .build()
+                        httpClient.newCall(req2).execute().close()
+                        Log.d(TAG, "Cookie bootstrap step 2: ${cookieMap.size} cookies total")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Cookie bootstrap step 2 failed: ${e.message}")
+                    }
+                }
+
+                // Step 3: Hit YouTube again to pick up cross-domain cookies
+                try {
+                    val req3 = Request.Builder()
+                        .url("https://www.youtube.com/youtubei/v1/browse?key=$INNERTUBE_WEB_KEY&prettyPrint=false")
+                        .addHeader("User-Agent", ua)
+                        .addHeader("Content-Type", "application/json")
+                        .post("""{"context":{"client":{"clientName":"WEB","clientVersion":"2.20260731.00.00"}}}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
+                        .build()
+                    httpClient.newCall(req3).execute().close()
+                    Log.d(TAG, "Cookie bootstrap step 3: ${cookieMap.size} cookies total")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cookie bootstrap step 3 failed: ${e.message}")
+                }
+
+                // Filter for auth-relevant cookies
+                val authCookieNames = setOf(
+                    "SID", "HSID", "SSID", "APISID", "SAPISID",
+                    "__Secure-1PSID", "__Secure-3PSID", "__Secure-1PSIDTS", "__Secure-3PSIDTS",
+                    "__Secure-1PAPISID", "__Secure-3PAPISID",
+                    "LOGIN_INFO", "SIDCC", "__Secure-1PSIDCC", "__Secure-3PSIDCC"
+                )
+                val authCookies = cookieMap.filter { (name, _) -> name in authCookieNames }
+                if (authCookies.isNotEmpty()) {
+                    val cookieStr = cookieMap.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                    prefs.edit()
+                        .putString(KEY_YT_COOKIES, cookieStr)
+                        .putLong(KEY_YT_COOKIES_AT, System.currentTimeMillis())
+                        .apply()
+                    Log.d(TAG, "YouTube cookies saved: ${authCookies.keys}")
+                } else {
+                    Log.w(TAG, "No auth cookies captured (got ${cookieMap.keys})")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "fetchYouTubeCookies failed: ${e.message}")
+            }
+        }.start()
+    }
+
+    /** Returns stored YouTube session cookies, or null if not available / expired (>6h). */
+    fun getYouTubeCookies(): String? {
+        val cookies = prefs.getString(KEY_YT_COOKIES, "") ?: ""
+        if (cookies.isEmpty()) return null
+        val savedAt = prefs.getLong(KEY_YT_COOKIES_AT, 0)
+        if (System.currentTimeMillis() - savedAt > 6 * 3600 * 1000) {
+            prefs.edit().remove(KEY_YT_COOKIES).remove(KEY_YT_COOKIES_AT).apply()
+            return null
+        }
+        return cookies
+    }
+
+    /** Clears stored YouTube session cookies (e.g. when they're rejected by server). */
+    fun clearYouTubeCookies() {
+        prefs.edit().remove(KEY_YT_COOKIES).remove(KEY_YT_COOKIES_AT).apply()
+        Log.d(TAG, "YouTube cookies cleared")
+    }
+
+    /** Checks if we have a SAPISID cookie (needed for SAPISIDHASH auth header). */
+    fun getSapisid(): String? {
+        val cookies = getYouTubeCookies() ?: return null
+        for (part in cookies.split("; ")) {
+            val kv = part.split("=", limit = 2)
+            if (kv.size == 2 && kv[0] == "SAPISID") return kv[1]
+        }
+        return null
+    }
+
+    /** Generates SAPISIDHASH header value: "SAPISIDHASH <timestamp>_<sha1(timestamp + " " + SAPISID + " " + origin)>" */
+    fun buildSapisidHash(sapisid: String, origin: String = "https://www.youtube.com"): String {
+        val timestamp = System.currentTimeMillis() / 1000
+        val input = "$timestamp $sapisid $origin"
+        val sha1 = MessageDigest.getInstance("SHA-1").digest(input.toByteArray(Charsets.US_ASCII))
+        val hex = sha1.joinToString("") { "%02x".format(it) }
+        return "SAPISIDHASH ${timestamp}_$hex"
     }
 
     fun logout() {

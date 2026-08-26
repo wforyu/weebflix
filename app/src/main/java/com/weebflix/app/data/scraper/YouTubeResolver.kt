@@ -315,10 +315,22 @@ object YouTubeResolver {
             .apply { if (visitor != null) addHeader("X-Goog-Visitor-Id", visitor) }
             .apply {
                 if (auth) {
-                    YouTubeAuthManager.getAccessToken()?.let { token ->
-                        Log.d(TAG, "player ${ctx.clientName} auth=Bearer")
-                        addHeader("Authorization", "Bearer $token")
+                    // Cookie-based auth (preferred): YouTube blocks Bearer on innertube player,
+                    // but accepts Cookie + SAPISIDHASH which is how the web browser authenticates.
+                    val cookies = YouTubeAuthManager.getYouTubeCookies()
+                    val sapisid = YouTubeAuthManager.getSapisid()
+                    if (cookies != null && sapisid != null) {
+                        Log.d(TAG, "player ${ctx.clientName} auth=Cookie+SAPISIDHASH")
+                        addHeader("Cookie", cookies)
+                        addHeader("Authorization", YouTubeAuthManager.buildSapisidHash(sapisid))
                         addHeader("X-Goog-AuthUser", "0")
+                    } else {
+                        // Fallback: Bearer auth (may fail with HTTP 400 on innertube player)
+                        YouTubeAuthManager.getAccessToken()?.let { token ->
+                            Log.d(TAG, "player ${ctx.clientName} auth=Bearer (no cookies)")
+                            addHeader("Authorization", "Bearer $token")
+                            addHeader("X-Goog-AuthUser", "0")
+                        }
                     }
                 }
             }
@@ -328,9 +340,21 @@ object YouTubeResolver {
         val respJson = client.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful) {
                 Log.w(TAG, "player ${ctx.clientName} HTTP ${resp.code}")
-                // HTTP 400 from non-auth = dead client (IOS/WEB common), not IP flag; only flag
-                // auth 401/403 (OAuth token rejected = account-level flag → re-bootstrap visitor).
-                return PlayerResult(null, flagged = auth && (resp.code == 401 || resp.code == 403))
+                // HTTP 400 from non-auth = dead client (IOS/WEB common).
+                // 401/403 with cookie auth = stale cookies → clear and continue (not flagged).
+                // 401/403 with Bearer auth = account-level flag → re-bootstrap visitor.
+                if (auth && (resp.code == 401 || resp.code == 403)) {
+                    val hasCookies = YouTubeAuthManager.getYouTubeCookies() != null
+                    if (hasCookies) {
+                        Log.w(TAG, "Cookie auth rejected (${resp.code}), clearing stale cookies")
+                        YouTubeAuthManager.clearYouTubeCookies()
+                        // Re-fetch cookies for next attempt
+                        YouTubeAuthManager.fetchYouTubeCookies()
+                    } else {
+                        return PlayerResult(null, flagged = true)
+                    }
+                }
+                return PlayerResult(null, flagged = false)
             }
             JSONObject(resp.body?.string() ?: "")
         }

@@ -18,6 +18,10 @@ class WeebFlixApp : Application() {
         instance = this
         ProviderConfig.init(this)
         YouTubeAuthManager.init(this)
+        // Bootstrap YouTube session cookies for logged-in users (needed for innertube auth)
+        if (YouTubeAuthManager.isLoggedIn() && YouTubeAuthManager.getYouTubeCookies() == null) {
+            YouTubeAuthManager.fetchYouTubeCookies()
+        }
         YouTubeSubscriptionStore.init(this)
         scraper = SamehadakuScraper()
         ProviderFactory.getAllProviders()
