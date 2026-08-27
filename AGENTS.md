@@ -7,7 +7,7 @@
 - **Compile SDK:** 35 (Android 15) — required by media3 1.5.1
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Version:** `versionCode=110`, `versionName=2.0.10-beta` (in `app/build.gradle.kts`)
+- **Version:** `versionCode=111`, `versionName=2.0.11-beta` (in `app/build.gradle.kts`)
 - **BuildConfig fields:** `GIT_COMMIT` (short hash from `git rev-parse --short HEAD`, fallback `"dev"`) + `BUILD_DATE` (`yyyy.MM.dd-HHmm`) — requires `buildFeatures { buildConfig = true }`; shown in Settings About section
 - **Language:** Kotlin
 - **Package:** `com.weebflix.app`
@@ -536,7 +536,7 @@ Tidak ada ktlint/detekt/spotless — style dijaga **manual**. Ikuti persis pola 
 - **Category Grid:** Full-screen 3-column grid for DrakorKita and OppaDrama categories (Episodes/Movies/Series/Drama Korea/Drama China/Film Korea/Netflix) with infinite scroll
 - **Detail:** Parallax banner, synopsis, info, episode list with spinner range selector (100 eps/chunk)
 - **Player:** ExoPlayer, server picker (floating PopupWindow), gestures (brightness/volume/seek — volume akumulasi float kontinu biar smooth, bukan step int), **pinch-to-zoom video 1x–4x** (fullscreen, semua provider, ExoPlayer & WebView), skip opening/outro (smart windows: intro = first `min(120s, 12%)` OR mid-episode `210s–min(330s, 30%)` if episode ≥11min; outro = last `min(120s, 8%)`), auto-play next episode, PiP support, fullscreen toggle, prev/next episode navigation; YouTube: skip prev/next (`ytPlayHistory` + `ytUpNext`) + gear resolusi + default resolusi maks dari Settings; **mini player** dengan home feed + **search langsung dari feed** (lihat bullet Mini player di Achieved)
-- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); **provider visibility toggle** (hide/show MissAV — `provider_enabled_missav`, switch `swMissavEnabled` in Settings → Visibilitas Provider; **default hidden** setelah instal/update, user enable manual); About section shows app version (`2.0.10-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
+- **Settings:** Per-provider domain configuration with chip selector, validation, and reset; YouTube default max resolution (Auto/144→2160); **provider visibility toggle** (hide/show MissAV — `provider_enabled_missav`, switch `swMissavEnabled` in Settings → Visibilitas Provider; **default hidden** setelah instal/update, user enable manual); About section shows app version (`2.0.11-beta`) + `GIT_COMMIT` + `BUILD_DATE` from BuildConfig
 - **Continue Watching:** Saves watch progress per episode per provider, shows progress bar on Home, auto-resumes from last position
 - **Domain Switching:** Change scraper base URL per provider from Settings
 
@@ -709,7 +709,7 @@ Routing in `PlayerActivity` (single decision point, ~L4270): `scraperUrl` contai
 - **Change app icon:** Edit `drawable/ic_launcher_foreground.xml` (vector N) + `drawable/ic_launcher_background.xml` (black)
 - **Add new screen:** Create Activity/Fragment, add to `AndroidManifest.xml`, wire navigation
 - **Modify player behavior:** Edit `PlayerActivity.kt`, check `ResolveMode` enum for provider-specific paths
-- **Release APK:** Run `.\gradlew.bat assembleRelease` (signed dengan **release keystore** `webflix-release.jks`, `CN=WebFlix`, `fe27099a...` — keystore ternyata tidak hilang, masih ada di project root; lihat keystore.md). Signature release = signature semua rilis resmi (v2.0.0-beta s/d v2.0.10-beta) → auto-update (Check Update) antar-versi rilis mulus tanpa uninstall. ⚠ Build release TIDAK bisa nimpa build **debug** (`installDebug`) — kalau device masih build debug, uninstall dulu sekali. JANGAN pindah ke keystore lain tanpa uninstall semua device sekali.
+- **Release APK:** Run `.\gradlew.bat assembleRelease` (signed dengan **release keystore** `webflix-release.jks`, `CN=WebFlix`, `fe27099a...` — keystore ternyata tidak hilang, masih ada di project root; lihat keystore.md). Signature release = signature semua rilis resmi (v2.0.0-beta s/d v2.0.11-beta) → auto-update (Check Update) antar-versi rilis mulus tanpa uninstall. ⚠ Build release TIDAK bisa nimpa build **debug** (`installDebug`) — kalau device masih build debug, uninstall dulu sekali. JANGAN pindah ke keystore lain tanpa uninstall semua device sekali.
 
 ### Build & Release Pre-release (agar Check Update di app berfungsi) — CHECKLIST 2026-08-04
 Setiap rilis versi baru WAJIB ikut urutan ini, kalau tidak tombol "Periksa Pembaruan" di Settings tidak akan mendeteksi update:
