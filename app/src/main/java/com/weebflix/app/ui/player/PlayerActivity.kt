@@ -52,6 +52,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.ParametersBuilder
 import androidx.media3.ui.PlayerView
+import androidx.media3.session.MediaSession
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.weebflix.app.R
@@ -63,6 +64,7 @@ import com.weebflix.app.data.scraper.YouTubeScraper
 import com.weebflix.app.data.scraper.YouTubeVideo
 import com.weebflix.app.ui.youtube.YouTubeChannelActivity
 import com.weebflix.app.ui.youtube.adapter.YouTubeFeedAdapter
+import com.weebflix.app.ui.youtube.adapter.YouTubeFormat
 import com.weebflix.app.ui.util.TvUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -331,6 +333,8 @@ class PlayerActivity : AppCompatActivity() {
     private val zoomHideRunnable = Runnable { if (::zoomIndicator.isInitialized) zoomIndicator.visibility = View.GONE }
 
     private var exoPlayer: ExoPlayer? = null
+    private var mediaSession: MediaSession? = null
+    private var pipActionReceiver: android.content.BroadcastReceiver? = null
     private var episodeUrl: String = ""
     private var episodeTitle: String = ""
     private var episodeNumber: String = ""
@@ -438,6 +442,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private var isSeekingGesture: Boolean = false
     private var seekDelta: Long = 0L
+    private var suppressSingleAfterPinch = false
 
     private var skipOpeningStart: Int = 90
     private var skipOpeningEnd: Int = 120
@@ -577,6 +582,7 @@ class PlayerActivity : AppCompatActivity() {
         setupGestureDetector()
         setupControls()
         setupSeekBar()
+        registerPipActionReceiver()
         // WebView is initialized lazily on first use
 
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(topBar) { v, insets ->
@@ -1127,12 +1133,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun setLikeUi(liked: Boolean) {
         isYtLiked = liked
-        if (liked) btnYtLike.setColorFilter(0xFFE50914.toInt()) else btnYtLike.clearColorFilter()
+        if (liked) btnYtLike.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.netflix_red)) else btnYtLike.clearColorFilter()
     }
 
     private fun setDislikeUi(disliked: Boolean) {
         isYtDisliked = disliked
-        if (disliked) btnYtDislike.setColorFilter(0xFFE50914.toInt()) else btnYtDislike.clearColorFilter()
+        if (disliked) btnYtDislike.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.netflix_red)) else btnYtDislike.clearColorFilter()
     }
 
     private fun setSubscribeUi(subscribed: Boolean) {
@@ -3886,6 +3892,7 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun initExoPlayerRemote(videoUrl: String) {
         showExoPlayerUi()
+        releaseMediaSession()
         exoPlayer?.release()
         resetDlProgress()
 
@@ -4026,6 +4033,7 @@ class PlayerActivity : AppCompatActivity() {
             .build()
             .also { player ->
                 playerView.player = player
+                rebindMediaSession(player)
 
                 player.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(playing: Boolean) {
@@ -4134,13 +4142,21 @@ class PlayerActivity : AppCompatActivity() {
     private var gestureStartY: Float = 0f
     private var gestureStartX: Float = 0f
     private var isGestureActive: Boolean = false
-    private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek
+    private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek, 4=collapse, 5=fullscreen-swipe
+    private var fullscreenSwipeFired = false
 
-    // Pinch-to-zoom (fullscreen only, all providers). Applied to the visible video surface
-    // (playerView for ExoPlayer, webView for WebView playback). Range 1x..4x.
+    // Pinch-to-zoom (all providers, runs anytime the video surface is visible). Applied to the
+    // visible video surface (playerView for ExoPlayer, webView for WebView playback, or the
+    // fullscreen WebView view). Range 1x..4x.
     private var pinchScaleDetector: ScaleGestureDetector? = null
     private var videoZoom = 1f
     private var videoZoomBase = 1f
+    private var videoZoomPeak = 1f
+    private var videoZoomOffsetX = 0f
+    private var videoZoomOffsetY = 0f
+    private var videoZoomFocusX = 0f
+    private var videoZoomFocusY = 0f
+    private var videoZoomDirty = false
     private val maxVideoZoom = 4f
 
     /** Bottom of the swipe/dead zone for the gesture overlay. When the bottom bar is a root-level
@@ -4189,7 +4205,35 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-                if (canMiniPlayer() && velocityY > 1200f && abs(velocityY) > abs(velocityX) * 1.5f) {
+                val isVertical = abs(velocityY) > abs(velocityX) * 1.5f
+
+                // Swipe up → enter fullscreen (GoTube-style). YouTube portrait is the real
+                // non-fullscreen state; other providers are already landscape fullscreen so this
+                // only re-hides bars if the user previously revealed them. Fast flings only —
+                // drags remain reserved for brightness/volume.
+                if (velocityY < -1400f && isVertical) {
+                    val startedOnVideo = e1 != null && e1.y <= playerArea.bottom
+                    if (!startedOnVideo) return false
+                    when {
+                        activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID && !ytFullscreen -> {
+                            toggleFullscreen()
+                            return true
+                        }
+                        activeProviderId != com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID && !isSystemBarsHidden -> {
+                            toggleFullscreen()
+                            return true
+                        }
+                    }
+                }
+
+                // Swipe down while fullscreen → exit (YouTube landscape back to portrait).
+                if (velocityY > 1400f && isVertical &&
+                    activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID && ytFullscreen) {
+                    toggleFullscreen()
+                    return true
+                }
+
+                if (canMiniPlayer() && velocityY > 1200f && isVertical) {
                     collapseYtPlayer()
                     return true
                 }
@@ -4235,6 +4279,36 @@ class PlayerActivity : AppCompatActivity() {
                 // feed above it takes over).
                 if (isGestureActive && gestureType == 4) return true
 
+                // A fast upward swipe in the non-fullscreen state is reserved as a fullscreen
+                // intent (same sticky pattern as the collapse above). Without this, the series
+                // of onScroll events that precede onFling classify as a volume gesture (right
+                // half) and bump STREAM_MUSIC while the fling enters fullscreen — the "swipe
+                // atas bentrok sama volume" bug. Slow upward drags still keep brightness/volume.
+                val wantFullscreen = if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID)
+                    !ytFullscreen else !isSystemBarsHidden
+                if (wantFullscreen && e1.y <= playerArea.bottom) {
+                    if (!isGestureActive) {
+                        val dX = e2.x - e1.x
+                        val dY = e2.y - e1.y
+                        if (dY < -24 && abs(dY) > abs(dX) * 1.5f) {
+                            gestureStartY = e1.y
+                            isGestureActive = true
+                            gestureType = 5 // fullscreen-swipe intent
+                        }
+                    }
+                    if (isGestureActive && gestureType == 5) {
+                        val deltaY = e2.y - e1.y
+                        val elapsed = (e2.eventTime - e1.downTime).coerceAtLeast(1L)
+                        val swipeSpeed = deltaY / elapsed.toFloat()
+                        if (!fullscreenSwipeFired && swipeSpeed < -0.9f) {
+                            fullscreenSwipeFired = true
+                            toggleFullscreen()
+                            showControls()
+                        }
+                        return true
+                    }
+                }
+
                 if (startInDeadZone) return false
 
                 if (!isGestureActive) {
@@ -4266,23 +4340,62 @@ class PlayerActivity : AppCompatActivity() {
 
         pinchScaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                // Only zoom while the system bars are hidden (fullscreen).
-                if (!isSystemBarsHidden) return false
                 videoZoomBase = videoZoom
+                videoZoomPeak = videoZoom
+                // Pinch focus is captured once at the START of the gesture (not re-read every
+                // onScale) so a zoom-in that starts with fingers already spread far apart stays
+                // centered on the initial point — the end focus can drift off-screen when fingers
+                // spread wide, pivoting the zoom off the visible video.
+                videoZoomFocusX = detector.focusX
+                videoZoomFocusY = detector.focusY
+                // Precompute the overlay-vs-surface offset once here (getLocationOnScreen per
+                // onScale event is a sync traversal that throttles the gesture and makes the zoom
+                // feel stuttery). During a single pinch the offset doesn't change.
+                val ref = pinchOverlayRef ?: gestureOverlay
+                val surface = currentVideoSurface()
+                if (ref === surface) {
+                    videoZoomOffsetX = 0f
+                    videoZoomOffsetY = 0f
+                } else if (surface != null) {
+                    val refLoc = IntArray(2)
+                    val surfLoc = IntArray(2)
+                    ref.getLocationOnScreen(refLoc)
+                    surface.getLocationOnScreen(surfLoc)
+                    videoZoomOffsetX = (refLoc[0] - surfLoc[0]).toFloat()
+                    videoZoomOffsetY = (refLoc[1] - surfLoc[1]).toFloat()
+                }
                 return true
             }
 
             override fun onScale(detector: ScaleGestureDetector): Boolean {
-                if (!isSystemBarsHidden) return false
-                val target = (videoZoomBase * detector.scaleFactor).coerceIn(1f, maxVideoZoom)
-                videoZoom = target
-                applyVideoZoom(target, detector.focusX, detector.focusY)
+                videoZoom = (videoZoomBase * detector.scaleFactor).coerceIn(1f, maxVideoZoom)
+                if (videoZoom > videoZoomPeak) videoZoomPeak = videoZoom
+                // Touch events arrive at 120Hz+ on modern devices while rendering is 60fps —
+                // applying the transform on EVERY event would apply it twice within a frame and
+                // the video visibly double-steps ("tersendat"). Instead only store the target and
+                // let ONE coalesced frame callback (postOnAnimation) apply the latest value per
+                // rendered frame, so zoom animates as smooth 60fps geometry like GoTube.
+                videoZoomDirty = true
+                val poster = pinchOverlayRef ?: gestureOverlay
+                poster.removeCallbacks(zoomFrameRunnable)
+                poster.postOnAnimation(zoomFrameRunnable)
                 showZoomIndicator()
                 return true
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
+                // Rubber-band commit: when the pinch peaked clearly above the start span, the user
+                // spread-flicked forward then relaxed their fingers — commit the PEAK zoom reached
+                // instead of the release ratio, otherwise spread-then-close pulses snap back to 1x
+                // and the pinch reads as "not working". Pure close pinches (never opened beyond
+                // base) fall through and commit the release value, so zoom-out still works.
+                if (videoZoomPeak > videoZoomBase * 1.05f) {
+                    videoZoom = videoZoomPeak
+                }
                 videoZoomBase = videoZoom
+                videoZoomDirty = false
+                (pinchOverlayRef ?: gestureOverlay).removeCallbacks(zoomFrameRunnable)
+                applyVideoZoom(videoZoom, videoZoomFocusX, videoZoomFocusY)
                 zoomHideHandler.removeCallbacks(zoomHideRunnable)
                 zoomHideHandler.postDelayed(zoomHideRunnable, 1200)
             }
@@ -4299,18 +4412,24 @@ class PlayerActivity : AppCompatActivity() {
             // pinch that starts as a 1-finger drag keeps its sticky seek gesture and seeks on
             // lift — the "zoom conflicts with the duration swipe" bug.
             if (pointerCount >= 2) {
+                suppressSingleAfterPinch = true
                 cancelSingleFingerGesture()
             }
 
             pinchScaleDetector?.onTouchEvent(event)
             val pinchActive = pinchScaleDetector?.isInProgress == true
 
-            // Feed the single-finger gestures only while fewer than 2 fingers are down.
-            if (pointerCount < 2 && !pinchActive) {
+            // Feed the single-finger gestures only while fewer than 2 fingers are down AND no
+            // pinch happened earlier in this touch sequence. The second condition blocks the
+            // leftover finger (after one pinch finger is lifted) from being misread as a fresh
+            // horizontal drag that seeks — the other half of the "zoom vs rewind" conflict.
+            if (pointerCount < 2 && !pinchActive && !suppressSingleAfterPinch) {
                 gestureDetector.onTouchEvent(event)
             }
 
             if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                suppressSingleAfterPinch = false
+                fullscreenSwipeFired = false
                 if (isSeekingGesture) {
                     isSeekingGesture = false
                     seekBy(seekDelta.toFloat())
@@ -4338,6 +4457,7 @@ class PlayerActivity : AppCompatActivity() {
      *  pinch finger lifts back to a single finger. */
     private fun cancelSingleFingerGesture() {
         if (!isGestureActive && !isSeekingGesture && gestureType == 0 && seekDelta == 0L) return
+        fullscreenSwipeFired = false
         isSeekingGesture = false
         seekDelta = 0L
         isGestureActive = false
@@ -4354,38 +4474,57 @@ class PlayerActivity : AppCompatActivity() {
         zoomHideHandler.removeCallbacks(zoomHideRunnable)
     }
 
+    /** The view that currently presents the video on screen. During WebView fullscreen
+     *  (onShowCustomView) Chromium renders the video in a dedicated fullscreen view hosted in
+     *  playerContainer — NOT the webView page itself — so zoom must target that view, otherwise
+     *  the pinch silently does nothing in fullscreen. */
+    private fun currentVideoSurface(): View? {
+        val fs = webViewFullscreenView
+        if (fs != null && fs.parent != null) return fs
+        return if (isWebViewPlayback) webView else playerView
+    }
+
     /** Applies the pinch zoom to the visible video surface. Pivot follows the pinch focal
      *  point so the zoom centers where the fingers are. Both surfaces (playerView for ExoPlayer,
      *  webView for WebView playback) live in playerContainer which fills playerArea, so the
      *  gestureOverlay's focus coordinates map 1:1 to them. For webViewPlayerControls (a root-level
-     *  full-screen overlay) the focus is converted by the on-screen offset of the two views. */
-    private fun applyVideoZoom(zoom: Float, focusX: Float, focusY: Float, overlay: View? = null) {
-        val surface = if (isWebViewPlayback) webView else playerView
+     *  full-screen overlay) the focus conversion offset is precomputed once in onScaleBegin
+     *  (videoZoomOffsetX/Y), not read via getLocationOnScreen on every event (sync traversal jank). */
+    private fun applyVideoZoom(zoom: Float, focusX: Float, focusY: Float) {
+        val surface = currentVideoSurface()
         if (surface == null || surface.visibility != View.VISIBLE) return
-        val ref = overlay ?: pinchOverlayRef ?: gestureOverlay
-        if (ref === surface) {
-            surface.pivotX = focusX
-            surface.pivotY = focusY
-        } else {
-            val refLoc = IntArray(2)
-            val surfLoc = IntArray(2)
-            ref.getLocationOnScreen(refLoc)
-            surface.getLocationOnScreen(surfLoc)
-            surface.pivotX = focusX + (refLoc[0] - surfLoc[0])
-            surface.pivotY = focusY + (refLoc[1] - surfLoc[1])
-        }
+        surface.pivotX = focusX + videoZoomOffsetX
+        surface.pivotY = focusY + videoZoomOffsetY
         surface.scaleX = zoom
         surface.scaleY = zoom
+    }
+
+    /** Applies the latest zoom+pivot once per rendered frame. onScale fires on every 120Hz+ touch
+     *  event while rendering runs at 60fps — coalescing here keeps the visual at exactly one
+     *  transform per frame so the zoom animates as smooth geometry (see onScale). */
+    private val zoomFrameRunnable = Runnable {
+        if (!videoZoomDirty) return@Runnable
+        videoZoomDirty = false
+        applyVideoZoom(videoZoom, videoZoomFocusX, videoZoomFocusY)
     }
 
     /** Resets pinch zoom back to 1x on both surfaces. */
     private fun resetVideoZoom() {
         videoZoom = 1f
         videoZoomBase = 1f
+        videoZoomPeak = 1f
+        videoZoomOffsetX = 0f
+        videoZoomOffsetY = 0f
+        videoZoomFocusX = 0f
+        videoZoomFocusY = 0f
+        videoZoomDirty = false
+        gestureOverlay.removeCallbacks(zoomFrameRunnable)
         playerView.scaleX = 1f
         playerView.scaleY = 1f
         webView?.scaleX = 1f
         webView?.scaleY = 1f
+        webViewFullscreenView?.scaleX = 1f
+        webViewFullscreenView?.scaleY = 1f
         zoomHideHandler.removeCallbacks(zoomHideRunnable)
         if (::zoomIndicator.isInitialized) zoomIndicator.visibility = View.GONE
     }
@@ -4612,6 +4751,59 @@ class PlayerActivity : AppCompatActivity() {
         if (player.isPlaying) player.pause() else player.play()
         showControls()
         scheduleAutoHide()
+    }
+
+    /** Bind a media3 MediaSession to the current ExoPlayer. Exposes playback
+     *  commands to the platform: PiP play/pause button, system media (volume panel /
+     *  quick settings / lock screen), headset buttons, and the active state needed to keep
+     *  audio alive while the screen is off/locked. */
+    private fun rebindMediaSession(player: Player) {
+        releaseMediaSession()
+        try {
+            mediaSession = MediaSession.Builder(this, player).build()
+            Log.d(TAG, "rebindMediaSession built ok session=$mediaSession")
+        } catch (e: Exception) {
+            Log.e(TAG, "rebindMediaSession FAILED " + e.javaClass.simpleName + ": " + e.message, e)
+        }
+    }
+
+    private fun releaseMediaSession() {
+        Log.d(TAG, "releaseMediaSession releasing existed=${mediaSession != null}")
+        mediaSession?.release()
+        mediaSession = null
+    }
+
+    /** Wire the app's own PiP RemoteActions (com.weebflix.app.PIP_PLAY / PIP_PAUSE, created in
+     *  enterPipMode) to the current player. On Android 10+ the system may surface these custom
+     *  PiP buttons to the user. */
+    private fun registerPipActionReceiver() {
+        val filter = android.content.IntentFilter().apply {
+            addAction("com.weebflix.app.PIP_PLAY")
+            addAction("com.weebflix.app.PIP_PAUSE")
+        }
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                val player = exoPlayer ?: return
+                when (intent?.action) {
+                    "com.weebflix.app.PIP_PLAY" -> {
+                        Log.d(TAG, "PiP action: play")
+                        player.play()
+                        player.playWhenReady = true
+                    }
+                    "com.weebflix.app.PIP_PAUSE" -> {
+                        Log.d(TAG, "PiP action: pause")
+                        player.pause()
+                        player.playWhenReady = false
+                    }
+                }
+            }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(receiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
+        pipActionReceiver = receiver
     }
 
     private var isSystemBarsHidden = false
@@ -5094,14 +5286,14 @@ class PlayerActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 16, 24, 16)
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xE61A1A1A.toInt())
+                setColor(androidx.core.content.ContextCompat.getColor(this@PlayerActivity, R.color.yt_popup_bg))
                 cornerRadius = 24f
             }
         }
 
         val titleView = TextView(this).apply {
             text = getString(R.string.select_server)
-            setTextColor(0xFFE50914.toInt())
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@PlayerActivity, R.color.netflix_red))
             textSize = 16f
             setPadding(8, 8, 8, 20)
         }
@@ -5110,11 +5302,11 @@ class PlayerActivity : AppCompatActivity() {
         servers.forEachIndexed { index, server ->
             val item = TextView(this).apply {
                 text = server.name
-                setTextColor(if (index == currentServerIndex) 0xFFE50914.toInt() else 0xFFFFFFFF.toInt())
+                setTextColor(if (index == currentServerIndex) androidx.core.content.ContextCompat.getColor(this@PlayerActivity, R.color.netflix_red) else 0xFFFFFFFF.toInt())
                 textSize = 14f
                 setPadding(16, 14, 16, 14)
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(if (index == currentServerIndex) 0x33E50914 else 0x00000000)
+                    setColor(if (index == currentServerIndex) androidx.core.content.ContextCompat.getColor(this@PlayerActivity, R.color.yt_server_active_tint) else 0x00000000)
                     cornerRadius = 12f
                 }
                 isClickable = true
@@ -5205,13 +5397,20 @@ class PlayerActivity : AppCompatActivity() {
                 } ?: "Gagal memuat video. Coba lagi nanti."
                 showError(msg)
             } else {
+                // Personalize the home feed: remember the channel + title keywords of what plays.
+                com.weebflix.app.data.model.YouTubeFeedPrefs.recordWatched(resolved.title, resolved.author)
                 tvAnimeTitle.text = resolved.title
                 if (ytMiniCollapsed) miniTitle.text = resolved.title
                 val sub = buildString {
                     if (resolved.author.isNotEmpty()) append(resolved.author)
                     if (resolved.views.isNotEmpty()) {
                         if (isNotEmpty()) append(" • ")
-                        append(resolved.views).append(" x ditonton")
+                        append(YouTubeFormat.compactViewCount(resolved.views))
+                    }
+                    val published = YouTubeFormat.relativeIndonesian(resolved.published)
+                    if (published.isNotEmpty()) {
+                        if (isNotEmpty()) append(" • ")
+                        append(published)
                     }
                 }
                 tvEpisodeTitle.text = sub.ifEmpty { "YouTube" }
@@ -5240,6 +5439,7 @@ class PlayerActivity : AppCompatActivity() {
         pendingYtSeekMs = seekMs
 
         showExoPlayerUi()
+        releaseMediaSession()
         exoPlayer?.release()
         resetDlProgress()
 
@@ -5322,6 +5522,7 @@ class PlayerActivity : AppCompatActivity() {
                 } else {
                     playerView.player = player
                 }
+                rebindMediaSession(player)
                 player.addListener(object : Player.Listener {
                     override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
                         for (g in tracks.groups) {
@@ -7221,8 +7422,10 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        // JANGAN pause player di sini: biar audio tetap jalan saat app di-background layar
+        // dikunci (bunyi layar dikunci audio mati) — perilaku seperti YouTube/GoTube.
+        // Wakelock WAKE_MODE_NETWORK di player menjaga CPU/network selama playback berjalan.
         if (!isPipMode) {
-            exoPlayer?.playWhenReady = false
             progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
             autoHideHandler.removeCallbacks(autoHideRunnable)
             autoPlayHandler.removeCallbacks(autoPlayRunnable)
@@ -7234,6 +7437,9 @@ class PlayerActivity : AppCompatActivity() {
         progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        pipActionReceiver?.let { unregisterReceiver(it) }
+        pipActionReceiver = null
+        releaseMediaSession()
         exoPlayer?.release()
         exoPlayer = null
         webView?.apply {

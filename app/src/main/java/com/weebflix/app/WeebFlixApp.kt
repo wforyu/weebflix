@@ -3,6 +3,7 @@ package com.weebflix.app
 import android.app.Application
 import com.weebflix.app.data.auth.YouTubeAuthManager
 import com.weebflix.app.data.config.ProviderConfig
+import com.weebflix.app.data.model.YouTubeFeedPrefs
 import com.weebflix.app.data.provider.AnimeProvider
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.data.scraper.SamehadakuScraper
@@ -23,6 +24,7 @@ class WeebFlixApp : Application() {
             YouTubeAuthManager.fetchYouTubeCookies()
         }
         YouTubeSubscriptionStore.init(this)
+        YouTubeFeedPrefs.init(this)
         scraper = SamehadakuScraper()
         ProviderFactory.getAllProviders()
         // Pre-initialize PO Token BotGuard in background (for YouTube playback)

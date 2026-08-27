@@ -136,6 +136,7 @@ data class ResolvedYouTube(
     val title: String = "",
     val author: String = "",
     val views: String = "",
+    val published: String = "",
     val thumbnail: String = "",
     val durationMs: Long = 0,
     val videoFormats: List<YouTubeStream> = emptyList(),

@@ -317,7 +317,7 @@ class YouTubeHomeFragment : Fragment() {
             ytAccountAvatar.visibility = View.GONE
             ytAccountName.visibility = View.VISIBLE
             ytAccountName.setText(R.string.yt_login)
-            ytAccountName.setTextColor(0xFFE50914.toInt())
+            ytAccountName.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.netflix_red))
         }
     }
 

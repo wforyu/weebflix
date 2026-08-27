@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#0F0F0F"
+    android:background="@color/yt_bg"
     android:orientation="vertical"
     android:paddingHorizontal="16dp"
     android:paddingTop="14dp">
@@ -53,7 +53,7 @@
                     android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="#777777"
+                    android:textColor="@color/yt_text_muted"
                     android:textSize="12sp"
                     tools:text="3 hari lalu" />
             </LinearLayout>
@@ -63,7 +63,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="#DDDDDD"
+                android:textColor="@color/yt_text_comments"
                 android:textSize="13sp"
                 android:lineSpacingExtra="2dp"
                 tools:text="Komentar yang cukup panjang dari penonton video ini." />
@@ -75,7 +75,7 @@
                 android:layout_marginTop="6dp"
                 android:drawableStart="@drawable/ic_thumb_up"
                 android:drawablePadding="5dp"
-                android:textColor="#888888"
+                android:textColor="@color/yt_text_faint"
                 android:textSize="12sp"
                 tools:text="1,2 rb" />
         </LinearLayout>

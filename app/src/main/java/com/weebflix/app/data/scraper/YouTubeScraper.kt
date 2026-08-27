@@ -115,9 +115,12 @@ class YouTubeScraper : AnimeProvider {
     private fun fetchSearch(query: String, params: String? = null): List<YouTubeVideo> {
         val res = post("search") { it.put("query", query); if (!params.isNullOrEmpty()) it.put("params", params) }
         val json = res.json ?: return emptyList()
-        val out = mutableListOf<JSONObject>()
-        collectVideoRenderers(json, out)
-        return out.mapNotNull { parseVideoRenderer(it) }.distinctBy { it.videoId }
+        val renderers = mutableListOf<JSONObject>()
+        val lockups = mutableListOf<JSONObject>()
+        collectVideoRenderers(json, renderers)
+        collectLockupViewModel(json, lockups)
+        val out = renderers.mapNotNull { parseVideoRenderer(it) } + lockups.mapNotNull { parseLockupViewModel(it) }
+        return out.distinctBy { it.videoId }
     }
 
     private fun fetchBrowse(browseId: String): List<YouTubeVideo> {
@@ -164,21 +167,36 @@ class YouTubeScraper : AnimeProvider {
         val channelId = r.optJSONObject("ownerText")?.optJSONArray("runs")
             ?.optJSONObject(0)?.optJSONObject("navigationEndpoint")
             ?.optJSONObject("browseEndpoint")?.optString("browseId", "").orEmpty()
-        val channelThumb = r.optJSONObject("channelThumbnailSupportedRenderers")
-            ?.optJSONObject("channelThumbnailWithLinkRenderer")
-            ?.optJSONObject("thumbnail")
-            ?: r.optJSONObject("channelThumbnail")
         return YouTubeVideo(
             videoId = videoId,
             title = runsText(r.optJSONObject("title")),
             channel = byline?.optJSONObject(0)?.optString("text", "") ?: "",
             channelId = channelId,
-            channelThumb = channelThumb?.let { pickThumb(it) } ?: "",
+            channelThumb = extractChannelThumb(r),
             thumbnail = pickThumb(r.optJSONObject("thumbnail")),
             duration = r.optJSONObject("lengthText")?.let { runsText(it) } ?: "",
             views = r.optJSONObject("viewCountText")?.let { runsText(it) } ?: "",
             published = r.optJSONObject("publishedTimeText")?.let { runsText(it) } ?: ""
         )
+    }
+
+    /** Avatar channel dari `videoRenderer` dengan beberapa struktur fallback — YouTube bergeser
+     *  dari `thumbnail.thumbnails` klasik ke `image.sources` ala avatarViewModel di sebagian
+     *  layout, jadi yang klasik saja sering kosong di feed. */
+    private fun extractChannelThumb(r: JSONObject): String {
+        val ctlr = r.optJSONObject("channelThumbnailSupportedRenderers")
+            ?.optJSONObject("channelThumbnailWithLinkRenderer")
+        pickThumb(ctlr?.optJSONObject("thumbnail"))?.takeIf { it.isNotEmpty() }?.let { return it }
+        pickFromSources(ctlr?.optJSONObject("image")?.optJSONArray("sources"))?.takeIf { it.isNotEmpty() }?.let { return it }
+        pickThumb(r.optJSONObject("channelThumbnail"))?.takeIf { it.isNotEmpty() }?.let { return it }
+        r.optJSONObject("channelThumbnailSupportedRenderers")
+            ?.optJSONObject("avatarSupportedRenderers")?.optJSONObject("avatarWithLinkRenderer")
+            ?.let { avatar ->
+                pickThumb(avatar.optJSONObject("thumbnail"))?.takeIf { it.isNotEmpty() }?.let { return it }
+                pickFromSources(avatar.optJSONObject("image")?.optJSONArray("sources"))
+                    ?.takeIf { it.isNotEmpty() }?.let { return it }
+            }
+        return ""
     }
 
     private fun runsText(obj: JSONObject?): String {
@@ -253,7 +271,8 @@ class YouTubeScraper : AnimeProvider {
             ?.optJSONObject("browseEndpoint")?.optString("browseId", "").orEmpty()
         val img = l.optJSONObject("contentImage")?.optJSONObject("thumbnailViewModel")?.optJSONObject("image")
         val thumbnail = pickFromSources(img?.optJSONArray("sources"))
-        val channelThumb = pickFromSources(avatarVm?.optJSONObject("image")?.optJSONArray("sources"))
+        var channelThumb = pickFromSources(avatarVm?.optJSONObject("image")?.optJSONArray("sources"))
+        if (channelThumb.isEmpty()) channelThumb = pickThumb(avatarVm?.optJSONObject("thumbnail")) ?: ""
         var duration = ""
         val overlays = img?.optJSONArray("overlays")
         if (overlays != null && overlays.length() > 0) {
@@ -594,7 +613,9 @@ class YouTubeScraper : AnimeProvider {
         val now = System.currentTimeMillis()
         homeCache?.let { if (now - homeCacheTime < 5 * 60_000) return@withContext it }
 
-        val recommended = searchFresh("trending indonesia")
+        // Personalize the top row with the user's most recent watched topic when available.
+        var recommended = searchFresh(com.weebflix.app.data.model.YouTubeFeedPrefs.getInterestQueries().firstOrNull() ?: "trending indonesia")
+        if (recommended.isEmpty()) recommended = searchFresh("trending indonesia")
         if (recommended.isEmpty()) {
             Log.w(TAG, "home: search empty/flagged, aborting multi-section load")
             val home = YouTubeHome(recommended = emptyList(), trending = emptyList(), music = emptyList())
@@ -639,13 +660,19 @@ class YouTubeScraper : AnimeProvider {
 
     /**
      * Loads the next batch of the endless home feed, YouTube-home style: one search per batch
-     * (user scrolling paces the requests), query picked at random from a varied pool, results
-     * deduped against everything already shown and shuffled inside the batch so it feels mixed.
+     * (user scrolling paces the requests), query picked mostly from the user's watched interests
+     * (personalized) and occasionally from a varied default pool, results deduped against
+     * everything already shown and shuffled inside the batch so it feels mixed.
      * Returns empty when YouTube flags the IP (HTTP 400) or the pool is exhausted — the UI stops.
      */
     suspend fun nextFeedPage(): List<YouTubeVideo> = withContext(Dispatchers.IO) {
-        repeat(3) {
-            val query = feedQueries.random()
+        val interests = com.weebflix.app.data.model.YouTubeFeedPrefs.getInterestQueries()
+        repeat(3) { attempt ->
+            // Round 0: top interest (if any). Round 1: mostly interest, sometimes the pool.
+            // Round 2: always the default pool, so the feed can't stall on a dead/flagged interest.
+            val query = if (interests.isEmpty() || attempt >= 2) feedQueries.random()
+            else if (attempt == 1 && Math.random() < 0.4) feedQueries.random()
+            else interests.random()
             val fetched = searchFresh(query)
             if (fetched.isEmpty()) return@withContext emptyList()
             val fresh = fetched.filter { seenFeedIds.add(it.videoId) }
@@ -716,9 +743,7 @@ class YouTubeScraper : AnimeProvider {
                     ?.optJSONObject("image")?.optJSONArray("sources")?.let { pickFromSources(it) }.orEmpty()
                 val rows = vm.optJSONObject("metadata")?.optJSONObject("contentMetadataViewModel")
                     ?.optJSONArray("metadataRows")
-                val row = rows?.optJSONObject(1) ?: rows?.optJSONObject(0)
-                subs = row?.optJSONArray("metadataParts")?.optJSONObject(0)
-                    ?.optJSONObject("text")?.optString("content", "").orEmpty()
+                subs = extractSubscriberFromRows(rows)
             }
 
         // Videos tab grid.
@@ -772,6 +797,24 @@ class YouTubeScraper : AnimeProvider {
             videos = videos,
             continuation = if (items != null) findContinuationToken(items) else ""
         )
+    }
+
+    /** Cari teks jumlah subscriber pada metadata channel baru (pageHeaderViewModel). Row parts
+     *  bentuknya seperti [@handle, "1.2M subscribers", "250 videos"] — jumlah WAJIB dicari lewat
+     *  keyword, bukan diambil as part[0] (itu @handle). Fallback = part non-kosong pertama. */
+    private fun extractSubscriberFromRows(rows: JSONArray?): String {
+        if (rows == null) return ""
+        var fallback = ""
+        for (i in 0 until rows.length()) {
+            val parts = rows.optJSONObject(i)?.optJSONArray("metadataParts") ?: continue
+            for (j in 0 until parts.length()) {
+                val text = parts.optJSONObject(j)?.optJSONObject("text")?.optString("content", "").orEmpty()
+                if (text.isBlank()) continue
+                if (fallback.isEmpty()) fallback = text
+                if (text.contains("subscriber", ignoreCase = true)) return text
+            }
+        }
+        return fallback
     }
 
     /** Collects every video (videoRenderer/compactVideoRenderer + lockupViewModel) in a JSON tree. */

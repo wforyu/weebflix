@@ -388,6 +388,7 @@ object YouTubeResolver {
                         title = details?.optString("title") ?: "",
                         author = details?.optString("author") ?: "",
                         views = details?.optString("viewCount") ?: "",
+                        published = publishDateOf(respJson),
                         thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
                         durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
                         videoFormats = listOf(YouTubeStream(url = manifest, mimeType = "application/x-mpegURL", isVideo = true)),
@@ -426,6 +427,7 @@ object YouTubeResolver {
                 title = details?.optString("title") ?: "",
                 author = details?.optString("author") ?: "",
                 views = details?.optString("viewCount") ?: "",
+                published = publishDateOf(respJson),
                 thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
                 durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
                 videoFormats = video,
@@ -492,6 +494,13 @@ object YouTubeResolver {
         }
         return best
     }
+
+    /** Publikasi ISO (`microformat.playerMicroformatRenderer.publishDate`, "YYYY-MM-DD") untuk
+     *  meta player ("N hari yang lalu"). Kosong bila tidak tersedia. */
+    private fun publishDateOf(respJson: JSONObject): String =
+        respJson.optJSONObject("microformat")
+            ?.optJSONObject("playerMicroformatRenderer")
+            ?.optString("publishDate", "").orEmpty()
 
     /** Picks the best video format: prefer mp4, height <= 1080, highest height then bitrate. */
     fun pickVideo(formats: List<YouTubeStream>): YouTubeStream? {

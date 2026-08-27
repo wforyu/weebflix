@@ -29,6 +29,7 @@
             android:id="@+id/playerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            app:surface_type="texture_view"
             app:use_controller="false"
             app:resize_mode="fit" />
     </FrameLayout>
@@ -826,7 +827,7 @@
                             android:background="@drawable/bg_chip_yt"
                             android:drawableStart="@drawable/ic_search_yt"
                             android:drawablePadding="8dp"
-                            android:hint="Cari di YouTube"
+                            android:hint="@string/yt_search_hint"
                             android:imeOptions="actionSearch"
                             android:inputType="text"
                             android:maxLines="1"

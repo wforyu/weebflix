@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0F0F0F">
+    android:background="@color/yt_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,7 +25,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Login YouTube"
+            android:text="@string/yt_login_title"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -39,7 +39,7 @@
         android:paddingBottom="8dp"
         android:textColor="#B3B3B3"
         android:textSize="12sp"
-        android:text="Masuk dengan akun Google pribadi. Pastikan email didaftarkan sebagai Test User di Google Cloud Console (Testing mode) agar refresh token diberikan." />
+        android:text="@string/yt_login_hint" />
 
     <TextView
         android:id="@+id/ytLoginStatus"
@@ -50,7 +50,7 @@
         android:padding="24dp"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
-        android:text="Menyiapkan login..." />
+        android:text="@string/yt_login_preparing" />
 
     <TextView
         android:id="@+id/ytLoginError"
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:gravity="center"
-        android:textColor="#E50914"
+        android:textColor="@color/netflix_red"
         android:textSize="14sp"
         android:visibility="gone" />
 </LinearLayout>

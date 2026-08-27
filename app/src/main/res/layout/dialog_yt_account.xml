@@ -62,7 +62,7 @@
                     android:layout_height="wrap_content"
                     android:ellipsize="middle"
                     android:singleLine="true"
-                    android:textColor="#AAAAAA"
+                    android:textColor="@color/yt_text_secondary"
                     android:textSize="13sp"
                     tools:text="akun@gmail.com" />
             </LinearLayout>

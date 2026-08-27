@@ -112,4 +112,11 @@
     <string name="update_download">Unduh</string>
     <string name="update_failed">Gagal memeriksa pembaruan. Cek koneksi internet.</string>
     <string name="developer_by">by github.com/wforyu/weebflix (Cw)</string>
+    <string name="yt_login_title">Login YouTube</string>
+    <string name="yt_login_hint">Masuk dengan akun Google pribadi. Pastikan email didaftarkan sebagai Test User di Google Cloud Console (Testing mode) agar refresh token diberikan.</string>
+    <string name="yt_login_preparing">Menyiapkan login…</string>
+    <string name="yt_search_hint">Cari di YouTube</string>
+    <string name="yt_search_empty">Ketik untuk mencari video</string>
+    <string name="yt_feed_end">— Akhir feed —</string>
+    <string name="yt_channel_empty">Belum ada video</string>
 </resources>

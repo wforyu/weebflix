@@ -16,7 +16,7 @@
         android:id="@+id/footerEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="— Akhir feed —"
+        android:text="@string/yt_feed_end"
         android:textColor="#B3B3B3"
         android:textSize="13sp"
         android:visibility="gone" />

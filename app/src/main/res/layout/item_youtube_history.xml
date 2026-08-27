@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#0F0F0F"
+    android:background="@color/yt_bg"
     android:clickable="true"
     android:focusable="true"
     android:foreground="@drawable/selector_focus_outline"
@@ -19,7 +19,7 @@
             android:id="@+id/thumb"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#1F1F1F"
+            android:background="@color/netflix_surface"
             android:contentDescription="Thumbnail"
             android:scaleType="centerCrop"
             tools:src="@drawable/bg_card" />
@@ -69,7 +69,7 @@
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/yt_text_secondary"
                 android:textSize="12sp"
                 tools:text="45% ditonton" />
 

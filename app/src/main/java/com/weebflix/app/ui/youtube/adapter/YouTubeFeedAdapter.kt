@@ -10,8 +10,50 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.weebflix.app.R
 import com.weebflix.app.data.scraper.YouTubeVideo
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 object YouTubeFormat {
+
+    /** Formats a raw numeric view count the way YouTube Indonesia does: "1,2 jt", "890 ribu",
+     *  "932". Input yang tak bisa di-parse dikembalikan apa adanya. */
+    fun compactViewCount(raw: String): String {
+        if (raw.isEmpty()) return ""
+        val digits = raw.replace(Regex("[^0-9]"), "")
+        if (digits.isEmpty()) return "$raw x ditonton"
+        val n = digits.toLongOrNull() ?: return "$raw x ditonton"
+        val compact = when {
+            n >= 1_000_000_000 -> trimZero(n / 1e9) + " M"
+            n >= 1_000_000 -> trimZero(n / 1e6) + " jt"
+            n >= 1_000 -> trimZero(n / 1e3) + " ribu"
+            else -> n.toString()
+        }
+        return "$compact x ditonton"
+    }
+
+    private fun trimZero(value: Double): String =
+        String.format(Locale.ROOT, "%.1f", value).removeSuffix(".0").replace('.', ',')
+
+    /** Tanggal ISO ("2026-08-20") → waktu relatif ala YouTube Indonesia ("3 hari yang lalu").
+     *  Kosong bila input kosong/invalid. Tidak pakai java.time (minSdk 24). */
+    fun relativeIndonesian(publishDateIso: String): String {
+        if (publishDateIso.isEmpty()) return ""
+        val df = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT)
+        df.isLenient = false
+        val date = try { df.parse(publishDateIso) } catch (e: Exception) { return "" } ?: return ""
+        val diffMs = System.currentTimeMillis() - date.time
+        if (diffMs < 0) return ""
+        val min = diffMs / 60_000
+        return when {
+            min < 1 -> "Baru saja"
+            min < 60 -> "$min menit yang lalu"
+            min < 60 * 24 -> "${min / 60} jam yang lalu"
+            min < 60 * 24 * 7 -> "${min / (60 * 24)} hari yang lalu"
+            min < 60 * 24 * 30 -> "${min / (60 * 24 * 7)} minggu yang lalu"
+            min < 60 * 24 * 365 -> "${min / (60 * 24 * 30)} bulan yang lalu"
+            else -> "${min / (60 * 24 * 365)} tahun yang lalu"
+        }
+    }
 
     fun views(v: String): String {
         if (v.isEmpty()) return ""
@@ -198,7 +240,7 @@ class YouTubeFeedAdapter(
             if (v.channelThumb.isNotEmpty()) {
                 YouTubeFormat.bindThumb(channelThumb, v.channelThumb)
             } else {
-                channelThumb.setImageDrawable(null)
+                channelThumb.setImageResource(R.drawable.bg_yt_channel_placeholder)
             }
             itemView.setOnClickListener { onVideoClick(v) }
             val canOpenChannel = onChannelClick != null && v.channelId.isNotEmpty()

@@ -4,7 +4,7 @@
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F0F"
+    android:background="@color/yt_bg"
     android:orientation="vertical">
 
     <!-- Search header -->
@@ -33,7 +33,7 @@
             android:background="@drawable/bg_chip_yt"
             android:drawableStart="@drawable/ic_search_yt"
             android:drawablePadding="8dp"
-            android:hint="Cari di YouTube"
+            android:hint="@string/yt_search_hint"
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:maxLines="1"
@@ -66,7 +66,7 @@
         android:layout_height="40dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="32dp"
-        android:indeterminateTint="#FF0000"
+        android:indeterminateTint="@color/netflix_red"
         android:visibility="gone"
         tools:visibility="visible" />
 
@@ -77,7 +77,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="24dp"
-        android:text="Ketik untuk mencari video"
+        android:text="@string/yt_search_empty"
         android:textColor="#B3B3B3"
         android:textSize="14sp"
         android:visibility="gone" />

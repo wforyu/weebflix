@@ -109,7 +109,7 @@ class YouTubeSearchActivity : AppCompatActivity() {
                 textSize = 13f
                 setPadding(28, 20, 28, 20)
                 background = if (index == 0) resources.getDrawable(R.drawable.bg_chip_yt_active) else resources.getDrawable(R.drawable.bg_chip_yt)
-                setTextColor(if (index == 0) 0xFF0F0F0F.toInt() else 0xFFFFFFFF.toInt())
+                setTextColor(if (index == 0) androidx.core.content.ContextCompat.getColor(this@YouTubeSearchActivity, R.color.yt_bg) else 0xFFFFFFFF.toInt())
                 setOnClickListener { selectChip(index) }
             }
             val lp = LinearLayout.LayoutParams(
@@ -124,7 +124,7 @@ class YouTubeSearchActivity : AppCompatActivity() {
     private fun selectChip(index: Int) {
         chipViews.forEachIndexed { i, chip ->
             chip.background = if (i == index) resources.getDrawable(R.drawable.bg_chip_yt_active) else resources.getDrawable(R.drawable.bg_chip_yt)
-            chip.setTextColor(if (i == index) 0xFF0F0F0F.toInt() else 0xFFFFFFFF.toInt())
+            chip.setTextColor(if (i == index) androidx.core.content.ContextCompat.getColor(this@YouTubeSearchActivity, R.color.yt_bg) else 0xFFFFFFFF.toInt())
         }
         currentParams = filters[index].second
         performSearch()

@@ -4,7 +4,7 @@
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F0F"
+    android:background="@color/yt_bg"
     android:orientation="vertical">
 
     <!-- Header -->
@@ -41,7 +41,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="150dp"
-        android:background="#1F1F1F">
+        android:background="@color/netflix_surface">
 
         <ImageView
             android:id="@+id/channelBanner"
@@ -91,7 +91,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/yt_text_secondary"
                 android:textSize="13sp"
                 tools:text="1,2 jt subscriber" />
         </LinearLayout>
@@ -134,7 +134,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="center"
-            android:indeterminateTint="#FF0000"
+            android:indeterminateTint="@color/netflix_red"
             android:visibility="gone" />
 
         <!-- Empty -->
@@ -143,7 +143,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="Belum ada video"
+            android:text="@string/yt_channel_empty"
             android:textColor="#B3B3B3"
             android:textSize="14sp"
             android:visibility="gone" />

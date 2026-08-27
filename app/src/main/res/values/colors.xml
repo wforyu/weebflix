@@ -31,4 +31,11 @@
     <color name="chip_inactive">#333333</color>
     <color name="chip_text_inactive">#B3B3B3</color>
     <color name="gold_rating">#FFD700</color>
+    <color name="yt_bg">#0F0F0F</color>
+    <color name="yt_text_secondary">#AAAAAA</color>
+    <color name="yt_text_muted">#777777</color>
+    <color name="yt_text_comments">#DDDDDD</color>
+    <color name="yt_text_faint">#888888</color>
+    <color name="yt_popup_bg">#E61A1A1A</color>
+    <color name="yt_server_active_tint">#33E50914</color>
 </resources>
