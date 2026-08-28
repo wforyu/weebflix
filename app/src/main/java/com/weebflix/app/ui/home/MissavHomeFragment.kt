@@ -1,25 +1,29 @@
 package com.weebflix.app.ui.home
 
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.bumptech.glide.Glide
+import androidx.viewpager2.widget.ViewPager2
 import com.weebflix.app.R
 import com.weebflix.app.data.model.Anime
 import com.weebflix.app.data.model.Episode
 import com.weebflix.app.data.model.WatchHistoryManager
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.ui.adapter.ContinueWatchingAdapter
+import com.weebflix.app.ui.adapter.HeroPagerAdapter
 import com.weebflix.app.ui.adapter.NetflixCardAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
 import com.weebflix.app.ui.detail.CategoryGridActivity
@@ -43,9 +47,8 @@ class MissavHomeFragment : Fragment() {
     private lateinit var headerPopularAnime: View
     private lateinit var headerUncensored: View
     private lateinit var sectionUncensored: View
-    private lateinit var ivHero: android.widget.ImageView
-    private lateinit var tvHeroTitle: TextView
-    private lateinit var tvHeroEpisode: TextView
+    private lateinit var vpHero: ViewPager2
+    private lateinit var dotContainer: LinearLayout
 
     private lateinit var latestAdapter: NetflixCardAdapter
     private lateinit var ongoingAdapter: NetflixCardAdapter
@@ -53,7 +56,7 @@ class MissavHomeFragment : Fragment() {
     private lateinit var uncensoredAdapter: NetflixCardAdapter
     private lateinit var continueWatchingAdapter: ContinueWatchingAdapter
 
-    private var heroEpisode: Episode? = null
+    private val heroItems = mutableListOf<Anime>()
 
     private val latestItems = mutableListOf<Anime>()
     private val ongoingItems = mutableListOf<Anime>()
@@ -74,6 +77,17 @@ class MissavHomeFragment : Fragment() {
     private var ongoingHasMore = true
     private var popularHasMore = true
     private var uncensoredHasMore = true
+
+    private val heroHandler = Handler(Looper.getMainLooper())
+    private val heroRunnable = object : Runnable {
+        override fun run() {
+            if (vpHero.adapter != null && heroItems.isNotEmpty()) {
+                val next = (vpHero.currentItem + 1) % heroItems.size
+                vpHero.currentItem = next
+            }
+            heroHandler.postDelayed(this, 4000L)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -99,33 +113,17 @@ class MissavHomeFragment : Fragment() {
         headerPopularAnime = view.findViewById(R.id.headerPopularAnime)
         headerUncensored = view.findViewById(R.id.headerUncensored)
         sectionUncensored = view.findViewById(R.id.sectionUncensored)
-        ivHero = view.findViewById(R.id.ivHero)
-        tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
-        tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
+        vpHero = view.findViewById(R.id.vpHero)
+        dotContainer = view.findViewById(R.id.dotContainer)
 
         swipeRefresh.setColorSchemeResources(R.color.netflix_red)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
 
         setupRecyclerViews()
+        setupHero()
 
         swipeRefresh.setOnRefreshListener {
             resetAndLoad()
-        }
-
-        view.findViewById<View>(R.id.btnHeroPlay)?.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
-                startActivity(intent)
-            }
-        }
-
-        view.findViewById<View>(R.id.btnHeroDetail)?.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
-                startActivity(intent)
-            }
         }
 
         val openCategory = { cat: String, title: String ->
@@ -141,6 +139,76 @@ class MissavHomeFragment : Fragment() {
 
         loadData()
     }
+
+    override fun onResume() {
+        super.onResume()
+        heroHandler.postDelayed(heroRunnable, 4000L)
+        if (::continueWatchingAdapter.isInitialized) loadContinueWatching()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        heroHandler.removeCallbacks(heroRunnable)
+    }
+
+    private fun setupHero() {
+        vpHero.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                updateDots(position)
+            }
+        })
+        vpHero.isFocusable = true
+        vpHero.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && heroItems.size > 1) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem + 1) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem - 1 + heroItems.size) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        val rv = vpHero.getChildAt(0) as? RecyclerView
+                        val current = rv?.layoutManager?.findViewByPosition(vpHero.currentItem)
+                        current?.performClick()
+                        true
+                    }
+                    else -> false
+                }
+            } else false
+        }
+    }
+
+    private fun restartHeroAutoScroll() {
+        heroHandler.removeCallbacks(heroRunnable)
+        heroHandler.postDelayed(heroRunnable, 4000L)
+    }
+
+    private fun updateDots(position: Int) {
+        dotContainer.removeAllViews()
+        val count = heroItems.size.coerceAtMost(8)
+        if (count <= 1) { dotContainer.visibility = View.GONE; return }
+        dotContainer.visibility = View.VISIBLE
+        for (i in 0 until count) {
+            val dot = View(requireContext()).apply {
+                val size = 8.dpToPx()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginStart = if (i == 0) 0 else 4.dpToPx()
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (i == position) 0xFFE50914.toInt() else 0x80FFFFFF.toInt())
+                }
+            }
+            dotContainer.addView(dot)
+        }
+    }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun resetAndLoad() {
         latestItems.clear()
@@ -281,7 +349,9 @@ class MissavHomeFragment : Fragment() {
 
                 val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.MISSAV_ID)
                 if (diskCached != null && isAdded) {
-                    applyMissavData(diskCached.latestEpisodes.map {
+                    applyMissavData(diskCached.hero.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
+                    }, diskCached.latestEpisodes.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
                     }, diskCached.category1.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
@@ -294,7 +364,9 @@ class MissavHomeFragment : Fragment() {
 
                 val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.MISSAV_ID) }
                 if (ghData != null && isAdded) {
-                    applyMissavData(ghData.latestEpisodes.map {
+                    applyMissavData(ghData.hero.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
+                    }, ghData.latestEpisodes.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
                     }, ghData.category1.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
@@ -316,7 +388,7 @@ class MissavHomeFragment : Fragment() {
         }
     }
 
-    private fun applyMissavData(latest: List<Anime>, ongoing: List<Anime>, popular: List<Anime>, uncensored: List<Anime>) {
+    private fun applyMissavData(hero: List<Anime>, latest: List<Anime>, ongoing: List<Anime>, popular: List<Anime>, uncensored: List<Anime>) {
         if (!isAdded) return
         loadingLayout.visibility = View.GONE
         swipeRefresh.isRefreshing = false
@@ -327,19 +399,18 @@ class MissavHomeFragment : Fragment() {
         latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty(); uncensoredHasMore = uncensored.isNotEmpty()
         latestPage = 1; ongoingPage = 1; popularPage = 1; uncensoredPage = 1
         if (uncensored.isNotEmpty()) { sectionUncensored.visibility = View.VISIBLE }
-        if (latestItems.isNotEmpty()) {
-            heroEpisode = Episode(
-                title = latestItems.first().title,
-                url = latestItems.first().url,
-                imageUrl = latestItems.first().imageUrl,
-                episodeNumber = latestItems.first().episode,
-                uploadDate = ""
-            )
-            tvHeroTitle.text = heroEpisode?.title
-            val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
-            tvHeroEpisode.text = if (epNum != null) "Durasi $epNum" else ""
-            if (heroEpisode?.imageUrl?.isNotEmpty() == true) { Glide.with(requireContext()).load(heroEpisode?.imageUrl).centerCrop().into(ivHero) }
-        }
+        val heroList = if (hero.isNotEmpty()) hero else latest.take(10)
+        heroItems.clear(); heroItems.addAll(heroList)
+        vpHero.adapter = HeroPagerAdapter(heroItems,
+            onClick = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) },
+            onPlay = { anime -> startActivity(Intent(requireContext(), com.weebflix.app.ui.player.PlayerActivity::class.java).apply {
+                putExtra("url", anime.url); putExtra("title", anime.title); putExtra("episodeNumber", anime.episode)
+                putExtra("animeTitle", anime.title); putExtra("imageUrl", anime.imageUrl); putExtra("animeUrl", anime.url)
+                putExtra("providerId", ProviderFactory.MISSAV_ID)
+            }) },
+            onInfo = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) }
+        )
+        if (heroList.size > 1) { vpHero.setCurrentItem(1, false); heroHandler.removeCallbacks(heroRunnable); heroHandler.postDelayed(heroRunnable, 4000L) }
         latestAdapter.submitList(latestItems.toList()); ongoingAdapter.submitList(ongoingItems.toList()); popularAdapter.submitList(popularItems.toList()); uncensoredAdapter.submitList(uncensoredItems.toList())
         loadContinueWatching()
     }
@@ -354,11 +425,12 @@ class MissavHomeFragment : Fragment() {
             (provider as? com.weebflix.app.data.scraper.MissavScraper)?.getUncensoredAnime(1) ?: emptyList()
         }
         if (!isAdded) return
-        withContext(Dispatchers.Main) { applyMissavData(latest.map {
+        val hero = latest.take(10).map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) }
+        withContext(Dispatchers.Main) { applyMissavData(hero, latest.map {
             Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, type = "JAV")
         }, ongoing, popular, uncensored) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
-            hero = latest.map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) },
+            hero = hero,
             latestEpisodes = latest.map { Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },
             category1 = ongoing, category2 = popular, category3 = emptyList(), category4 = emptyList()
         )

@@ -24,89 +24,24 @@
                 android:orientation="vertical"
                 android:paddingBottom="16dp">
 
-                <!-- Header / Hero Banner -->
+                <!-- Hero Banner (auto-scroll slider) -->
                 <FrameLayout
-                    android:id="@+id/heroContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="260dp"
-                    android:background="@color/netflix_black">
+                    android:layout_height="wrap_content">
 
-                    <ImageView
-                        android:id="@+id/ivHero"
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/vpHero"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop" />
+                        android:layout_height="260dp" />
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/gradient_bottom" />
-
+                    <!-- Dot indicators -->
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:id="@+id/dotContainer"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:id="@+id/tvHeroTitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/white"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:maxLines="2"
-                            android:ellipsize="end" />
-
-                        <TextView
-                            android:id="@+id/tvHeroEpisode"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/netflix_text_secondary"
-                            android:textSize="12sp"
-                            android:layout_marginTop="4dp" />
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="8dp">
-
-                            <TextView
-                                android:id="@+id/btnHeroPlay"
-                                android:layout_width="wrap_content"
-                                android:layout_height="36dp"
-                                android:background="@color/white"
-                                android:gravity="center"
-                                android:paddingStart="24dp"
-                                android:paddingEnd="24dp"
-                                android:text="@string/play"
-                                android:textColor="@color/black"
-                                android:textSize="13sp"
-                                android:textStyle="bold"
-                                android:drawableStart="@drawable/ic_ongoing_active"
-                                android:drawablePadding="6dp" />
-
-                            <TextView
-                                android:id="@+id/btnHeroDetail"
-                                android:layout_width="wrap_content"
-                                android:layout_height="36dp"
-                                android:background="@color/netflix_surface_light"
-                                android:gravity="center"
-                                android:paddingStart="24dp"
-                                android:paddingEnd="24dp"
-                                android:layout_marginStart="8dp"
-                                android:text="@string/info"
-                                android:textColor="@color/white"
-                                android:textSize="13sp"
-                                android:drawableStart="@drawable/ic_info"
-                                android:drawablePadding="6dp"
-                                android:drawableTint="@color/white" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal" />
 
                 </FrameLayout>
 

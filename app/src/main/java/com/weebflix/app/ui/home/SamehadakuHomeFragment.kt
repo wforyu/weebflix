@@ -1,7 +1,11 @@
 package com.weebflix.app.ui.home
 
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.bumptech.glide.Glide
+import androidx.viewpager2.widget.ViewPager2
 import com.weebflix.app.R
 import com.weebflix.app.WeebFlixApp
 import com.weebflix.app.data.model.Anime
@@ -22,6 +26,7 @@ import com.weebflix.app.data.model.WatchHistoryManager
 import com.weebflix.app.data.provider.ProviderFactory
 import com.weebflix.app.ui.adapter.AnimeAdapter
 import com.weebflix.app.ui.adapter.ContinueWatchingAdapter
+import com.weebflix.app.ui.adapter.HeroPagerAdapter
 import com.weebflix.app.ui.adapter.LatestEpisodeAdapter
 import com.weebflix.app.ui.detail.AnimeDetailActivity
 import com.weebflix.app.ui.detail.CategoryGridActivity
@@ -44,17 +49,15 @@ class SamehadakuHomeFragment : Fragment() {
     private lateinit var headerLatestEpisodes: View
     private lateinit var headerOngoingAnime: View
     private lateinit var headerPopularAnime: View
-    private lateinit var ivHero: android.widget.ImageView
-    private lateinit var tvHeroTitle: TextView
-    private lateinit var tvHeroEpisode: TextView
-    private lateinit var btnHeroPlay: TextView
+    private lateinit var vpHero: ViewPager2
+    private lateinit var dotContainer: LinearLayout
 
     private lateinit var latestAdapter: LatestEpisodeAdapter
     private lateinit var ongoingAdapter: AnimeAdapter
     private lateinit var popularAdapter: AnimeAdapter
     private lateinit var continueWatchingAdapter: ContinueWatchingAdapter
 
-    private var heroEpisode: Episode? = null
+    private val heroItems = mutableListOf<Anime>()
 
     private val latestItems = mutableListOf<Episode>()
     private val ongoingItems = mutableListOf<Anime>()
@@ -71,6 +74,17 @@ class SamehadakuHomeFragment : Fragment() {
     private var latestHasMore = true
     private var ongoingHasMore = true
     private var popularHasMore = true
+
+    private val heroHandler = Handler(Looper.getMainLooper())
+    private val heroRunnable = object : Runnable {
+        override fun run() {
+            if (vpHero.adapter != null && heroItems.isNotEmpty()) {
+                val next = (vpHero.currentItem + 1) % heroItems.size
+                vpHero.currentItem = next
+            }
+            heroHandler.postDelayed(this, 4000L)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -94,34 +108,17 @@ class SamehadakuHomeFragment : Fragment() {
         headerLatestEpisodes = view.findViewById(R.id.headerLatestEpisodes)
         headerOngoingAnime = view.findViewById(R.id.headerOngoingAnime)
         headerPopularAnime = view.findViewById(R.id.headerPopularAnime)
-        ivHero = view.findViewById(R.id.ivHero)
-        tvHeroTitle = view.findViewById(R.id.tvHeroTitle)
-        tvHeroEpisode = view.findViewById(R.id.tvHeroEpisode)
-        btnHeroPlay = view.findViewById(R.id.btnHeroPlay)
+        vpHero = view.findViewById(R.id.vpHero)
+        dotContainer = view.findViewById(R.id.dotContainer)
 
         swipeRefresh.setColorSchemeResources(R.color.netflix_red)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.netflix_surface)
 
         setupRecyclerViews()
+        setupHero()
 
         swipeRefresh.setOnRefreshListener {
             resetAndLoad()
-        }
-
-        btnHeroPlay.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
-                startActivity(intent)
-            }
-        }
-
-        view.findViewById<View>(R.id.btnHeroDetail)?.setOnClickListener {
-            heroEpisode?.let { ep ->
-                val intent = Intent(requireContext(), AnimeDetailActivity::class.java)
-                intent.putExtra("url", ep.url)
-                startActivity(intent)
-            }
         }
 
         val openCategory = { cat: String, title: String ->
@@ -136,6 +133,76 @@ class SamehadakuHomeFragment : Fragment() {
 
         loadData()
     }
+
+    override fun onResume() {
+        super.onResume()
+        heroHandler.postDelayed(heroRunnable, 4000L)
+        if (::continueWatchingAdapter.isInitialized) loadContinueWatching()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        heroHandler.removeCallbacks(heroRunnable)
+    }
+
+    private fun setupHero() {
+        vpHero.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                updateDots(position)
+            }
+        })
+        vpHero.isFocusable = true
+        vpHero.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && heroItems.size > 1) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem + 1) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        vpHero.setCurrentItem((vpHero.currentItem - 1 + heroItems.size) % heroItems.size, true)
+                        restartHeroAutoScroll()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        val rv = vpHero.getChildAt(0) as? RecyclerView
+                        val current = rv?.layoutManager?.findViewByPosition(vpHero.currentItem)
+                        current?.performClick()
+                        true
+                    }
+                    else -> false
+                }
+            } else false
+        }
+    }
+
+    private fun restartHeroAutoScroll() {
+        heroHandler.removeCallbacks(heroRunnable)
+        heroHandler.postDelayed(heroRunnable, 4000L)
+    }
+
+    private fun updateDots(position: Int) {
+        dotContainer.removeAllViews()
+        val count = heroItems.size.coerceAtMost(8)
+        if (count <= 1) { dotContainer.visibility = View.GONE; return }
+        dotContainer.visibility = View.VISIBLE
+        for (i in 0 until count) {
+            val dot = View(requireContext()).apply {
+                val size = 8.dpToPx()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginStart = if (i == 0) 0 else 4.dpToPx()
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (i == position) 0xFFE50914.toInt() else 0x80FFFFFF.toInt())
+                }
+            }
+            dotContainer.addView(dot)
+        }
+    }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun resetAndLoad() {
         latestItems.clear()
@@ -248,7 +315,7 @@ class SamehadakuHomeFragment : Fragment() {
 
                 val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.SAMEHADAKU_ID)
                 if (cached != null && isAdded) {
-                    applySamehadakuData(cached.latestEpisodes.map {
+                    applySamehadakuData(cached.hero, cached.latestEpisodes.map {
                         com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
                     }, cached.category1.map {
                         com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
@@ -261,7 +328,7 @@ class SamehadakuHomeFragment : Fragment() {
 
                 val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.SAMEHADAKU_ID)
                 if (diskCached != null && isAdded) {
-                    applySamehadakuData(diskCached.latestEpisodes.map {
+                    applySamehadakuData(diskCached.hero, diskCached.latestEpisodes.map {
                         com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
                     }, diskCached.category1.map {
                         com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
@@ -274,7 +341,7 @@ class SamehadakuHomeFragment : Fragment() {
 
                 val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.SAMEHADAKU_ID) }
                 if (ghData != null && isAdded) {
-                    applySamehadakuData(ghData.latestEpisodes.map {
+                    applySamehadakuData(ghData.hero, ghData.latestEpisodes.map {
                         com.weebflix.app.data.model.Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
                     }, ghData.category1.map {
                         com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
@@ -296,7 +363,7 @@ class SamehadakuHomeFragment : Fragment() {
         }
     }
 
-    private fun applySamehadakuData(latest: List<com.weebflix.app.data.model.Episode>, ongoing: List<com.weebflix.app.data.model.Anime>, popular: List<com.weebflix.app.data.model.Anime>) {
+    private fun applySamehadakuData(hero: List<com.weebflix.app.data.model.Anime>, latest: List<com.weebflix.app.data.model.Episode>, ongoing: List<com.weebflix.app.data.model.Anime>, popular: List<com.weebflix.app.data.model.Anime>) {
         if (!isAdded) return
         loadingLayout.visibility = View.GONE
         swipeRefresh.isRefreshing = false
@@ -305,14 +372,20 @@ class SamehadakuHomeFragment : Fragment() {
         popularItems.clear(); popularItems.addAll(popular)
         latestHasMore = latest.isNotEmpty(); ongoingHasMore = ongoing.isNotEmpty(); popularHasMore = popular.isNotEmpty()
         latestPage = 1; ongoingPage = 1; popularPage = 1
-        if (latestItems.isNotEmpty()) {
-            heroEpisode = latestItems.first()
-            tvHeroTitle.text = heroEpisode?.title
-            val epNum = heroEpisode?.episodeNumber?.takeIf { it.isNotEmpty() }
-            val epDate = heroEpisode?.uploadDate?.takeIf { it.isNotEmpty() }
-            tvHeroEpisode.text = when { epNum != null && epDate != null -> "Episode $epNum - $epDate"; epNum != null -> "Episode $epNum"; else -> "" }
-            if (heroEpisode?.imageUrl?.isNotEmpty() == true) { Glide.with(requireContext()).load(heroEpisode?.imageUrl).centerCrop().into(ivHero) }
+        val heroList = if (hero.isNotEmpty()) hero else latest.take(10).map {
+            com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber)
         }
+        heroItems.clear(); heroItems.addAll(heroList)
+        vpHero.adapter = HeroPagerAdapter(heroItems,
+            onClick = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) },
+            onPlay = { anime -> startActivity(Intent(requireContext(), PlayerActivity::class.java).apply {
+                putExtra("url", anime.url); putExtra("title", anime.title); putExtra("episodeNumber", anime.episode)
+                putExtra("animeTitle", anime.title); putExtra("imageUrl", anime.imageUrl); putExtra("animeUrl", anime.url)
+                putExtra("providerId", ProviderFactory.SAMEHADAKU_ID)
+            }) },
+            onInfo = { anime -> startActivity(Intent(requireContext(), AnimeDetailActivity::class.java).apply { putExtra("url", anime.url) }) }
+        )
+        if (heroList.size > 1) { vpHero.setCurrentItem(1, false); heroHandler.removeCallbacks(heroRunnable); heroHandler.postDelayed(heroRunnable, 4000L) }
         latestAdapter.submitList(latestItems.toList()); ongoingAdapter.submitList(ongoingItems.toList()); popularAdapter.submitList(popularItems.toList())
         loadContinueWatching()
     }
@@ -322,9 +395,10 @@ class SamehadakuHomeFragment : Fragment() {
         val ongoing = withContext(Dispatchers.IO) { provider.getOngoingAnime(1) }
         val popular = withContext(Dispatchers.IO) { provider.getPopularAnime(1) }
         if (!isAdded) return
-        withContext(Dispatchers.Main) { applySamehadakuData(latest, ongoing, popular) }
+        val hero = latest.take(10).map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) }
+        withContext(Dispatchers.Main) { applySamehadakuData(hero, latest, ongoing, popular) }
         val cacheData = com.weebflix.app.data.model.ProviderDataCache.CachedHomeData(
-            hero = latest.take(10).map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber) },
+            hero = hero,
             latestEpisodes = latest.map { com.weebflix.app.data.model.Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episodeNumber, score = it.uploadDate) },
             category1 = ongoing, category2 = popular, category3 = emptyList(), category4 = emptyList()
         )
