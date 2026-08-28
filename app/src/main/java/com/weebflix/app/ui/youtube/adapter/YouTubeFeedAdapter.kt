@@ -98,7 +98,8 @@ object YouTubeFormat {
  */
 class YouTubeFeedAdapter(
     private val onVideoClick: (YouTubeVideo) -> Unit,
-    private val onChannelClick: ((YouTubeVideo) -> Unit)? = null
+    private val onChannelClick: ((YouTubeVideo) -> Unit)? = null,
+    private val sharedVideos: MutableList<YouTubeVideo>? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private companion object {
@@ -107,7 +108,10 @@ class YouTubeFeedAdapter(
         const val TYPE_SECTION = 2
     }
 
-    private val videos = mutableListOf<YouTubeVideo>()
+    // Two adapters (the feed below the player and the GoTube-style fullscreen queue) can share
+    // one backing list so appends to one are instantly visible in the other. Callers that share
+    // a list must notify the second adapter after mutating the first (see syncYtFullscreenFeed).
+    private val videos = sharedVideos ?: mutableListOf<YouTubeVideo>()
     private var loading = false
     private var ended = false
 

@@ -75,6 +75,8 @@
     <string name="youtube">YouTube</string>
     <string name="history">Histori</string>
     <string name="yt_related_title">Rekomendasi</string>
+    <string name="yt_fullscreen_feed_title">Berikutnya (%1$d)</string>
+    <string name="yt_fullscreen_feed_hide">Tutup daftar</string>
     <string name="yt_subscriptions">Langganan</string>
     <string name="yt_comments_title">Komentar</string>
     <string name="yt_subscribe">Berlangganan</string>

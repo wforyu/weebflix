@@ -196,10 +196,21 @@
             android:contentDescription="Seek" />
 
         <TextView
-            android:id="@+id/seekText"
+            android:id="@+id/seekTimeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:textColor="@color/white"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/seekText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:textColor="@color/white"
             android:textSize="14sp"
             android:text="+10s" />
@@ -603,6 +614,62 @@
                     android:layout_marginStart="6dp" />
 
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- YouTube fullscreen feed panel (GoTube-style queue): right-side list of related
+             videos shown while a YouTube video is fullscreen AND the player controls are on.
+             Tap a row to play it immediately. -->
+        <LinearLayout
+            android:id="@+id/ytFullscreenPanel"
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:layout_marginTop="56dp"
+            android:layout_marginBottom="80dp"
+            android:background="#CC141414"
+            android:clickable="true"
+            android:elevation="6dp"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:id="@+id/ytFsFeedHeader"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/yt_fullscreen_feed_title"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <ImageView
+                    android:id="@+id/btnYtFsClose"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_close"
+                    android:contentDescription="@string/yt_fullscreen_feed_hide"
+                    android:scaleType="centerInside" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/ytFullscreenList"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="12dp" />
         </LinearLayout>
 
         </FrameLayout>

@@ -44,6 +44,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -80,6 +81,11 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PlayerActivity"
+        // Hold-seek arming slop (~25px, squared) — any real finger drift beyond this cancels the
+        // pending hold and the drag is classified normally (volume/brightness/seek). Deliberately
+        // LARGER than GestureDetector's internal touch-slop so our 320ms hold timer keeps claim
+        // priority over the scroll classifier instead of the other way round.
+        private const val HOLD_SLOP_UNSIGNED_SQUARED = 625f
 
         private val drakorP2pHosts: MutableSet<String> = java.util.Collections.synchronizedSet(java.util.LinkedHashSet<String>())
 
@@ -326,6 +332,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var seekIndicator: LinearLayout
     private lateinit var seekIcon: ImageView
     private lateinit var seekText: TextView
+    private lateinit var seekTimeText: TextView
     private lateinit var zoomIndicator: LinearLayout
     private lateinit var zoomText: TextView
     private var pinchOverlayRef: View? = null
@@ -358,6 +365,14 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var ytDetailMeta: TextView
     private lateinit var ytRelatedList: RecyclerView
     private lateinit var ytRelatedAdapter: YouTubeFeedAdapter
+    private lateinit var ytFullscreenPanel: View
+    private lateinit var ytFullscreenList: RecyclerView
+    private lateinit var ytFullscreenAdapter: YouTubeFeedAdapter
+    private lateinit var btnYtFsClose: ImageView
+    private lateinit var ytFsFeedHeader: TextView
+    // The related list below the player and the GoTube-style fullscreen queue share one backing
+    // list; appending to one refreshes the other via notifyDataSetChanged() (syncYtFullscreenFeed).
+    private val ytRelatedItems = mutableListOf<YouTubeVideo>()
     private lateinit var ytActionRow: View
     private lateinit var ytLikeCount: TextView
     private lateinit var btnYtLike: android.widget.ImageButton
@@ -575,6 +590,7 @@ class PlayerActivity : AppCompatActivity() {
 
         initViews()
         setupYtRelatedList()
+        setupYtFullscreenFeed()
         setupYtComments()
         setupYtFeedScroll()
         setupYtHomeList()
@@ -714,6 +730,7 @@ class PlayerActivity : AppCompatActivity() {
         seekIndicator = findViewById(R.id.seekIndicator)
         seekIcon = findViewById(R.id.seekIcon)
         seekText = findViewById(R.id.seekText)
+        seekTimeText = findViewById(R.id.seekTimeText)
         zoomIndicator = findViewById(R.id.zoomIndicator)
         zoomText = findViewById(R.id.zoomText)
 
@@ -723,6 +740,10 @@ class PlayerActivity : AppCompatActivity() {
         ytDetailTitle = findViewById(R.id.ytDetailTitle)
         ytDetailMeta = findViewById(R.id.ytDetailMeta)
         ytRelatedList = findViewById(R.id.ytRelatedList)
+        ytFullscreenPanel = findViewById(R.id.ytFullscreenPanel)
+        ytFullscreenList = findViewById(R.id.ytFullscreenList)
+        btnYtFsClose = findViewById(R.id.btnYtFsClose)
+        ytFsFeedHeader = findViewById(R.id.ytFsFeedHeader)
         ytActionRow = findViewById(R.id.ytActionRow)
         ytLikeCount = findViewById(R.id.ytLikeCount)
         btnYtLike = findViewById(R.id.btnYtLike)
@@ -758,10 +779,34 @@ class PlayerActivity : AppCompatActivity() {
     private fun setupYtRelatedList() {
         ytRelatedAdapter = YouTubeFeedAdapter(
             { video -> playYouTubeByVideo(video) },
-            { video -> openChannelFromVideo(video) }
+            { video -> openChannelFromVideo(video) },
+            ytRelatedItems // share the backing list with the fullscreen queue
         )
         ytRelatedList.layoutManager = LinearLayoutManager(this)
         ytRelatedList.adapter = ytRelatedAdapter
+    }
+
+    /** GoTube-style fullscreen feed: a right-side vertical queue of the SAME related videos a
+     *  user expects ("Berikutnya"). It only exists on-screen while a YouTube video is playing in
+     *  fullscreen and the player controls are visible (like GoTube's mini panel). Tapping a row
+     *  switches video immediately. */
+    private fun setupYtFullscreenFeed() {
+        ytFullscreenAdapter = YouTubeFeedAdapter(
+            { video -> playYouTubeByVideo(video) },
+            { video -> openChannelFromVideo(video) },
+            ytRelatedItems // same backing list → stays in sync with the related feed
+        )
+        ytFullscreenList.layoutManager = LinearLayoutManager(this)
+        ytFullscreenList.adapter = ytFullscreenAdapter
+        ytFullscreenList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                val lm = recyclerView.layoutManager as LinearLayoutManager
+                if (lm.findLastVisibleItemPosition() >= ytRelatedItems.size - 4) {
+                    loadMoreRelated()
+                }
+            }
+        })
+        btnYtFsClose.setOnClickListener { hideControls() }
     }
 
     private fun setupYtComments() {
@@ -3998,10 +4043,10 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    5_000,     // minBufferMs (5s — minimal buffer)
-                    20_000,    // maxBufferMs (20s — tight cap, fewer concurrent segment requests to avoid 429)
-                    3_000,     // bufferForPlaybackMs (3s initial buffer before play)
-                    2_000      // bufferForPlaybackAfterRebufferMs (2s after rebuffer)
+                    15_000,    // minBufferMs (15s — buffer runway for 2x hold-seek; CDN sustains ~1.4-1.8x so a 10s head start drains in ~13s)
+                    60_000,    // maxBufferMs (60s; grows when bandwidth exceeds consumption)
+                    8_000,     // bufferForPlaybackMs (8s initial buffer before play)
+                    5_000      // bufferForPlaybackAfterRebufferMs (5s after rebuffer)
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
@@ -4142,8 +4187,100 @@ class PlayerActivity : AppCompatActivity() {
     private var gestureStartY: Float = 0f
     private var gestureStartX: Float = 0f
     private var isGestureActive: Boolean = false
-    private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek, 4=collapse, 5=fullscreen-swipe
+    private var gestureType: Int = 0 // 0=none, 1=brightness, 2=volume, 3=seek, 4=collapse, 5=fullscreen-swipe, 6=hold-seek
     private var fullscreenSwipeFired = false
+
+    // Press-and-hold seek (Telegram/YouTube-style): long-press on the RIGHT half of the video
+    // starts ACTUALLY fast-forwarding the playback (e.g. 2x) — the video really speeds up like
+    // Telegram. Releasing returns to the original speed and the video continues normally from
+    // wherever it is, with NO artificial seek jump (which is why the earlier ticker version felt
+    // wrong — it faked a jump on release while the video kept playing underneath).
+    private var holdSeekActive = false
+    private var holdSeekOriginalParams: PlaybackParameters? = null
+    private var holdSeekStartMs = 0L
+    private var holdSeekRampLevel = 2
+    private val holdSeekRampMs = 3_000L
+    private val holdSeekMaxLevel = 5
+    private val holdSeekSpeed = 2f // x2 while held — Telegram's actual rate. Ramp steps up one
+    // level every holdSeekRampMs of continuous holding (2x → 3x → 4x → 5x). Discrete steps at
+    // ~3s intervals, NOT a per-tick ticker: changing playback parameters mid-hold repeatedly
+    // (an earlier adaptive ticker eased the speed off/on with the buffer margin every 250ms)
+    // makes ExoPlayer reconfigure the renderers → the video looked choppy/"loncat-loncat".
+    // The hold is armed on ACTION_DOWN with an OWN short timer (320ms) instead of relying on
+    // GestureDetector.onLongPress (500ms): GD cancels its long-press the instant the finger
+    // crosses touch-slop and re-classifies the gesture as a volume swipe — the "hold-seek
+    // kadang bentrok sama volume" bug. Our own timer claims the hold FIRST and blocks the
+    // volume/brightness/seek classification, and any volume drift caused by pre-hold micro-jitter
+    // is rolled back when the hold engages.
+    private val holdSeekHandler = Handler(Looper.getMainLooper())
+    private var holdSeekPending = false
+    private var holdSeekDownX = 0f
+    private var holdSeekDownY = 0f
+    private var holdSeekDownVolumeFloat = 0f
+    private val holdSeekFireRunnable = object : Runnable {
+        override fun run() {
+            holdSeekPending = false
+            fireHoldSeek(holdSeekDownX, holdSeekDownY)
+        }
+    }
+    // Diagnostic: while a hold is active, log position/speed/buffer every 250ms so a live
+    // logcat can show whether 2x actually advances smoothly (each tick +~500ms media) or
+    // stepwise/stalled. Removed later once the math is confirmed.
+    private val holdSeekPosRunnable = object : Runnable {
+        override fun run() {
+            if (!holdSeekActive) return
+            val player = exoPlayer
+            if (player != null) {
+                val buffered = player.bufferedPosition - player.currentPosition
+                val speed = player.playbackParameters.speed
+                Log.d(TAG, "hold-seek t+ pos=${player.currentPosition}ms speed=$speed buffered=${buffered}ms playing=${player.isPlaying}")
+                // Ramp: one speed level up every holdSeekRampMs of CONTINUOUS holding (2x → 3x →
+                // 4x → 5x). Discrete step per 3s — no per-tick reconfiguration → no frame jank.
+                val heldMs = SystemClock.uptimeMillis() - holdSeekStartMs
+                val targetLevel = when {
+                    heldMs >= holdSeekRampMs * (holdSeekMaxLevel - 2) -> holdSeekMaxLevel
+                    heldMs >= holdSeekRampMs * 2 -> 4
+                    heldMs >= holdSeekRampMs -> 3
+                    else -> 2
+                }
+                holdSeekRampLevel = targetLevel
+                // Buffer guard: a long hold drains buffer ~0.6s/s wall (CDN sustains only ~1.4-1.8x),
+                // so from a ~10-15s head start the buffer hits 0 after ~10-15s and playback FREEZES
+                // ("nggak jalan sama sekali") even while the finger stays down. Step the speed down
+                // ONCE (discrete, not a per-tick ticker → no reconfig jank) when the buffer runs thin,
+                // and back up to the ramp target once it recovers (hysteresis 6s/10s). At 1.5x
+                // consumption ~= CDN rate, so the hold can keep moving indefinitely instead of stalling.
+                if (buffered < 6_000L && speed >= 1.9f) {
+                    player.setPlaybackParameters(PlaybackParameters(1.5f, player.playbackParameters.pitch))
+                    Log.d(TAG, "hold-seek buffer low (${buffered}ms) -> step down to 1.5x")
+                } else if (buffered > 10_000L && speed <= 1.6f) {
+                    player.setPlaybackParameters(PlaybackParameters(targetLevel.toFloat(), player.playbackParameters.pitch))
+                    Log.d(TAG, "hold-seek buffer ok (${buffered}ms) -> x$targetLevel")
+                } else if (speed >= 1.9f && Math.abs(speed - targetLevel) > 0.05f) {
+                    player.setPlaybackParameters(PlaybackParameters(targetLevel.toFloat(), player.playbackParameters.pitch))
+                    Log.d(TAG, "hold-seek ramp ${speed}x -> x$targetLevel (buffered=${buffered}ms)")
+                }
+                val shownSpeed = player.playbackParameters.speed
+                val badge = when {
+                    shownSpeed >= holdSeekMaxLevel - 0.05f -> "x$holdSeekMaxLevel"
+                    shownSpeed >= 1.85f -> "x${(shownSpeed + 0.05f).toInt()}"
+                    shownSpeed >= 1.45f -> "x1.5"
+                    else -> "x${(shownSpeed + 0.05f).toInt()}"
+                }
+                seekText.text = "$badge ⏩"
+                updateHoldSeekTime(player)
+            }
+            holdSeekHandler.postDelayed(this, 250)
+        }
+    }
+    // While holding we ALSO drop the video track to <=480p (only for adaptive multi-format
+    // sources; progressive MP4/TS stays untouched). At 2x the phone decoder can't keep up with
+    // 1080p/720p, so rugby the player drops whole frames and the fast-forward "counts per second"
+    // instead of moving smoothly. A <480p track decodes with huge headroom → buttery motion like
+    // Telegram/YouTube's built-in fast-forward. The exact prior selection (incl. any gear override)
+    // is restored on release.
+    private var holdVideoRendererIndex = -1
+    private var holdVideoPriorOverride: DefaultTrackSelector.SelectionOverride? = null
 
     // Pinch-to-zoom (all providers, runs anytime the video surface is visible). Applied to the
     // visible video surface (playerView for ExoPlayer, webView for WebView playback, or the
@@ -4204,7 +4341,12 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
 
+            // Hold-seek uses PlayerActivity's OWN short timer (armed on ACTION_DOWN in the touch
+            // listener), NOT GestureDetector.onLongPress (500ms) — GD cancels its long-press the
+            // moment the finger crosses touch-slop and mis-routes the intent into a volume swipe.
+
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (holdSeekActive) return true
                 val isVertical = abs(velocityY) > abs(velocityX) * 1.5f
 
                 // Swipe up → enter fullscreen (GoTube-style). YouTube portrait is the real
@@ -4333,6 +4475,7 @@ class PlayerActivity : AppCompatActivity() {
                     1 -> handleBrightnessGesture(distanceY)
                     2 -> handleVolumeGesture(distanceY)
                     3 -> handleSeekGesture(gestureStartX, e2.x)
+                    // 6 = hold-seek: no drag handling, the video just plays at x3 while held
                 }
                 return true
             }
@@ -4340,6 +4483,11 @@ class PlayerActivity : AppCompatActivity() {
 
         pinchScaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                // While a hold-seek is active the ENTIRE gesture area is reserved for the
+                // fast-forward — a pinch attempt must never resize the video under the holding
+                // finger (the "zoom bentrok saat hold" bug). Rejecting begin means onScale never
+                // fires, so the video keeps its current zoom and the hold keeps speeding.
+                if (holdSeekActive) return false
                 videoZoomBase = videoZoom
                 videoZoomPeak = videoZoom
                 // Pinch focus is captured once at the START of the gesture (not re-read every
@@ -4407,13 +4555,21 @@ class PlayerActivity : AppCompatActivity() {
             pinchOverlayRef = gestureOverlay
 
             // Two or more fingers down = pinch-zoom intent. Drop any in-progress single-finger
-            // gesture (seek/volume/brightness/collapse) immediately so the pinch never fires a
-            // seek on release and doesn't fight the seek indicator. Without this, a 2-finger
-            // pinch that starts as a 1-finger drag keeps its sticky seek gesture and seeks on
-            // lift — the "zoom conflicts with the duration swipe" bug.
+            // gesture (seek/volume/brightness/collapse/hold-seek) immediately so the pinch never
+            // fires a seek on release and doesn't fight the seek indicator. Without this, a
+            // 2-finger pinch that starts as a 1-finger drag keeps its sticky seek gesture and
+            // seeks on lift — the "zoom conflicts with the duration swipe" bug.
+            // An ACTIVE hold-seek is EXEMPT: Telegram/YouTube don't drop the fast-forward when a
+            // second finger (palm/thumb graze, pinch attempt) lands. The extra finger is ignored,
+            // the pinch is blocked (see onScaleBegin), and the hold runs until the PRIMARY finger
+            // lifts. Before the hold has engaged (still pending) a second finger still aborts it
+            // like any normal pinch intent.
             if (pointerCount >= 2) {
                 suppressSingleAfterPinch = true
-                cancelSingleFingerGesture()
+                cancelPendingHold()
+                if (!holdSeekActive) {
+                    cancelSingleFingerGesture()
+                }
             }
 
             pinchScaleDetector?.onTouchEvent(event)
@@ -4427,12 +4583,38 @@ class PlayerActivity : AppCompatActivity() {
                 gestureDetector.onTouchEvent(event)
             }
 
+            // ARM the hold-seek on finger-down. We don't use GestureDetector.onLongPress because
+            // it backs out the moment the finger crosses touch-slop (a ~500ms wait the mic-rotor
+            // almost always loses → the hold intent steals a volume swipe instead). Our own 320ms
+            // timer engages the hold first, then the volume/brightness/seek scroll classifier
+            // never gets to claim the gesture. The timer is cancelled if the finger actually
+            // moves (that's a real swipe) or lifts.
+            if (action == MotionEvent.ACTION_DOWN && pointerCount == 1 && !isTvMode && !holdSeekPending) {
+                holdSeekDownX = event.x
+                holdSeekDownY = event.y
+                holdSeekDownVolumeFloat = volumeFloat
+                holdSeekPending = true
+                holdSeekHandler.removeCallbacks(holdSeekFireRunnable)
+                holdSeekHandler.postDelayed(holdSeekFireRunnable, 320)
+            } else if (action == MotionEvent.ACTION_MOVE && holdSeekPending && !holdSeekActive) {
+                val dx = event.x - holdSeekDownX
+                val dy = event.y - holdSeekDownY
+                if (dx * dx + dy * dy > HOLD_SLOP_UNSIGNED_SQUARED) cancelPendingHold()
+            }
+
             if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                cancelPendingHold()
                 suppressSingleAfterPinch = false
                 fullscreenSwipeFired = false
                 if (isSeekingGesture) {
                     isSeekingGesture = false
                     seekBy(seekDelta.toFloat())
+                    hideSeekIndicator()
+                }
+                if (holdSeekActive) {
+                    Log.d(TAG, "hold-seek lift (primary finger up)")
+                    holdSeekActive = false
+                    restoreHoldSeekSpeed()
                     hideSeekIndicator()
                 }
                 hideBrightnessIndicator()
@@ -4443,8 +4625,10 @@ class PlayerActivity : AppCompatActivity() {
                 isSeekingGesture = false
             } else if (action == MotionEvent.ACTION_POINTER_UP) {
                 // One finger lifted. If fewer than 2 remain the pinch is over — drop the stale
-                // single-finger state so the leftover finger can't be mistaken for a seek.
-                if (event.pointerCount - 1 < 2) {
+                // single-finger state so the leftover finger can't be mistaken for a seek. An
+                // ACTIVE hold-seek is left running (the primary finger is still down — the lifted
+                // one was the accidental extra finger).
+                if (event.pointerCount - 1 < 2 && !holdSeekActive) {
                     cancelSingleFingerGesture()
                 }
             }
@@ -4452,12 +4636,17 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /** Aborts an in-progress single-finger gesture (seek/volume/brightness/collapse) without
-     *  applying any accumulated effect. Called when a second finger lands (pinch start) or a
-     *  pinch finger lifts back to a single finger. */
+    /** Aborts an in-progress single-finger gesture (seek/volume/brightness/collapse/hold-seek)
+     *  without applying any accumulated effect. Called when a second finger lands (pinch start)
+     *  or a pinch finger lifts back to a single finger. */
     private fun cancelSingleFingerGesture() {
-        if (!isGestureActive && !isSeekingGesture && gestureType == 0 && seekDelta == 0L) return
+        if (!isGestureActive && !isSeekingGesture && gestureType == 0 && seekDelta == 0L && !holdSeekActive) return
         fullscreenSwipeFired = false
+        if (holdSeekActive) {
+            Log.d(TAG, "hold-seek abort (single-finger gesture cancelled)")
+            holdSeekActive = false
+            restoreHoldSeekSpeed()
+        }
         isSeekingGesture = false
         seekDelta = 0L
         isGestureActive = false
@@ -4739,6 +4928,154 @@ class PlayerActivity : AppCompatActivity() {
         showSeekIndicator(seekDelta >= 0, seekText.text.toString())
     }
 
+    // ===== Hold-seek (Telegram-style press-and-hold on the right half) =====
+
+    private fun fireHoldSeek(x: Float, y: Float) {
+        if (holdSeekActive) return
+        if (isTvMode || ytMiniCollapsed || isWebViewPlayback) return
+        val player = exoPlayer ?: return
+        // Long-press in the top/bottom bar dead zones is reserved for the bars themselves.
+        val deadZoneTop = topBar.height + 10
+        val deadZoneBottom = gestureDeadZoneBottom()
+        if (y < deadZoneTop || y > deadZoneBottom) return
+        // Only the RIGHT half starts the hold-seek (left half keeps double-tap quick seek, and
+        // a quick stationary long-press here previously did nothing).
+        if (x < gestureOverlay.width * 0.5f) return
+        // Need actual playback to fast-forward — nothing happens while paused.
+        if (!player.isPlaying) return
+        // The finger is still and the hold engaged — undo any volume already nudged by the
+        // gesture-detector's micro-jitter that sneaked in before our shorter timer fired
+        // (the "hold-seek bentrok sama swipe volume" bug). Restores OUR accumulated float to the
+        // value captured at touch-down and syncs the stream volume back to it.
+        if (abs(volumeFloat - holdSeekDownVolumeFloat) > 0.01f) {
+            volumeFloat = holdSeekDownVolumeFloat
+            val restoreVol = volumeFloat.toInt().coerceIn(0, maxVolume)
+            if (restoreVol != currentVolume) {
+                currentVolume = restoreVol
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, restoreVol, 0)
+            }
+        }
+        holdSeekActive = true
+        holdSeekStartMs = SystemClock.uptimeMillis()
+        holdSeekRampLevel = 2
+        holdSeekOriginalParams = player.playbackParameters
+        player.setPlaybackParameters(PlaybackParameters(holdSeekSpeed, player.playbackParameters.pitch))
+        isGestureActive = true
+        gestureType = 6
+        Log.d(TAG, "hold-seek ON (pos=${player.currentPosition}ms) speed=$holdSeekSpeed buffered=${player.bufferedPosition - player.currentPosition}ms")
+        seekText.text = "x${holdSeekSpeed.toInt()} ⏩"
+        showSeekIndicator(true, seekText.text.toString())
+        updateHoldSeekTime(player)
+        applyHoldLowTrack()
+        holdSeekHandler.removeCallbacks(holdSeekPosRunnable)
+        holdSeekHandler.post(holdSeekPosRunnable)
+    }
+
+    /** Snap the video down to a <=480p rendition while holding so 2x decode stays smooth on
+     *  mid-range phones. Adaptive streams only (groups with a single format, i.e. progressive
+     *  MP4/TS, are left alone). */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun applyHoldLowTrack() {
+        val ts = (exoPlayer?.trackSelector) as? DefaultTrackSelector ?: return
+        val mapped = ts.currentMappedTrackInfo ?: return
+        var videoRendererIndex = -1
+        for (r in 0 until mapped.rendererCount) {
+            if (mapped.getRendererType(r) == C.TRACK_TYPE_VIDEO) {
+                videoRendererIndex = r
+                break
+            }
+        }
+        if (videoRendererIndex < 0) return
+        val groups = mapped.getTrackGroups(videoRendererIndex)
+        if (groups.length == 0 || groups.get(0).length <= 1) return
+
+        holdVideoRendererIndex = videoRendererIndex
+        // Snapshot the CURRENT selection for this group (user's gear choice or null = adaptive
+        // auto) so releasing puts back exactly what was there.
+        holdVideoPriorOverride = ts.parameters.getSelectionOverride(videoRendererIndex, groups)
+
+        val group = groups.get(0)
+        var pick = -1
+        var pickHeight = Int.MAX_VALUE
+        var under480 = -1
+        var under480H = 0
+        for (i in 0 until group.length) {
+            val h = group.getFormat(i).height
+            if (h in 1..480 && h > under480H) {
+                under480 = i
+                under480H = h
+            }
+            if (h in 1 until pickHeight) {
+                pickHeight = h
+                pick = i
+            }
+        }
+        if (under480 >= 0) pick = under480
+        if (pick < 0) {
+            holdVideoRendererIndex = -1
+            holdVideoPriorOverride = null
+            return
+        }
+        try {
+            ts.parameters = ts.parameters.buildUpon()
+                .setSelectionOverride(videoRendererIndex, groups, DefaultTrackSelector.SelectionOverride(0, pick))
+                .build()
+            Log.d(TAG, "hold-seek track downgraded to ${group.getFormat(pick).height}p")
+        } catch (e: Exception) {
+            Log.e(TAG, "applyHoldLowTrack FAILED " + e.javaClass.simpleName + ": " + e.message)
+            holdVideoRendererIndex = -1
+            holdVideoPriorOverride = null
+        }
+    }
+
+    /** Put back the video track selection from before the hold (restores a gear-locked format or
+     *  re-enables adaptive auto). */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun restoreHoldTrack() {
+        if (holdVideoRendererIndex < 0) return
+        try {
+            val ts = (exoPlayer?.trackSelector) as? DefaultTrackSelector
+            if (ts != null) {
+                val mapped = ts.currentMappedTrackInfo
+                if (mapped != null && holdVideoRendererIndex < mapped.rendererCount) {
+                    val groups = mapped.getTrackGroups(holdVideoRendererIndex)
+                    val prior = holdVideoPriorOverride
+                    val b = ts.parameters.buildUpon()
+                    if (prior != null) b.setSelectionOverride(holdVideoRendererIndex, groups, prior)
+                    else b.clearSelectionOverride(holdVideoRendererIndex, groups)
+                    ts.parameters = b.build()
+                    Log.d(TAG, "hold-seek track restored prior=${prior != null}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "restoreHoldTrack FAILED " + e.javaClass.simpleName + ": " + e.message)
+        }
+        holdVideoRendererIndex = -1
+        holdVideoPriorOverride = null
+    }
+
+    private fun cancelPendingHold() {
+        holdSeekPending = false
+        holdSeekHandler.removeCallbacks(holdSeekFireRunnable)
+    }
+
+    /** Back to the speed the video had before the hold (usually 1x). No seek is applied — the
+     *  video simply continues at normal speed from where the fast-forward left it, exactly like
+     *  Telegram/YouTube. */
+    private fun restoreHoldSeekSpeed() {
+        holdSeekHandler.removeCallbacks(holdSeekPosRunnable)
+        holdSeekStartMs = 0L
+        holdSeekRampLevel = 2
+        val player = exoPlayer
+        if (player != null) {
+            val params = holdSeekOriginalParams ?: PlaybackParameters(1f, 1f)
+            player.setPlaybackParameters(params)
+            Log.d(TAG, "hold-seek OFF pos=${player.currentPosition}ms restoring speed=${params.speed}")
+        }
+        holdSeekOriginalParams = null
+        restoreHoldTrack()
+    }
+
     private fun seekBy(seconds: Float) {
         val player = exoPlayer ?: return
         val newMs = (player.currentPosition + seconds * 1000).coerceAtLeast(0f).toLong()
@@ -4878,6 +5215,7 @@ class PlayerActivity : AppCompatActivity() {
         bottomBar.visibility = View.VISIBLE
         centerControls.visibility = View.VISIBLE
         checkSkipButtonsVisibility()
+        updateYtFullscreenFeedVisibility()
     }
 
     private fun hideControls() {
@@ -4891,6 +5229,29 @@ class PlayerActivity : AppCompatActivity() {
         volumeIndicator.visibility = View.GONE
         seekIndicator.visibility = View.GONE
         zoomIndicator.visibility = View.GONE
+        updateYtFullscreenFeedVisibility()
+    }
+
+    /** The GoTube-style fullscreen queue is shown ONLY for YouTube videos while the player is in
+     *  fullscreen AND the controls are visible — tapping the screen to show the bar/seekbar also
+     *  reveals the queue, hiding them hides it (like a mini-queue that doesn't block the video). */
+    private fun updateYtFullscreenFeedVisibility() {
+        if (!::ytFullscreenPanel.isInitialized) return
+        val show = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID &&
+            ytFullscreen && controlsVisible && !ytMiniCollapsed
+        ytFullscreenPanel.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) syncYtFullscreenFeed()
+    }
+
+    /** The related feed adapter and the fullscreen queue share one backing list; after any append
+     *  (or clear) on the related list this refresh keeps the queue count/tems in step. */
+    private fun syncYtFullscreenFeed() {
+        if (!::ytFullscreenAdapter.isInitialized) return
+        ytFullscreenAdapter.notifyDataSetChanged()
+        ytFsFeedHeader.text = getString(
+            com.weebflix.app.R.string.yt_fullscreen_feed_title,
+            ytRelatedItems.size
+        )
     }
 
     // Restore the custom ExoPlayer UI (playerView + topBar/bottomBar/center controls).
@@ -4942,7 +5303,26 @@ class PlayerActivity : AppCompatActivity() {
     private fun showSeekIndicator(forward: Boolean, text: String) {
         seekIndicator.visibility = View.VISIBLE
         seekText.text = text
+        seekTimeText.visibility = View.GONE
         seekIcon.setImageResource(if (forward) R.drawable.ic_player_skip_forward else R.drawable.ic_player_skip_backward)
+    }
+
+    private fun fmtMs(ms: Long): String {
+        if (ms <= 0L || ms == Long.MIN_VALUE) return "0:00"
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format(java.util.Locale.US, "%d:%02d:%02d", h, m, s)
+        else String.format(java.util.Locale.US, "%d:%02d", m, s)
+    }
+
+    private fun updateHoldSeekTime(player: androidx.media3.common.Player) {
+        val time = fmtMs(player.currentPosition)
+        val dur = player.duration
+        val total = if (dur in 1..Long.MAX_VALUE) fmtMs(dur) else ""
+        seekTimeText.text = if (total.isEmpty()) time else "$time / $total"
+        seekTimeText.visibility = View.VISIBLE
     }
 
     private fun hideSeekIndicator() { seekIndicator.visibility = View.GONE }
@@ -5622,6 +6002,7 @@ class PlayerActivity : AppCompatActivity() {
         ytLoadingRelated = false
         ytRelatedEnded = false
         ytRelatedAdapter.clear()
+        syncYtFullscreenFeed()
         ytFeedScroll.scrollTo(0, 0)
         playYouTubeVideo(video.videoId, 0L)
     }
@@ -5733,6 +6114,7 @@ class PlayerActivity : AppCompatActivity() {
             ytLoadingRelated = false
             refreshYtUpNext()
             maybeAutoFillYtFeed()
+            syncYtFullscreenFeed()
         }
         ytRelatedList.post {
             if (job.isActive && !isFinishing) ytRelatedAdapter.setLoading()
