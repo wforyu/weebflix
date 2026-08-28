@@ -133,10 +133,13 @@ object YouTubeResolver {
                 osName = "Android", osVersion = "14", deviceModel = "sdk_gphone64_x86_64",
                 usePoToken = true
             ),
-            // TVHTML5 (Cobalt): may return f=18 (360p muxed)
+            // TVHTML5 (PS4 Safari): YouTube rejects Cobalt-family UAs on TVHTML5 since 2026-08-18
+            // (UNPLAYABLE "The page needs to be reloaded" — lavalink-devs/youtube-source#233).
+            // PlayStation 4 identity is still accepted and may return direct formats.
             ClientContext(
-                "TVHTML5", "7.20260707.07.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
-                ua = "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)"
+                "TVHTML5", "7.20250319.10.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+                params = "2AMB"
             ),
             // MWEB: needs GVS PO token
             ClientContext(
@@ -170,6 +173,27 @@ object YouTubeResolver {
             )
         )
 
+        // TVHTML5 OAuth variants. Per YouTube.js docs (2026): "OAuth2 authentication now only works
+        // with the TV Innertube client." Anonymous player calls return LOGIN_REQUIRED on
+        // WEB/ANDROID/IOS/WEB_EMBEDDED from flagged IPs, but the TV client accepts a plain OAuth
+        // Bearer access token (no browser/session cookies needed). Tried first when logged in.
+        // ⚠ TVHTML5 needs a NON-Cobalt UA since 2026-08-18: YouTube rejects Cobalt-family user-agents
+        // on the TVHTML5 player endpoint (UNPLAYABLE "The page needs to be reloaded" regardless of
+        // clientVersion/signatureTimestamp/params — lavalink-devs/youtube-source#233). A PlayStation 4
+        // Safari identity is still accepted; this exact UA is what lavalink ships for its OAuth TV client.
+        val tvOauthClients = listOf(
+            ClientContext(
+                "TVHTML5", "7.20250319.10.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+                params = "2AMB"
+            ),
+            ClientContext(
+                "TVHTML5", "7.20260707.07.00", 0, embed = false, key = INNERTUBE_ANDROID_KEY,
+                ua = "Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+                params = "2AMB"
+            )
+        )
+
         fun tryClients(auth: Boolean, bailOnHttp400: Boolean = false): Pair<ResolvedYouTube?, String> {
             var blockReason = ""
             for (i in clients.indices) {
@@ -195,6 +219,27 @@ object YouTubeResolver {
         }
 
         var blockReason = ""
+
+        // OAuth TV pass (2026-08-28): a logged-in user should get authenticated playback even when
+        // the cookie bootstrap failed (flagged IP). YouTube only accepts OAuth on the TV client, and
+        // there the access token is enough — no SID/HSID/SAPISID cookies required. Tried BEFORE the
+        // cookie-gated pass and anonymous chain. fetchPlayer(..., auth = true) falls back to Bearer
+        // when cookies are unavailable (see fetchPlayer auth block).
+        if (YouTubeAuthManager.getAccessToken() != null) {
+            for (tvCtx in tvOauthClients) {
+                try {
+                    val tvRes = fetchPlayer(videoId, tvCtx, auth = true)
+                    if (tvRes.streams != null && !tvRes.streams.isEmpty) {
+                        memo[videoId] = tvRes.streams
+                        return tvRes.streams
+                    }
+                    if (tvRes.blockReason.isNotEmpty()) blockReason = tvRes.blockReason
+                } catch (e: Exception) {
+                    Log.w(TAG, "TV OAuth ${tvCtx.clientName}/${tvCtx.clientVersion} failed: ${e.message}")
+                }
+            }
+        }
+
         // Authenticated pass only when cookie auth is actually set up. YouTube rejects Bearer-only on
         // innertube player (HTTP 400 on every client), so a Bearer-only session previously burned
         // ~8s in a 9-client auth chain before falling through — this gate skips straight to
