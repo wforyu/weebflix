@@ -5435,7 +5435,7 @@ class PlayerActivity : AppCompatActivity() {
             showError("Stream video/audio tidak tersedia")
             return
         }
-        Log.d(TAG, "YouTube streams: video=${video.height}p ${video.mimeType} bitrate=${video.bitrate} | audio=${audio.mimeType} bitrate=${audio.bitrate}")
+        Log.d(TAG, "YouTube streams: video=${video.height}p ${video.mimeType} bitrate=${video.bitrate} | audio=${audio.mimeType} bitrate=${audio.bitrate} lang=${audio.language} orig=${audio.isOriginalAudio} def=${audio.isDefaultAudio}")
         pendingYtSeekMs = seekMs
 
         showExoPlayerUi()

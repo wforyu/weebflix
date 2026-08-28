@@ -72,8 +72,8 @@ object YouTubeResolver {
                 val clientJson = JSONObject()
                     .put("clientName", "WEB")
                     .put("clientVersion", "2.20260731.00.00")
-                    .put("hl", "en")
-                    .put("gl", "US")
+                    .put("hl", "id")
+                    .put("gl", "ID")
                 val body = JSONObject()
                     .put("context", JSONObject().put("client", clientJson))
                     .put("query", "trending")
@@ -170,26 +170,40 @@ object YouTubeResolver {
             )
         )
 
-        fun tryClients(auth: Boolean): Pair<ResolvedYouTube?, String> {
+        fun tryClients(auth: Boolean, bailOnHttp400: Boolean = false): Pair<ResolvedYouTube?, String> {
             var blockReason = ""
             for (i in clients.indices) {
                 val ctx = clients[i]
                 try {
                     val result = fetchPlayer(videoId, ctx, auth)
                     if (result.flagged) return null to blockReason
+                    // HTTP 400 during the authenticated pass (YouTube blocks Bearer / stale cookies on
+                    // innertube player) is guaranteed to repeat on every client — bail instead of
+                    // burning the rest of the chain (PO-token mint + sleep per client).
+                    if (result.http400 && bailOnHttp400) {
+                        Log.w(TAG, "auth client ${ctx.clientName} HTTP 400, bailing auth pass")
+                        return null to blockReason
+                    }
                     if (result.blockReason.isNotEmpty()) blockReason = result.blockReason
                     if (result.streams != null && !result.streams.isEmpty) return result.streams to blockReason
                 } catch (e: Exception) {
                     Log.w(TAG, "client ${ctx.clientName} failed: ${e.message}")
                 }
-                if (i < clients.lastIndex) Thread.sleep(2500)
+                if (i < clients.lastIndex) Thread.sleep(900)
             }
             return null to blockReason
         }
 
         var blockReason = ""
-        if (YouTubeAuthManager.getAccessToken() != null) {
-            val (authed, authedBr) = tryClients(auth = true)
+        // Authenticated pass only when cookie auth is actually set up. YouTube rejects Bearer-only on
+        // innertube player (HTTP 400 on every client), so a Bearer-only session previously burned
+        // ~8s in a 9-client auth chain before falling through — this gate skips straight to
+        // anonymous. Whole chain also bails on the first HTTP 400.
+        if (YouTubeAuthManager.getAccessToken() != null &&
+            YouTubeAuthManager.getYouTubeCookies() != null &&
+            YouTubeAuthManager.getSapisid() != null
+        ) {
+            val (authed, authedBr) = tryClients(auth = true, bailOnHttp400 = true)
             blockReason = authedBr
             if (authed != null) {
                 memo[videoId] = authed
@@ -210,7 +224,7 @@ object YouTubeResolver {
         if (blockReason.isNotEmpty()) {
             Log.w(TAG, "bot-gate ($blockReason), re-bootstrapping visitor and retrying ${clients[0].clientName}")
             resetVisitor()
-            Thread.sleep(2500)
+            Thread.sleep(1200)
             val retried = try {
                 fetchPlayer(videoId, clients[0], auth = false)
             } catch (e: Exception) {
@@ -244,20 +258,22 @@ object YouTubeResolver {
         val skipStreamingPot: Boolean = false
     )
 
-    private data class PlayerResult(val streams: ResolvedYouTube?, val flagged: Boolean, val blockReason: String = "")
+    private data class PlayerResult(val streams: ResolvedYouTube?, val flagged: Boolean, val blockReason: String = "", val http400: Boolean = false)
 
     private fun fetchPlayer(videoId: String, ctx: ClientContext, auth: Boolean): PlayerResult {
         val visitor = ensureVisitor()
 
-        // Always generate streaming PO token (GVS auth) when PoTokenManager is ready
+        // Only mint PO tokens for clients that need them. VISIONOS (the primary client) and the
+        // TV/embed clients return direct URLs and play fine WITHOUT a PO token, so skipping the
+        // WebView BotGuard round-trip here makes every video switch noticeably faster.
         var poToken: String? = null
         var streamingPot: String? = null
-        if (PoTokenManager.isReady()) {
+        if (ctx.usePoToken && PoTokenManager.isReady()) {
             try {
                 val tokens = PoTokenManager.getTokens(videoId, visitor)
-                streamingPot = tokens?.streamingPot?.takeIf { it.isNotEmpty() }
-                if (ctx.usePoToken) {
-                    poToken = tokens?.playerPot?.takeIf { it.isNotEmpty() }
+                if (tokens != null) {
+                    streamingPot = if (ctx.skipStreamingPot) null else tokens.streamingPot.takeIf { it.isNotEmpty() }
+                    poToken = tokens.playerPot.takeIf { it.isNotEmpty() }
                     if (poToken != null) Log.d(TAG, "PO token obtained for ${ctx.clientName}")
                 }
             } catch (e: Exception) {
@@ -268,8 +284,10 @@ object YouTubeResolver {
         val clientJson = JSONObject()
             .put("clientName", ctx.clientName)
             .put("clientVersion", ctx.clientVersion)
-            .put("hl", "en")
-            .put("gl", "US")
+            // Indonesian locale: makes YouTube default multi-audio videos to the Indonesian/original
+            // track (instead of the English dub) and localizes the returned metadata.
+            .put("hl", "id")
+            .put("gl", "ID")
             .apply {
                 if (visitor != null) put("visitorData", visitor)
                 if (ctx.sdk > 0) put("androidSdkVersion", ctx.sdk)
@@ -354,7 +372,7 @@ object YouTubeResolver {
                         return PlayerResult(null, flagged = true)
                     }
                 }
-                return PlayerResult(null, flagged = false)
+                return PlayerResult(null, flagged = false, http400 = resp.code == 400)
             }
             JSONObject(resp.body?.string() ?: "")
         }
@@ -464,6 +482,9 @@ object YouTubeResolver {
         }
         val init = f.optJSONObject("initRange")
         val idx = f.optJSONObject("indexRange")
+        // Multi-audio (dubbed) videos expose the track language here; e.g. { "audioIsDefault": true,
+        // "audioIsOriginal": false, "id": "en", ... } for an English dub over Indonesian original.
+        val audioTrack = f.optJSONObject("audioTrack")
         return YouTubeStream(
             url = url,
             mimeType = mimeType,
@@ -476,7 +497,10 @@ object YouTubeResolver {
             codecs = Regex("codecs=\"([^\"]+)\"").find(mimeType)?.groupValues?.get(1) ?: "",
             frameRate = f.optInt("fps", 0).takeIf { it > 0 } ?: f.optInt("frameRate", 0),
             initRange = if (init != null) "${init.optString("start", "")}-${init.optString("end", "")}" else "",
-            indexRange = if (idx != null) "${idx.optString("start", "")}-${idx.optString("end", "")}" else ""
+            indexRange = if (idx != null) "${idx.optString("start", "")}-${idx.optString("end", "")}" else "",
+            language = audioTrack?.optString("id", "") ?: "",
+            isDefaultAudio = audioTrack?.optBoolean("audioIsDefault", false) ?: false,
+            isOriginalAudio = audioTrack?.optBoolean("audioIsOriginal", false) ?: false
         )
     }
 
@@ -516,12 +540,9 @@ object YouTubeResolver {
             ?: formats.maxByOrNull { it.bitrate }
     }
 
-    /** Picks the best audio format: prefer opus, then mp4, highest bitrate, sane size. */
-    fun pickAudio(formats: List<YouTubeStream>): YouTubeStream? {
-        return formats
-            .sortedWith(compareByDescending<YouTubeStream> { it.mimeType.contains("opus") }
-                .thenByDescending { it.mimeType.contains("mp4") }
-                .thenByDescending { it.bitrate })
-            .firstOrNull()
-    }
+    /** Picks the best audio format via [youtubeAudioScore]: Indonesian language track first, then
+     *  original soundtrack, then the video's default track, then opus/mp4 by bitrate. Also used by
+     *  the DASH ABR builder so both paths agree on the language. */
+    fun pickAudio(formats: List<YouTubeStream>): YouTubeStream? =
+        formats.maxByOrNull { youtubeAudioScore(it) }
 }

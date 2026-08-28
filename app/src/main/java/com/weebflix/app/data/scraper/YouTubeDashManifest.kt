@@ -25,14 +25,27 @@ object YouTubeDashManifest {
             .filter { hasRanges(it) }
             .filter { baseMime(it.mimeType) == "video/webm" }
             .distinctBy { it.itag }
-        val audioOpus = resolved.audioFormats
+        // Restrict audio to the SINGLE preferred language track (Indonesian/original first — see
+        // youtubeAudioScore) so ExoPlayer's DefaultTrackSelector can't grab a higher-bitrate dub.
+        // NOTE: YouTube multi-audio videos expose several DISTINCT tracks with the SAME itag (one per
+        // language) that differ only in audioTrack metadata. `distinctBy { itag }` would silently
+        // collapse these to the FIRST occurrence (usually English), and `prefAudioItag` computed from
+        // that collapsed list resolved audio to the English variant — the DASH played English even
+        // though the fixed-format pickAudio path had chosen the Indonesian track. So evaluate the raw
+        // list (duplicates intact), pick the best-scored itag, then the best-scored instance of it.
+        val allAudio = resolved.audioFormats
             .filter { !it.isVideo && hasRanges(it) }
-            .filter { it.codecs.contains("opus") || baseMime(it.mimeType) == "audio/webm" }
-            .distinctBy { it.itag }
-        val audioMp4 = resolved.audioFormats
-            .filter { !it.isVideo && hasRanges(it) }
-            .filter { baseMime(it.mimeType) == "audio/mp4" }
-            .distinctBy { it.itag }
+        val prefAudio = allAudio
+            .filter { it.itag == (allAudio.maxByOrNull { youtubeAudioScore(it) }?.itag ?: -1) }
+            .maxByOrNull { youtubeAudioScore(it) }
+
+        val audioOpus = if (prefAudio != null &&
+            (prefAudio.codecs.contains("opus") || baseMime(prefAudio.mimeType) == "audio/webm"))
+            listOf(prefAudio) else emptyList()
+        val audioMp4 = if (prefAudio != null && baseMime(prefAudio.mimeType) == "audio/mp4")
+            listOf(prefAudio) else emptyList()
+        if (prefAudio != null)
+            android.util.Log.d("YouTubeDashManifest", "DASH audio: itag=${prefAudio.itag} lang=${prefAudio.language.ifEmpty { "-" }} orig=${prefAudio.isOriginalAudio} def=${prefAudio.isDefaultAudio} bitrate=${prefAudio.bitrate}")
 
         val videoSets = mutableListOf<String>()
         if (videoMp4.isNotEmpty()) videoSets += videoAdaptationSet(0, videoMp4)

@@ -128,7 +128,10 @@ data class YouTubeStream(
     val codecs: String = "",
     val frameRate: Int = 0,
     val initRange: String = "",
-    val indexRange: String = ""
+    val indexRange: String = "",
+    val language: String = "",
+    val isDefaultAudio: Boolean = false,
+    val isOriginalAudio: Boolean = false
 )
 
 data class ResolvedYouTube(
@@ -144,4 +147,26 @@ data class ResolvedYouTube(
     val blockReason: String = ""
 ) {
     val isEmpty: Boolean get() = videoFormats.isEmpty() || audioFormats.isEmpty()
+}
+
+/** Higher = more preferred audio track for playback: Indonesian language first, then the original
+ *  soundtrack, then the video's default track, then codec (opus > mp4), then bitrate.
+ *  Used by BOTH the fixed-format resolver path and the DASH ABR builder so they always pick the
+ *  SAME language track (otherwise ExoPlayer's DefaultTrackSelector could grab an English dub by
+ *  simply having a higher bitrate). */
+fun youtubeAudioScore(f: YouTubeStream): Long {
+    val idLang = f.language.startsWith("id", ignoreCase = true) || f.language.equals("in", ignoreCase = true)
+    val langRank = when {
+        idLang -> 8L
+        f.isOriginalAudio -> 4L
+        f.isDefaultAudio -> 2L
+        else -> 0L
+    }
+    val codecRank = when {
+        f.mimeType.contains("opus") -> 4L
+        f.mimeType.contains("mp4") -> 2L
+        else -> 0L
+    }
+    // Language/codec dominate; bitrate (max ~1e9) only breaks ties.
+    return (langRank shl 40) + (codecRank shl 38) + f.bitrate
 }

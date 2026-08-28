@@ -61,8 +61,8 @@ class YouTubeScraper : AnimeProvider {
             .put("clientName", c.name)
             .put("clientVersion", c.version)
             .apply { if (c.sdk > 0) put("androidSdkVersion", c.sdk) }
-            .put("hl", "en")
-            .put("gl", "US")
+            .put("hl", "id")
+            .put("gl", "ID")
             .put("utcOffsetMinutes", 0))
 
     /**
@@ -590,11 +590,13 @@ class YouTubeScraper : AnimeProvider {
      *  surfacing 2-3 year old videos. Applies to the endless feed too. */
     private val UPLOAD_THIS_YEAR = "EgIIBQ%3D%3D"
 
-    /** Keeps only recent uploads. `publishedTimeText` (hl=en) reads like "3 years ago" /
-     *  "5 months ago" / "3 weeks ago"; anything claiming N years is dropped. Used as a
-     *  safety net in case YouTube ignores the `sp` upload-date filter. */
+    /** Keeps only recent uploads. `publishedTimeText` reads like "3 years ago" / "5 months ago"
+     *  (hl=en) or "3 tahun yang lalu" / "5 bulan yang lalu" (hl=id); anything claiming N years
+     *  / N tahun is dropped. Used as a safety net in case YouTube ignores the `sp` upload-date
+     *  filter. */
     private fun isFresh(v: YouTubeVideo): Boolean =
-        !Regex("""(\d+)\s+year""").containsMatchIn(v.published)
+        !(Regex("""(\d+)\s+year""").containsMatchIn(v.published) ||
+            Regex("""(\d+)\s+tahun""").containsMatchIn(v.published))
 
     /** Search biased to fresh uploads: upload-date filter server-side, then client-side
      *  re-check; falls back to an unfiltered search when the filtered one comes up empty. */
@@ -623,10 +625,10 @@ class YouTubeScraper : AnimeProvider {
             return@withContext home
         }
 
-        delay(3000)
+        delay(700)
         val trending = searchFresh("viral youtube indonesia")
 
-        delay(3000)
+        delay(700)
         val music = searchFresh("musik indonesia terbaru")
 
         val home = YouTubeHome(
@@ -677,7 +679,7 @@ class YouTubeScraper : AnimeProvider {
             if (fetched.isEmpty()) return@withContext emptyList()
             val fresh = fetched.filter { seenFeedIds.add(it.videoId) }
             if (fresh.isNotEmpty()) return@withContext fresh.shuffled().take(15)
-            delay(1200)
+            delay(700)
         }
         emptyList()
     }
