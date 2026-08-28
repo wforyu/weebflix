@@ -279,13 +279,26 @@ class MissavHomeFragment : Fragment() {
             try {
                 val provider = ProviderFactory.getProvider(ProviderFactory.MISSAV_ID)
 
-                val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.MISSAV_ID)
-                if (cached != null && isAdded) {
-                    applyMissavData(cached.latestEpisodes.map {
+                val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.MISSAV_ID)
+                if (diskCached != null && isAdded) {
+                    applyMissavData(diskCached.latestEpisodes.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
-                    }, cached.category1.map {
+                    }, diskCached.category1.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
-                    }, cached.category2.map {
+                    }, diskCached.category2.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
+                    }, emptyList())
+                    launch(Dispatchers.IO) { refreshMissavData(provider) }
+                    return@launch
+                }
+
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.MISSAV_ID) }
+                if (ghData != null && isAdded) {
+                    applyMissavData(ghData.latestEpisodes.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
+                    }, ghData.category1.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
+                    }, ghData.category2.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = "JAV")
                     }, emptyList())
                     launch(Dispatchers.IO) { refreshMissavData(provider) }

@@ -288,6 +288,21 @@ class AnichinHomeFragment : Fragment() {
                     return@launch
                 }
 
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.ANICHIN_ID) }
+                if (ghData != null && isAdded) {
+                    applyAnichinData(ghData.latestEpisodes.map {
+                        Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
+                    }, ghData.category1.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, ghData.category2.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, ghData.category3.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    })
+                    launch(Dispatchers.IO) { refreshAnichinData(provider) }
+                    return@launch
+                }
+
                 refreshAnichinData(provider)
             } catch (e: Exception) {
                 if (isAdded) {

@@ -240,13 +240,26 @@ class OtakudesuHomeFragment : Fragment() {
             try {
                 val provider = ProviderFactory.getProvider(ProviderFactory.OTAKUDESU_ID)
 
-                val cached = com.weebflix.app.data.model.ProviderDataCache.getCachedData(ProviderFactory.OTAKUDESU_ID)
-                if (cached != null && isAdded) {
-                    applyOtakudesuData(cached.latestEpisodes.map {
+                val diskCached = com.weebflix.app.data.model.ProviderDataCache.loadFromDisk(requireContext(), ProviderFactory.OTAKUDESU_ID)
+                if (diskCached != null && isAdded) {
+                    applyOtakudesuData(diskCached.latestEpisodes.map {
                         Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
-                    }, cached.category1.map {
+                    }, diskCached.category1.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
-                    }, cached.category2.map {
+                    }, diskCached.category2.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    })
+                    launch(Dispatchers.IO) { refreshOtakudesuData(provider) }
+                    return@launch
+                }
+
+                val ghData = withContext(Dispatchers.IO) { com.weebflix.app.data.model.GitHubDataFetcher.fetchHomeData(ProviderFactory.OTAKUDESU_ID) }
+                if (ghData != null && isAdded) {
+                    applyOtakudesuData(ghData.latestEpisodes.map {
+                        Episode(title = it.title, url = it.url, imageUrl = it.imageUrl, episodeNumber = it.episode, uploadDate = it.score)
+                    }, ghData.category1.map {
+                        Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
+                    }, ghData.category2.map {
                         Anime(title = it.title, url = it.url, imageUrl = it.imageUrl, episode = it.episode, type = it.type, score = it.score)
                     })
                     launch(Dispatchers.IO) { refreshOtakudesuData(provider) }

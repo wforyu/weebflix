@@ -8,6 +8,9 @@ Card structures (verified against live sites, 2026-07):
 - Samehadaku grids  : .animposx a (ongoing=/daftar-anime-2/, popular=?order=popular)
 - DrakorKita        : .bungkus (link from a[href*='detail/'], img.poster)
 - OppaDrama         : article.bs .bsx
+- Anichin           : div.listupd article.bs > .bsx > a (title via attr, img .limit img.ts-post-image)
+- Otakudesu         : div.venz > ul > li > div.detpost (.epz/.epztipe/.newnime/.thumbz img, h2.jdlflm)
+- MissAV            : .thumbnail.group (a[href*='/id/'], img, .my-2 a)
 """
 
 import json
@@ -40,6 +43,26 @@ PROVIDERS = {
         "film_korea_path": "/series/?country%5B%5D=south-korea&type=Movie&order=update&verify_human=1",
         "netflix_path": "/network/netflix/?verify_human=1",
     },
+    "anichin": {
+        "base_url": "https://anichin.cafe",
+        "home_path": "/",
+        "ongoing_path": "/ongoing/",
+        "completed_path": "/completed/",
+        "all_path": "/seri/",
+    },
+    "otakudesu": {
+        "base_url": "https://otakudesu.blog",
+        "home_path": "/",
+        "ongoing_path": "/ongoing-anime/",
+        "popular_path": "/complete-anime/",
+    },
+    "missav": {
+        "base_url": "https://missav.ws",
+        "latest_path": "/id/release?page=1",
+        "ongoing_path": "/id/release?sort=published_at&page=1",
+        "popular_path": "/id/release?sort=weekly_views&page=1",
+        "verify": False,
+    },
 }
 
 HEADERS = {
@@ -48,11 +71,17 @@ HEADERS = {
     "Accept-Language": "id-ID,id;q=0.9,en;q=0.8",
 }
 
+try:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except Exception:
+    pass
 
-def fetch_html(url, cookies=None):
+
+def fetch_html(url, cookies=None, verify=True):
     """Fetch HTML from URL with optional cookies."""
     try:
-        resp = requests.get(url, headers=HEADERS, cookies=cookies, timeout=30, allow_redirects=True)
+        resp = requests.get(url, headers=HEADERS, cookies=cookies, timeout=30, allow_redirects=True, verify=verify)
         if resp.status_code == 200:
             return resp.text, resp.cookies.get_dict()
         print(f"  [WARN] {url} returned {resp.status_code}")
@@ -203,6 +232,119 @@ def parse_oppadrama(html):
     return items
 
 
+def parse_anichin_from_articles(articles):
+    """Anichin cards: div.listupd article.bs > .bsx > a (title via attr)."""
+    from bs4 import BeautifulSoup
+    items = []
+    for article in articles:
+        try:
+            bsx = article.select_one(".bsx")
+            if not bsx:
+                continue
+            a = bsx.select_one("a[href]")
+            if not a:
+                continue
+            href = a.get("href", "")
+            title = a.get("title", "")
+            if not title:
+                tt = bsx.select_one(".tt")
+                title = tt.get_text(strip=True) if tt else ""
+            img = article.select_one(".limit img.ts-post-image")
+            image_url = img.get("src", "") if img else ""
+            ep_el = article.select_one(".limit .bt span.epx")
+            ep_text = ep_el.get_text(strip=True) if ep_el else ""
+            type_el = article.select_one(".limit .typez")
+            type_text = type_el.get_text(strip=True) if type_el else ""
+            if title and href:
+                items.append(make_item(title, href, image_url, ep_text, type_text))
+        except Exception as e:
+            print(f"  [WARN] anichin parse error: {e}")
+    return items
+
+
+def parse_anichin_latest(html):
+    """Anichin homepage latest — scoped to div.releases.latesthome to avoid Popular Today dupes."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    section = soup.select_one("div.releases.latesthome")
+    articles = None
+    if section is not None and section.parent is not None:
+        articles = section.parent.select("div.listupd article.bs")
+    if not articles:
+        articles = soup.select("div.listupd article.bs")
+    return parse_anichin_from_articles(articles)
+
+
+def parse_otakudesu(html, only_episode=False):
+    """Otakudesu cards: div.venz > ul > li > div.detpost."""
+    import re as _re
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for el in soup.select("div.venz > ul > li > div.detpost"):
+        try:
+            a = el.select_one("div.thumb > a")
+            href = a.get("href", "") if a else ""
+            title_el = el.select_one("h2.jdlflm")
+            title = title_el.get_text(strip=True) if title_el else ""
+            if not title or not href:
+                continue
+            epz_el = el.select_one("div.epz")
+            epz_text = epz_el.get_text(strip=True) if epz_el else ""
+            epz = epz_text.replace("Episode", "").strip()
+            epztipe_el = el.select_one("div.epztipe")
+            epztipe = epztipe_el.get_text(strip=True).replace("fa-star", "").strip() if epztipe_el else ""
+            date_el = el.select_one("div.newnime")
+            date = date_el.get_text(strip=True) if date_el else ""
+            img = el.select_one("div.thumbz img")
+            image_url = img.get("src", "") if img else ""
+            is_episode = _re.match(r"^Episode\s+\d+", epz_text, _re.IGNORECASE)
+            if only_episode and not is_episode:
+                continue
+            item = make_item(title, href, image_url, epz, epztipe)
+            item["status"] = "Ongoing" if is_episode else "Completed"
+            item["score"] = epztipe
+            item["latestUpdate"] = date
+            items.append(item)
+        except Exception as e:
+            print(f"  [WARN] otakudesu parse error: {e}")
+    return items
+
+
+def parse_missav(html, base):
+    """.thumbnail.group cards: a[href*='/id/'] + .my-2 a + img."""
+    import re as _re
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for el in soup.select(".thumbnail.group"):
+        try:
+            a = el.select_one("a[href*='/id/']")
+            href = a.get("href", "") if a else ""
+            title_el = el.select_one(".my-2 a")
+            title = title_el.get_text(strip=True) if title_el else (a.get("alt", "") if a else "")
+            if not title:
+                img_alt = el.select_one("img")
+                title = img_alt.get("alt", "") if img_alt else ""
+            if not title or not href:
+                continue
+            slug = _re.search(r"(?:[a-z]{2}/)?id/([^/?]+)", href)
+            url = f"{base}/id/{slug.group(1)}" if slug else href
+            img = el.select_one("img")
+            image_url = img.get("data-src", "") if img and img.get("data-src") else (img.get("src", "") if img else "")
+            duration = ""
+            for span in el.select("span"):
+                t = span.get_text(strip=True)
+                if _re.match(r"^\d{1,3}:\d{2}:\d{2}$", t):
+                    duration = t
+                    break
+            item = make_item(title, url, image_url, duration, "JAV")
+            items.append(item)
+        except Exception as e:
+            print(f"  [WARN] missav parse error: {e}")
+    return items
+
+
 def scrape_samehadaku():
     """Scrape Samehadaku home content."""
     print("[samehadaku] Scraping...")
@@ -291,6 +433,94 @@ def scrape_oppadrama():
     return {"hero": hero, "latest": episodes, "cat1": drama_korea, "cat2": drama_china, "cat3": film_korea, "cat4": netflix}
 
 
+def scrape_anichin():
+    """Scrape Anichin home content."""
+    print("[anichin] Scraping...")
+    config = PROVIDERS["anichin"]
+    base = config["base_url"]
+    verify = config.get("verify", True)
+
+    html, cookies = fetch_html(base + config["home_path"], verify=verify)
+    if not html:
+        return {"hero": [], "latest": [], "cat1": [], "cat2": [], "cat3": [], "cat4": []}
+
+    from bs4 import BeautifulSoup
+
+    latest = parse_anichin_latest(html)
+
+    ongoing_html, cookies = fetch_html(base + config["ongoing_path"], cookies, verify)
+    ongoing = parse_anichin_from_articles(
+        BeautifulSoup(ongoing_html, "html.parser").select("div.listupd article.bs")
+    ) if ongoing_html else []
+
+    completed_html, cookies = fetch_html(base + config["completed_path"], cookies, verify)
+    completed = parse_anichin_from_articles(
+        BeautifulSoup(completed_html, "html.parser").select("div.listupd article.bs")
+    ) if completed_html else []
+
+    all_html, cookies = fetch_html(base + config["all_path"], cookies, verify)
+    all_anime = parse_anichin_from_articles(
+        BeautifulSoup(all_html, "html.parser").select("div.listupd article.bs")
+    ) if all_html else []
+
+    hero = [{"title": it["title"], "url": it["url"], "imageUrl": it["imageUrl"], "episode": it["episode"]} for it in latest[:10]]
+    print(f"[anichin] Done: hero={len(hero)}, latest={len(latest)}, ongoing={len(ongoing)}, completed={len(completed)}, all={len(all_anime)}")
+    return {"hero": hero, "latest": latest, "cat1": ongoing, "cat2": completed, "cat3": all_anime, "cat4": []}
+
+
+def scrape_otakudesu():
+    """Scrape Otakudesu home content."""
+    print("[otakudesu] Scraping...")
+    config = PROVIDERS["otakudesu"]
+    base = config["base_url"]
+    verify = config.get("verify", True)
+
+    cookies = {}
+    html, cookies = fetch_html(base + config["home_path"], cookies, verify)
+    if not html:
+        return {"hero": [], "latest": [], "cat1": [], "cat2": [], "cat3": [], "cat4": []}
+
+    latest = parse_otakudesu(html, only_episode=True)
+    for it in latest:
+        it["score"] = it["latestUpdate"]
+
+    ongoing_html, cookies = fetch_html(base + config["ongoing_path"], cookies, verify)
+    ongoing = parse_otakudesu(ongoing_html) if ongoing_html else []
+
+    popular_html, cookies = fetch_html(base + config["popular_path"], cookies, verify)
+    popular = parse_otakudesu(popular_html) if popular_html else []
+
+    hero = [{"title": it["title"], "url": it["url"], "imageUrl": it["imageUrl"], "episode": it["episode"]} for it in latest[:10]]
+    print(f"[otakudesu] Done: hero={len(hero)}, latest={len(latest)}, ongoing={len(ongoing)}, popular={len(popular)}")
+    return {"hero": hero, "latest": latest, "cat1": ongoing, "cat2": popular, "cat3": [], "cat4": []}
+
+
+def scrape_missav():
+    """Scrape MissAV home content."""
+    print("[missav] Scraping...")
+    config = PROVIDERS["missav"]
+    base = config["base_url"]
+    verify = config.get("verify", True)
+
+    html, cookies = fetch_html(base + config["latest_path"], verify=verify)
+    if not html:
+        return {"hero": [], "latest": [], "cat1": [], "cat2": [], "cat3": [], "cat4": []}
+
+    latest = parse_missav(html, base)
+    for it in latest:
+        it["score"] = it["episode"]
+
+    ongoing_html, cookies = fetch_html(base + config["ongoing_path"], cookies, verify)
+    ongoing = parse_missav(ongoing_html, base) if ongoing_html else []
+
+    popular_html, cookies = fetch_html(base + config["popular_path"], cookies, verify)
+    popular = parse_missav(popular_html, base) if popular_html else []
+
+    hero = [{"title": it["title"], "url": it["url"], "imageUrl": it["imageUrl"], "episode": it["episode"]} for it in latest[:10]]
+    print(f"[missav] Done: hero={len(hero)}, latest={len(latest)}, ongoing={len(ongoing)}, popular={len(popular)}")
+    return {"hero": hero, "latest": latest, "cat1": ongoing, "cat2": popular, "cat3": [], "cat4": []}
+
+
 def save_json(provider_id, data):
     """Save scraped data as JSON."""
     total = sum(len(v) for k, v in data.items() if isinstance(v, list))
@@ -314,9 +544,12 @@ def main():
         "samehadaku": scrape_samehadaku,
         "drakorkita": scrape_drakorkita,
         "oppadrama": scrape_oppadrama,
+        "anichin": scrape_anichin,
+        "otakudesu": scrape_otakudesu,
+        "missav": scrape_missav,
     }
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         futures = {executor.submit(fn): pid for pid, fn in scrapers.items()}
         for future in as_completed(futures):
             pid = futures[future]
