@@ -112,15 +112,65 @@ class YouTubeScraper : AnimeProvider {
         return YtResult(null, flagged = false)
     }
 
-    private fun fetchSearch(query: String, params: String? = null): List<YouTubeVideo> {
+    private fun fetchSearch(query: String, params: String? = null): List<YouTubeVideo> =
+        fetchSearchPage(query, params).videos
+
+    /** First search page + its continuation token (for the search screen's infinite scroll).
+     *  Scoped to the sectionListRenderer so the token picked is the real "load more" one, not a
+     *  nested shelf continuation. */
+    private fun fetchSearchPage(query: String, params: String? = null): SearchPage {
         val res = post("search") { it.put("query", query); if (!params.isNullOrEmpty()) it.put("params", params) }
-        val json = res.json ?: return emptyList()
+        val json = res.json ?: return SearchPage()
+        val section = json.optJSONObject("contents")
+            ?.optJSONObject("twoColumnSearchResultsRenderer")
+            ?.optJSONObject("primaryContents")
+            ?.optJSONObject("sectionListRenderer")
+            ?: json
         val renderers = mutableListOf<JSONObject>()
         val lockups = mutableListOf<JSONObject>()
-        collectVideoRenderers(json, renderers)
-        collectLockupViewModel(json, lockups)
+        collectVideoRenderers(section, renderers)
+        collectLockupViewModel(section, lockups)
         val out = renderers.mapNotNull { parseVideoRenderer(it) } + lockups.mapNotNull { parseLockupViewModel(it) }
-        return out.distinctBy { it.videoId }
+        return SearchPage(
+            videos = out.distinctBy { it.videoId },
+            continuation = findContinuationToken(section)
+        )
+    }
+
+    /** First page of search results as a page (videos + continuation) for the search screen. */
+    suspend fun searchPage(query: String, params: String? = null): SearchPage = withContext(Dispatchers.IO) {
+        try {
+            fetchSearchPage(query, params)
+        } catch (e: Exception) {
+            Log.w(TAG, "searchPage error: ${e.message}")
+            SearchPage()
+        }
+    }
+
+    /** Next page of search results via the continuation token from [searchPage]. */
+    suspend fun nextSearchPage(continuation: String): SearchPage = withContext(Dispatchers.IO) {
+        if (continuation.isEmpty()) return@withContext SearchPage()
+        try {
+            val res = post("search") { it.put("continuation", continuation) }
+            val json = res.json ?: return@withContext SearchPage()
+            val items = json.optJSONArray("onResponseReceivedCommands")?.optJSONObject(0)
+                ?.optJSONObject("appendContinuationItemsAction")?.optJSONArray("continuationItems")
+                ?: json.optJSONArray("onResponseReceivedActions")?.optJSONObject(0)
+                    ?.optJSONObject("appendContinuationItemsAction")?.optJSONArray("continuationItems")
+                ?: return@withContext SearchPage()
+            val renderers = mutableListOf<JSONObject>()
+            val lockups = mutableListOf<JSONObject>()
+            collectVideoRenderers(items, renderers)
+            collectLockupViewModel(items, lockups)
+            val out = renderers.mapNotNull { parseVideoRenderer(it) } + lockups.mapNotNull { parseLockupViewModel(it) }
+            SearchPage(
+                videos = out.distinctBy { it.videoId },
+                continuation = findContinuationToken(items)
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "nextSearchPage error: ${e.message}")
+            SearchPage()
+        }
     }
 
     private fun fetchBrowse(browseId: String): List<YouTubeVideo> {

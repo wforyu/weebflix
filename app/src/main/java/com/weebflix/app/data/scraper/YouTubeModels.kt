@@ -116,6 +116,14 @@ data class CommentPage(
     val continuation: String = ""
 )
 
+/** One page of search results (youtubei/v1/search) + the continuation token for the next page.
+ *  `searchVideos()` (accepted by the search screen) returns just `.videos` of the first page;
+ *  the screen uses [SearchPage] + `nextSearchPage()` to keep scrolling the full result set. */
+data class SearchPage(
+    val videos: List<YouTubeVideo> = emptyList(),
+    val continuation: String = ""
+)
+
 data class YouTubeStream(
     val url: String = "",
     val mimeType: String = "",

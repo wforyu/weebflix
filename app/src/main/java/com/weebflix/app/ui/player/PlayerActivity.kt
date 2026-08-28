@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -40,6 +41,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.widget.NestedScrollView
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -294,6 +296,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnPip: ImageView
     private lateinit var btnFullscreen: ImageView
     private lateinit var btnQuality: ImageView
+    private lateinit var btnSleepTimer: ImageView
     private lateinit var tvServerName: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var tvCurrentTime: TextView
@@ -692,6 +695,7 @@ class PlayerActivity : AppCompatActivity() {
         btnPip = findViewById(R.id.btnPip)
         btnFullscreen = findViewById(R.id.btnFullscreen)
         btnQuality = findViewById(R.id.btnQuality)
+        btnSleepTimer = findViewById(R.id.btnSleepTimer)
         tvServerName = findViewById(R.id.tvServerName)
         seekBar = findViewById(R.id.seekBar)
         tvCurrentTime = findViewById(R.id.tvCurrentTime)
@@ -4282,6 +4286,38 @@ class PlayerActivity : AppCompatActivity() {
     private var holdVideoRendererIndex = -1
     private var holdVideoPriorOverride: DefaultTrackSelector.SelectionOverride? = null
 
+    // Sleep timer (YouTube-style): pause + turn the screen off after "End of video" or after a
+    // fixed duration. Screen-off is done by lowering SCREEN_OFF_TIMEOUT via WRITE_SETTINGS (the
+    // user grants it once) so the device actually sleeps shortly after the pause; goToSleep()
+    // needs DEVICE_POWER (signature-level) so it is not available to us.
+    private var sleepTimerActive = false
+    private var sleepTimerMode = 0                 // 0=off, 1=end of video, 2=fixed minutes
+    private var sleepTimerMinutes = 0L             // mode 2: selected minutes
+    private var sleepTimerDeadline = 0L            // mode 2: SystemClock.elapsedRealtime() deadline
+    private var savedScreenOffTimeout = -1
+    private val sleepTimerHandler = Handler(Looper.getMainLooper())
+
+    private val sleepTimerRunnable = object : Runnable {
+        override fun run() {
+            if (!sleepTimerActive) return
+            val player = exoPlayer
+            val remaining = if (sleepTimerMode == 1) {
+                if (player != null && player.duration > 0 && player.isPlaying) {
+                    player.duration - player.currentPosition
+                } else Long.MAX_VALUE
+            } else {
+                sleepTimerDeadline - SystemClock.elapsedRealtime()
+            }
+            if (remaining <= 0) {
+                fireSleepTimeout()
+                return
+            }
+            // Re-check at least once per second so end-of-video mode tracks the playhead; for
+            // fixed minutes we could sleep exactly at deadline but the 1s tick keeps state simple.
+            sleepTimerHandler.postDelayed(this, minOf(remaining, 1_000L))
+        }
+    }
+
     // Pinch-to-zoom (all providers, runs anytime the video surface is visible). Applied to the
     // visible video surface (playerView for ExoPlayer, webView for WebView playback, or the
     // fullscreen WebView view). Range 1x..4x.
@@ -4756,8 +4792,9 @@ class PlayerActivity : AppCompatActivity() {
         btnPip.setOnClickListener { enterPipMode() }
         btnFullscreen.setOnClickListener { toggleFullscreen() }
         btnQuality.setOnClickListener {
-            showYtResolutionDialog()
+            showYtSettingsMenu()
         }
+        btnSleepTimer.setOnClickListener { showSleepTimerDialog() }
         tvServerName.setOnClickListener { showServerPickerDialog() }
         tvError.setOnClickListener { if (servers.isNotEmpty()) showServerPickerDialog() }
 
@@ -5097,7 +5134,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun rebindMediaSession(player: Player) {
         releaseMediaSession()
         try {
-            mediaSession = MediaSession.Builder(this, player).build()
+            // media3 1.5.1: default session ID = "" dan tersimpan di STATIC map global, jadi dua
+            // inisialisasi player yang nyaris bersamaan (mis. auto-play saat background) akan
+            // collide "Session ID must be unique". Pakai UUID unik per build supaya aman.
+            mediaSession = MediaSession.Builder(this, player)
+                .setId(java.util.UUID.randomUUID().toString())
+                .build()
             Log.d(TAG, "rebindMediaSession built ok session=$mediaSession")
         } catch (e: Exception) {
             Log.e(TAG, "rebindMediaSession FAILED " + e.javaClass.simpleName + ": " + e.message, e)
@@ -5859,6 +5901,8 @@ class PlayerActivity : AppCompatActivity() {
             .sortedDescending()
         ytCurrentResolution = 0
         btnQuality.visibility = View.VISIBLE
+        btnSleepTimer.visibility = View.VISIBLE
+        updateSleepTimerButton()
 
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(upstreamFactory)
 
@@ -6124,6 +6168,156 @@ class PlayerActivity : AppCompatActivity() {
     private fun refreshYtUpNext() {
         ytUpNext = ytRelatedAdapter.peekFirst()
         updateYtNavButtons()
+    }
+
+    private fun showYtSettingsMenu() {
+        val labels = arrayOf("Resolusi video", "Timer tidur")
+        val subtitles = arrayOf(
+            if (ytCurrentResolution > 0) "${ytCurrentResolution}p" else "Auto",
+            sleepTimerLabel()
+        )
+        val items = labels.mapIndexed { i, l -> if (subtitles[i].isEmpty()) l else "$l  ·  ${subtitles[i]}" }.toTypedArray()
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Pengaturan")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> showYtResolutionDialog()
+                    1 -> showSleepTimerDialog()
+                }
+            }
+            .show()
+    }
+
+    private fun sleepTimerLabel(): String = when {
+        !sleepTimerActive -> "Off"
+        sleepTimerMode == 1 -> "Akhir video"
+        else -> sleepTimerMinutesText(sleepTimerMinutes)
+    }
+
+    private fun sleepTimerMinutesText(minutes: Long): String = when {
+        minutes % 60 == 0L && minutes > 0 -> "${minutes / 60} jam"
+        minutes == 90L -> "1,5 jam"
+        else -> "$minutes menit"
+    }
+
+    // Sleep-timer options adapt to the video duration: long videos get hour choices so a 3-hour
+    // movie can have a "1,5 jam / 2 jam / 3 jam" timer without the user re-arming it mid-watch.
+    private fun showSleepTimerDialog() {
+        val duration = exoPlayer?.duration?.takeIf { it > 0 } ?: 0L
+        data class Opt(val label: String, val mode: Int, val minutes: Long = 0L)
+        val opts = mutableListOf(Opt("Off", 0), Opt("Sampai akhir video", 1))
+        for (m in listOf(15L, 30L, 45L, 60L)) opts.add(Opt("$m menit", 2, m))
+        if (duration > 60 * 60 * 1000L) {
+            opts.add(Opt("1,5 jam", 2, 90L))
+            opts.add(Opt("2 jam", 2, 120L))
+        }
+        if (duration > 2 * 60 * 60 * 1000L) opts.add(Opt("3 jam", 2, 180L))
+        if (duration > 3 * 60 * 60 * 1000L) opts.add(Opt("4 jam", 2, 240L))
+
+        val current = when {
+            !sleepTimerActive -> 0
+            sleepTimerMode == 1 -> 1
+            else -> opts.indexOfFirst { it.mode == 2 && it.minutes == sleepTimerMinutes }.coerceAtLeast(1)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Timer tidur")
+            .setSingleChoiceItems(opts.map { it.label }.toTypedArray(), current) { d, which ->
+                when (opts[which].mode) {
+                    0 -> cancelSleepTimer()
+                    1 -> startSleepTimer(1, 0L)
+                    else -> startSleepTimer(2, opts[which].minutes)
+                }
+                d.dismiss()
+            }
+            .show()
+    }
+
+    private fun startSleepTimer(mode: Int, minutes: Long) {
+        sleepTimerHandler.removeCallbacks(sleepTimerRunnable)
+        sleepTimerActive = true
+        sleepTimerMode = mode
+        if (mode == 2) {
+            sleepTimerMinutes = minutes
+            sleepTimerDeadline = SystemClock.elapsedRealtime() + minutes * 60_000L
+        }
+        sleepTimerHandler.post(sleepTimerRunnable)
+        updateSleepTimerButton()
+        Toast.makeText(this, "Timer tidur: ${sleepTimerLabel()}", Toast.LENGTH_SHORT).show()
+        ensureWriteSettingsPermission()
+    }
+
+    private fun cancelSleepTimer() {
+        sleepTimerHandler.removeCallbacks(sleepTimerRunnable)
+        sleepTimerActive = false
+        sleepTimerMode = 0
+        restoreScreenOffTimeout()
+        updateSleepTimerButton()
+        Toast.makeText(this, "Timer tidur dimatikan", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun fireSleepTimeout() {
+        sleepTimerActive = false
+        sleepTimerMode = 0
+        exoPlayer?.pause()
+        // Drop every "keep the screen on" request so the device can actually sleep.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        playerView.keepScreenOn = false
+        miniPlayerView.keepScreenOn = false
+        updateSleepTimerButton()
+        Toast.makeText(this, "Timer tidur selesai", Toast.LENGTH_SHORT).show()
+        turnScreenOffSoon()
+    }
+
+    // WRITE_SETTINGS is only needed to lower SCREEN_OFF_TIMEOUT (screen actually falls dark ~15s
+    // after the pause). Without it the device still sleeps, but following the user's normal
+    // screen-timeout setting which can be minutes. Prompt once when the timer is first armed.
+    private fun ensureWriteSettingsPermission() {
+        if (Settings.System.canWrite(this)) return
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Izin matikan layar")
+            .setMessage("Biar layar HP otomatis mati sesaat setelah timer tidur berakhir, beri WeebFlix izin mengubah setelan layar. Token di setelan sistem (sekali saja).")
+            .setPositiveButton("Buka setelan") { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")))
+                } catch (_: Throwable) {
+                    Toast.makeText(this, "Tidak bisa buka setelan perizinan", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Nanti", null)
+            .show()
+    }
+
+    private fun turnScreenOffSoon() {
+        if (Settings.System.canWrite(this)) {
+            try {
+                if (savedScreenOffTimeout <= 0) {
+                    savedScreenOffTimeout = Settings.System.getInt(contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, 60_000)
+                }
+                // Most ROMs clamp to their own minimum (~15s). Good enough: screen goes dark a
+                // few seconds after the pause, just like YouTube's sleep timer.
+                Settings.System.putInt(contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, 5_000)
+            } catch (_: Throwable) {
+            }
+            // Put the user's original timeout back shortly after — the screen will already be off.
+            sleepTimerHandler.postDelayed({ restoreScreenOffTimeout() }, 30_000L)
+        }
+    }
+
+    private fun restoreScreenOffTimeout() {
+        if (savedScreenOffTimeout <= 0) return
+        try {
+            Settings.System.putInt(contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, savedScreenOffTimeout)
+        } catch (_: Throwable) {
+        }
+        savedScreenOffTimeout = -1
+    }
+
+    // Icon ⦿ merah saat timer aktif, putih saat mati.
+    private fun updateSleepTimerButton() {
+        val drawable = btnSleepTimer.drawable
+        if (drawable != null) {
+            DrawableCompat.setTint(drawable, if (sleepTimerActive) 0xFFE53935.toInt() else 0xFFFFFFFF.toInt())
+        }
     }
 
     private fun showYtResolutionDialog() {
@@ -7778,6 +7972,9 @@ class PlayerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         exoPlayer?.playWhenReady = true
+        // removeCallbacks dulu: runnable mungkin masih hidup di onPause (YouTube), memastikan
+        // hanya ada satu instance berjalan.
+        progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
     }
@@ -7808,9 +8005,20 @@ class PlayerActivity : AppCompatActivity() {
         // dikunci (bunyi layar dikunci audio mati) — perilaku seperti YouTube/GoTube.
         // Wakelock WAKE_MODE_NETWORK di player menjaga CPU/network selama playback berjalan.
         if (!isPipMode) {
-            progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
             autoHideHandler.removeCallbacks(autoHideRunnable)
-            autoPlayHandler.removeCallbacks(autoPlayRunnable)
+            // YouTube: biarkan rantai auto-play hidup saat layar dikunci / app di-background
+            // (GoTube-style) — progressUpdateRunnable inilah yang men-deteksi "10 detik lagi"
+            // dan memulai countdown, jadi kalau di-remove rantai terputus dan audio berhenti
+            // di akhir video. Hanya dipertahankan kalau player masih memutar; kalau user sudah
+            // pause duluan tidak ada gunanya menahan main-thread. Provider lain tetap di-cancel
+            // seperti sebelumnya (navigate pakai startActivity yang tidak cocok dipicu dari
+            // background).
+            val isYt = activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID
+            val keepChain = isYt && (exoPlayer?.isPlaying == true || autoPlayActive)
+            if (!keepChain) {
+                progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
+                autoPlayHandler.removeCallbacks(autoPlayRunnable)
+            }
         }
     }
 
@@ -7819,6 +8027,8 @@ class PlayerActivity : AppCompatActivity() {
         progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        sleepTimerHandler.removeCallbacksAndMessages(null)
+        restoreScreenOffTimeout()
         pipActionReceiver?.let { unregisterReceiver(it) }
         pipActionReceiver = null
         releaseMediaSession()

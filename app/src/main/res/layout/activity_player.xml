@@ -598,9 +598,20 @@
                     android:layout_height="30dp"
                     android:padding="5dp"
                     android:src="@drawable/ic_player_quality"
-                    android:contentDescription="Resolusi video"
+                    android:contentDescription="Pengaturan"
                     android:scaleType="centerInside"
                     android:layout_marginStart="8dp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/btnSleepTimer"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_sleep_timer"
+                    android:contentDescription="Timer tidur"
+                    android:scaleType="centerInside"
+                    android:layout_marginStart="6dp"
                     android:visibility="gone" />
 
                 <ImageView

@@ -36,7 +36,13 @@ class YouTubeSearchActivity : AppCompatActivity() {
 
     private val scraper by lazy { YouTubeScraper() }
     private var searchJob: Job? = null
+    private var loadMoreJob: Job? = null
     private var currentParams: String? = null
+    private var searchContinuation = ""
+    private var searchLoading = false
+    private var searchEnded = false
+
+    private val seenIds = mutableSetOf<String>()
 
     private val filters = listOf(
         "Semua" to null,
@@ -69,6 +75,15 @@ class YouTubeSearchActivity : AppCompatActivity() {
         )
         resultsList.layoutManager = LinearLayoutManager(this)
         resultsList.adapter = adapter
+        resultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0) return
+                val lm = rv.layoutManager as? LinearLayoutManager ?: return
+                val lastVisible = lm.findLastVisibleItemPosition()
+                val total = adapter.itemCount
+                if (lastVisible >= total - 6) loadMoreSearch()
+            }
+        })
 
         findViewById<ImageView>(R.id.btnBack).setOnClickListener { finish() }
 
@@ -134,29 +149,63 @@ class YouTubeSearchActivity : AppCompatActivity() {
         val query = searchInput.text.toString().trim()
         if (query.isEmpty()) {
             searchJob?.cancel()
-            adapter.submit(emptyList())
+            adapter.submitPage(emptyList(), endOfFeed = true)
             ytLoading.visibility = View.GONE
             ytEmpty.visibility = View.VISIBLE
             ytEmpty.text = "Ketik untuk mencari video"
+            searchContinuation = ""
+            searchLoading = false
+            searchEnded = true
+            seenIds.clear()
             return
         }
         ytLoading.visibility = View.VISIBLE
         ytEmpty.visibility = View.GONE
+        seenIds.clear()
+        searchContinuation = ""
+        searchLoading = false
+        searchEnded = false
         searchJob?.cancel()
+        loadMoreJob?.cancel()
         searchJob = lifecycleScope.launch {
-            val results: List<YouTubeVideo> = try {
-                scraper.searchVideos(query, currentParams)
+            val page: com.weebflix.app.data.scraper.SearchPage = try {
+                scraper.searchPage(query, currentParams)
             } catch (e: Exception) {
-                emptyList()
+                com.weebflix.app.data.scraper.SearchPage()
             }
             ytLoading.visibility = View.GONE
-            if (results.isEmpty()) {
+            if (page.videos.isEmpty()) {
                 ytEmpty.visibility = View.VISIBLE
                 ytEmpty.text = "Tidak ada hasil untuk \"$query\""
+                searchEnded = true
             } else {
                 ytEmpty.visibility = View.GONE
-                adapter.submit(results)
+                seenIds.addAll(page.videos.map { it.videoId })
+                searchContinuation = page.continuation
+                searchEnded = page.continuation.isEmpty()
+                adapter.submitPage(page.videos, endOfFeed = page.continuation.isEmpty())
             }
+        }
+    }
+
+    private fun loadMoreSearch() {
+        if (searchLoading || searchEnded || searchContinuation.isEmpty()) return
+        searchLoading = true
+        adapter.setLoading()
+        val continuation = searchContinuation
+        loadMoreJob?.cancel()
+        loadMoreJob = lifecycleScope.launch {
+            val page: com.weebflix.app.data.scraper.SearchPage = try {
+                scraper.nextSearchPage(continuation)
+            } catch (e: Exception) {
+                com.weebflix.app.data.scraper.SearchPage()
+            }
+            val fresh = page.videos.filter { it.videoId.isNotEmpty() && seenIds.add(it.videoId) }
+            searchLoading = false
+            searchContinuation = page.continuation
+            val ended = page.continuation.isEmpty() || fresh.isEmpty()
+            searchEnded = ended
+            adapter.append(fresh, endOfFeed = ended)
         }
     }
 
