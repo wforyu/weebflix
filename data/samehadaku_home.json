@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Gintama Movie 3: Yoshiwara Daienjou",
+      "url": "https://v2.samehadaku.how/anime/gintama-movie-3-yoshiwara-daienjou/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-6-8.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
       "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/web-1-21.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Iwamoto-senpai no Suisen",
-      "url": "https://v2.samehadaku.how/anime/iwamoto-senpai-no-suisen/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-18.jpg",
+      "title": "Gintama Movie 3: Yoshiwara Daienjou",
+      "url": "https://v2.samehadaku.how/anime/gintama-movie-3-yoshiwara-daienjou/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-6-8.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
       "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
@@ -366,21 +381,6 @@
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4-8.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Hell Mode Yarikomizuki no Gamer Season 2",
-      "url": "https://v2.samehadaku.how/anime/hell-mode-yarikomizuki-no-gamer-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Hell-Mode-Yarikomizuki-no-Gamer-Season-2-Episode-9.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788147476706
+  "timestamp": 1788180104672
 }
