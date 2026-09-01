@@ -1,6 +1,51 @@
 {
   "hero": [
     {
+      "title": "Movie The Weekend Away (2022) WEBDL",
+      "url": "http://45.11.57.188/movie-the-weekend-away-2022-webdl/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/The-Weekend-Away-2022.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie Snatch (2000) BluRay",
+      "url": "http://45.11.57.188/movie-snatch-2000-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/Snatch-2000.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie O Brother, Where Art Thou? (2000) BluRay",
+      "url": "http://45.11.57.188/movie-o-brother-where-art-thou-2000-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/O-Brother-Where-Art-Thou-2000.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie Bring It On (2000) BluRay",
       "url": "http://45.11.57.188/movie-bring-it-on-2000-bluray/",
       "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/09/Bring-It-On-2000.jpg?resize=246,350",
@@ -104,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Movie Bedevilled (2010) BluRay",
-      "url": "http://45.11.57.188/movie-bedevilled-2010-bluray/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Bedevilled-2010.jpg?resize=246,350",
+      "title": "Movie The Weekend Away (2022) WEBDL",
+      "url": "http://45.11.57.188/movie-the-weekend-away-2022-webdl/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/The-Weekend-Away-2022.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
       "status": "",
@@ -121,11 +168,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "See You Later… Maybe Episode 3",
-      "url": "http://45.11.57.188/see-you-later-maybe-episode-3/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/See-You-Later.-Maybe-2026.jpg?resize=246,350",
-      "episode": "Ep 3",
-      "type": "Drama",
+      "title": "Movie Snatch (2000) BluRay",
+      "url": "http://45.11.57.188/movie-snatch-2000-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/Snatch-2000.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -136,11 +183,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Blossom Through the Cloud Episode 5",
-      "url": "http://45.11.57.188/blossom-through-the-cloud-episode-5/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Blossom-Through-the-Cloud-2026.jpg?resize=246,350",
-      "episode": "Ep 5",
-      "type": "Drama",
+      "title": "Movie O Brother, Where Art Thou? (2000) BluRay",
+      "url": "http://45.11.57.188/movie-o-brother-where-art-thou-2000-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/O-Brother-Where-Art-Thou-2000.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,9 +196,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Movie Bring It On (2000) BluRay",
       "url": "http://45.11.57.188/movie-bring-it-on-2000-bluray/",
@@ -398,51 +443,6 @@
       "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/New-Recruit-Season-4-2026.jpg?resize=246,350",
       "episode": "Ep 6",
       "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Pull Strings Episode 22",
-      "url": "http://45.11.57.188/pull-strings-episode-22/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Pull-Strings-2026.jpg?resize=246,350",
-      "episode": "Ep 22",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Lioness Season 3 Episode 5",
-      "url": "http://45.11.57.188/lioness-season-3-episode-5/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Lioness-Season-3-2026.jpg?resize=246,350",
-      "episode": "Ep 5",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "All or Nothing Episode 6",
-      "url": "http://45.11.57.188/all-or-nothing-episode-6/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/07/All-or-Nothing-2026.jpg?resize=246,350",
-      "episode": "Ep 6",
-      "type": "TV Show",
       "status": "",
       "score": "",
       "studio": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1788278594925
+  "timestamp": 1788294773225
 }

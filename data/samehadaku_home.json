@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-20.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4-10.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/One-Piece-Episode-1176.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
@@ -351,36 +381,6 @@
       "title": "Saijo no Osewa",
       "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-9.png",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
-      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-4-9.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mao",
-      "url": "https://v2.samehadaku.how/anime/mao/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/image-2-11.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788278591335
+  "timestamp": 1788294768414
 }
