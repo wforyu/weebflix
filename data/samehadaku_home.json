@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu Season 4",
+      "url": "https://v2.samehadaku.how/anime/rezero-kara-hajimeru-isekai-seikatsu-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Sora wa Akai Kawa no Hotori",
       "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
-      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/web-1-21.jpg",
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu Season 4",
+      "url": "https://v2.samehadaku.how/anime/rezero-kara-hajimeru-isekai-seikatsu-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Sora wa Akai Kawa no Hotori",
       "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
@@ -366,21 +381,6 @@
       "title": "Futsutsuka na Akujo dewa Gozaimasu",
       "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Futsutsuka-na-Akujo-dewa-Gozaimasu-Episode-8.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Saijo no Osewa",
-      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/08/Saijo-no-Osewa-Episode-9.png",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788345481627
+  "timestamp": 1788364655236
 }

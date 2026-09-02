@@ -1,10 +1,25 @@
 {
   "hero": [
     {
-      "title": "The King 2 Hearts Episode 13",
-      "url": "http://45.11.57.188/the-king-2-hearts-episode-13/",
+      "title": "Pull Strings Episode 25",
+      "url": "http://45.11.57.188/pull-strings-episode-25/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Pull-Strings-2026.jpg?resize=246,350",
+      "episode": "Ep 25",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "The King 2 Hearts Episode 20 END",
+      "url": "http://45.11.57.188/the-king-2-hearts-episode-20-end/",
       "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/The-King-2-Hearts-2012.jpg?resize=246,350",
-      "episode": "Ep 13",
+      "episode": "Ep 20 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -134,13 +149,15 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Movie Just Play Dead (2026) WEBDL",
-      "url": "http://45.11.57.188/movie-just-play-dead-2026-webdl/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Just-Play-Dead-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "Pull Strings Episode 25",
+      "url": "http://45.11.57.188/pull-strings-episode-25/",
+      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/Pull-Strings-2026.jpg?resize=246,350",
+      "episode": "Ep 25",
+      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,14 +166,12 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
-      "title": "The King 2 Hearts Episode 13",
-      "url": "http://45.11.57.188/the-king-2-hearts-episode-13/",
+      "title": "The King 2 Hearts Episode 20 END",
+      "url": "http://45.11.57.188/the-king-2-hearts-episode-20-end/",
       "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/08/The-King-2-Hearts-2012.jpg?resize=246,350",
-      "episode": "Ep 13",
+      "episode": "Ep 20 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -428,21 +443,6 @@
       "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/My-Bias-My-Boss-2026.jpg?resize=246,350",
       "episode": "Ep 10",
       "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie The Mongoose (2026) Screener WEBDL",
-      "url": "http://45.11.57.188/movie-the-mongoose-2026-screener-webdl/",
-      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/The-Mongoose-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1788345487419
+  "timestamp": 1788364661567
 }
