@@ -43,6 +43,7 @@ class YouTubeSearchActivity : AppCompatActivity() {
     private var searchEnded = false
 
     private val seenIds = mutableSetOf<String>()
+    private var searchGeneration = 0
 
     private val filters = listOf(
         "Semua" to null,
@@ -104,8 +105,10 @@ class YouTubeSearchActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchJob?.cancel()
+                val gen = ++searchGeneration
                 searchJob = lifecycleScope.launch {
                     delay(500)
+                    if (searchGeneration != gen) return@launch
                     performSearch()
                 }
             }

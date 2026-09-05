@@ -698,7 +698,7 @@ class YouTubeScraper : AnimeProvider {
         "tips android", "kucing lucu", "challenge seru", "prank lucu",
         "kecantikan dan skincare", "travel indonesia", "otomotif", "memasak mudah"
     )
-    private val seenFeedIds = mutableSetOf<String>()
+    private val seenFeedIds = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     /** Clears the endless-feed dedup set so a pull-to-refresh produces fresh content. */
     fun resetFeed() {

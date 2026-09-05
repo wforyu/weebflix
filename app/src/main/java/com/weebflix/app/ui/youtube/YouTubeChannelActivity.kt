@@ -95,6 +95,7 @@ class YouTubeChannelActivity : AppCompatActivity() {
 
         videosList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0) return
                 val lm = rv.layoutManager as LinearLayoutManager
                 if (lm.findLastVisibleItemPosition() >= lm.itemCount - 4) loadMore()
             }

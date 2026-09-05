@@ -83,6 +83,7 @@ object YouTubeFormat {
         Glide.with(img)
             .load(url)
             .placeholder(R.drawable.bg_card)
+            .error(R.drawable.bg_card)
             .into(img)
     }
 }

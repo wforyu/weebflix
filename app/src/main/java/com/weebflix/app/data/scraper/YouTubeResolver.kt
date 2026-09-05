@@ -24,7 +24,7 @@ object YouTubeResolver {
     private var poTokenManagerInit = false
 
     /** In-memory cookie jar to persist session cookies (VISITOR_INFO1_LIVE etc.) across requests. */
-    private val cookieStore = mutableMapOf<String, List<Cookie>>()
+    private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -473,9 +473,9 @@ object YouTubeResolver {
             Log.d(TAG, "client ${ctx.clientName} fmt[0]: itag=${sample.optInt("itag")} mime=${sample.optString("mimeType")} url=$hasUrl signatureCipher=$hasCipher sabr=$hasSabr keys=${sample.keys().asSequence().toList()}")
         }
         for (i in 0 until formats.length()) {
-            val f = formats.getJSONObject(i)
+            val f = formats.optJSONObject(i) ?: continue
             val stream = parseFormat(f, ops, if (ctx.skipStreamingPot) null else streamingPot) ?: continue
-            if (stream.url.isNullOrEmpty() && stream.url.isEmpty()) continue
+            if (stream.url.isEmpty()) continue
             if (stream.isVideo) video += stream else audio += stream
         }
         if (video.isEmpty() || audio.isEmpty()) {

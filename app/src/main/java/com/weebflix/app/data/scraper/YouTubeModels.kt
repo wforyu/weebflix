@@ -154,7 +154,7 @@ data class ResolvedYouTube(
     val audioFormats: List<YouTubeStream> = emptyList(),
     val blockReason: String = ""
 ) {
-    val isEmpty: Boolean get() = videoFormats.isEmpty() || audioFormats.isEmpty()
+    val isEmpty: Boolean get() = videoFormats.isEmpty() && audioFormats.isEmpty()
 }
 
 /** Higher = more preferred audio track for playback: Indonesian language first, then the original

@@ -47,9 +47,10 @@ class YouTubeHomeFragment : Fragment() {
 
     private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            lifecycleScope.launch(Dispatchers.IO) { YouTubeAuthManager.fetchUserInfo() }
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) { YouTubeAuthManager.fetchUserInfo() }
             updateLoginUi()
-            Toast.makeText(requireContext(), "Login berhasil: ${YouTubeAuthManager.email()}", Toast.LENGTH_LONG).show()
+            val ctx = context ?: return@registerForActivityResult
+            Toast.makeText(ctx, "Login berhasil: ${YouTubeAuthManager.email()}", Toast.LENGTH_LONG).show()
             refreshFeed()
         }
     }
@@ -115,7 +116,7 @@ class YouTubeHomeFragment : Fragment() {
         if (isLoading || endReached || loadJob?.isActive == true) return
         isLoading = true
         val wasEmpty = adapter.isEmpty
-        val job = lifecycleScope.launch {
+        val job = viewLifecycleOwner.lifecycleScope.launch {
             val page = try {
                 if (wasEmpty) {
                     // First load: top "Langganan" section (logged in) + the first endless batch.
@@ -172,7 +173,7 @@ class YouTubeHomeFragment : Fragment() {
      *  may have changed) without re-scraping the whole endless feed. */
     private fun refreshSection() {
         if (!loadedOnce || !YouTubeAuthManager.isLoggedIn()) return
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val section = try {
                 withContext(Dispatchers.IO) {
                     val subs = com.weebflix.app.data.scraper.YouTubeDataApi.getMySubscriptions()

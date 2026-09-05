@@ -381,9 +381,10 @@ object YouTubeDataApi {
     private fun parseIso(iso: String): Long {
         if (iso.isEmpty()) return 0L
         return try {
+            val clean = if (iso.contains('.')) iso.substringBeforeLast('.') + "Z" else iso
             val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
             fmt.timeZone = TimeZone.getTimeZone("UTC")
-            fmt.parse(iso)?.time ?: 0L
+            fmt.parse(clean)?.time ?: 0L
         } catch (e: Exception) {
             0L
         }

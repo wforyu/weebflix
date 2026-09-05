@@ -426,6 +426,12 @@ class PlayerActivity : AppCompatActivity() {
     private var startPositionMs: Long = 0L
     private var pendingYtSeekMs: Long = 0L
     private var ytFullscreen = false
+    private var ytNetworkRetryCount = 0
+    private val maxNetworkRetries = 3
+    private var ytPendingRetryVideoId: String = ""
+    private var ytPendingRetrySeekMs: Long = 0L
+    private var ytPendingRetryRunnable: Runnable? = null
+    private val ytRetryHandler = Handler(Looper.getMainLooper())
 
     private var webView: WebView? = null
     private var webViewResolving = false
@@ -2121,7 +2127,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.e(TAG, "EP-WEBVIEW error: $description at $failingUrl")
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.VISIBLE
-                tvError.text = "Error: $description"
+                tvError.text = "Kesalahan: $description"
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
@@ -2270,7 +2276,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.e(TAG, "WebView playback error: $description at $failingUrl")
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.VISIBLE
-                tvError.text = "Error: $description"
+                tvError.text = "Kesalahan: $description"
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
@@ -2403,7 +2409,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.e(TAG, "VIDEO-WEBVIEW error: $description at $failingUrl")
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.VISIBLE
-                tvError.text = "Error: $description"
+                tvError.text = "Kesalahan: $description"
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
@@ -5572,7 +5578,7 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                if (!isFinishing) showError("Error: ${e.message}")
+                if (!isFinishing) showError("Kesalahan: ${e.message}")
             }
         }
     }
@@ -5665,7 +5671,7 @@ class PlayerActivity : AppCompatActivity() {
         val pct = ((loaded * 100) / total).toInt().coerceIn(0, 100)
         if (pct != lastShownPct) {
             lastShownPct = pct
-            tvLoadingProgress.text = "Preparing $pct% (${formatMb(loaded)} / ${formatMb(total)})"
+            tvLoadingProgress.text = "Menyiapkan $pct% (${formatMb(loaded)} / ${formatMb(total)})"
         }
         if (dlTrackingActive && loadingPlayer.visibility == View.VISIBLE) {
             tvLoadingProgress.visibility = View.VISIBLE
@@ -5789,6 +5795,13 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun playYouTubeVideo(videoId: String, seekMs: Long = startPositionMs) {
         currentYtVideoId = videoId
+        ytNetworkRetryCount = 0
+        ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
+        ytPendingRetryRunnable = null
+        ytPendingRetryVideoId = ""
+        ytRelatedContinuation = ""
+        ytRelatedEnded = false
+        if (::ytRelatedAdapter.isInitialized) ytRelatedAdapter.clear()
         updateYtNavButtons()
         loadingPlayer.visibility = View.VISIBLE
         tvError.visibility = View.GONE
@@ -5813,6 +5826,7 @@ class PlayerActivity : AppCompatActivity() {
                 null
             }
             if (isFinishing) return@launch
+            if (currentYtVideoId != videoId) return@launch
             if (resolved == null || resolved.isEmpty) {
                 val msg = resolved?.blockReason?.takeIf { it.isNotEmpty() }?.let {
                     "Video diblokir YouTube (butuh login).\n$it"
@@ -6000,8 +6014,31 @@ class PlayerActivity : AppCompatActivity() {
                             loadingPlayer.visibility = View.GONE
                             val msg = error.message ?: ""
                             val causeMsg = error.cause?.message ?: ""
+                            val fullMsg = "$msg $causeMsg"
                             Log.e(TAG, "YouTube player error: $msg | cause: $causeMsg")
-                            if ((msg + causeMsg).contains("403")) {
+                            val isNetworkError = fullMsg.contains("UnknownHost", ignoreCase = true) ||
+                                fullMsg.contains("SocketException", ignoreCase = true) ||
+                                fullMsg.contains("ConnectException", ignoreCase = true) ||
+                                fullMsg.contains("ETIMEDOUT", ignoreCase = true) ||
+                                fullMsg.contains("ECONNRESET", ignoreCase = true) ||
+                                fullMsg.contains("unable to resolve host", ignoreCase = true)
+                            if (isNetworkError && ytNetworkRetryCount < maxNetworkRetries && currentYtVideoId.isNotEmpty()) {
+                                ytNetworkRetryCount++
+                                val delayMs = 5000L * ytNetworkRetryCount
+                                Log.w(TAG, "YouTube network error, retry $ytNetworkRetryCount/$maxNetworkRetries in ${delayMs}ms...")
+                                ytPendingRetryVideoId = currentYtVideoId
+                                ytPendingRetrySeekMs = exoPlayer?.currentPosition ?: 0L
+                                ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
+                                ytPendingRetryRunnable = Runnable {
+                                    if (!isFinishing && ytPendingRetryVideoId.isNotEmpty() && ytPendingRetryVideoId == currentYtVideoId) {
+                                        Log.d(TAG, "Retrying YouTube playback (attempt $ytNetworkRetryCount)")
+                                        loadingPlayer.visibility = View.VISIBLE
+                                        tvError.visibility = View.GONE
+                                        playYouTubeVideo(ytPendingRetryVideoId, ytPendingRetrySeekMs)
+                                    }
+                                }
+                                ytRetryHandler.postDelayed(ytPendingRetryRunnable!!, delayMs)
+                            } else if (fullMsg.contains("403", ignoreCase = true)) {
                                 showError("Stream kedaluwarsa. Buka video lagi untuk stream baru.")
                             } else {
                                 showError("Gagal memutar video: ${error.cause?.message ?: msg}")
@@ -6013,6 +6050,7 @@ class PlayerActivity : AppCompatActivity() {
                 player.prepare()
                 player.playWhenReady = true
                 progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
+                PlayerForegroundService.start(this@PlayerActivity, animeTitle.ifEmpty { "YouTube" })
             }
     }
 
@@ -6101,6 +6139,7 @@ class PlayerActivity : AppCompatActivity() {
         ytLoadingRelated = true
         val job = lifecycleScope.launch {
             val c = ytRelatedContinuation
+            val vidSnapshot = currentYtVideoId
             val page = try {
                 withContext(Dispatchers.IO) {
                     if (c.isEmpty()) ytScraper.watchNextBundle(currentYtVideoId)
@@ -6109,6 +6148,7 @@ class PlayerActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 com.weebflix.app.data.scraper.WatchNextBundle()
             }
+            if (currentYtVideoId != vidSnapshot) { ytLoadingRelated = false; return@launch }
             if (c.isEmpty()) {
                 // The first-page bundle carries the owner renderer + like count AND the first
                 // page of comments (one `next` + one ANDROID_VR continuation), so we never fire
@@ -6189,7 +6229,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun sleepTimerLabel(): String = when {
-        !sleepTimerActive -> "Off"
+        !sleepTimerActive -> "Mati"
         sleepTimerMode == 1 -> "Akhir video"
         else -> sleepTimerMinutesText(sleepTimerMinutes)
     }
@@ -6205,7 +6245,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun showSleepTimerDialog() {
         val duration = exoPlayer?.duration?.takeIf { it > 0 } ?: 0L
         data class Opt(val label: String, val mode: Int, val minutes: Long = 0L)
-        val opts = mutableListOf(Opt("Off", 0), Opt("Sampai akhir video", 1))
+        val opts = mutableListOf(Opt("Mati", 0), Opt("Sampai akhir video", 1))
         for (m in listOf(15L, 30L, 45L, 60L)) opts.add(Opt("$m menit", 2, m))
         if (duration > 60 * 60 * 1000L) {
             opts.add(Opt("1,5 jam", 2, 90L))
@@ -7977,6 +8017,17 @@ class PlayerActivity : AppCompatActivity() {
         progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         progressUpdateHandler.postDelayed(progressUpdateRunnable, 500)
         WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+        // Jika ada pending retry YouTube dari network error saat layar dikunci,
+        // batalkan scheduled retry & jalankan ulang sekarang (network sudah stabil).
+        if (ytPendingRetryVideoId.isNotEmpty() && ytPendingRetryVideoId == currentYtVideoId) {
+            ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
+            ytPendingRetryRunnable = null
+            Log.d(TAG, "onResume: retrying pending YouTube playback immediately")
+            ytPendingRetryVideoId = ""
+            loadingPlayer.visibility = View.VISIBLE
+            tvError.visibility = View.GONE
+            playYouTubeVideo(currentYtVideoId, ytPendingRetrySeekMs)
+        }
     }
 
     private fun saveWatchHistory() {
@@ -8027,7 +8078,11 @@ class PlayerActivity : AppCompatActivity() {
         progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
         autoHideHandler.removeCallbacks(autoHideRunnable)
         autoPlayHandler.removeCallbacks(autoPlayRunnable)
+        ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
         sleepTimerHandler.removeCallbacksAndMessages(null)
+        holdSeekActive = false
+        cancelPendingHold()
+        holdSeekHandler.removeCallbacksAndMessages(null)
         restoreScreenOffTimeout()
         pipActionReceiver?.let { unregisterReceiver(it) }
         pipActionReceiver = null
@@ -8039,6 +8094,7 @@ class PlayerActivity : AppCompatActivity() {
             destroy()
         }
         webView = null
+        PlayerForegroundService.stop(this)
         super.onDestroy()
     }
 }
