@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Saijo-no-Osewa-Episode-10.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Mahou Shoujo Lyrical Nanoha EXGV",
       "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Hell Mode Yarikomizuki no Gamer Season 2",
-      "url": "https://v2.samehadaku.how/anime/hell-mode-yarikomizuki-no-gamer-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Hell-Mode-Yarikomizuki-no-Gamer-Season-2-Episode-10.jpg",
+      "title": "Saijo no Osewa",
+      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Saijo-no-Osewa-Episode-10.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Mahou Shoujo Lyrical Nanoha EXGV",
       "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
@@ -366,21 +381,6 @@
       "title": "Mebius Dust",
       "url": "https://v2.samehadaku.how/anime/mebius-dust/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Mebius-Dust-Episode-9.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Rakudai Kenja no Gakuin Musou",
-      "url": "https://v2.samehadaku.how/anime/rakudai-kenja-no-gakuin-musou/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Rakudai-Kenja-no-Gakuin-Musou-Episode-11.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788638150697
+  "timestamp": 1788663376461
 }
