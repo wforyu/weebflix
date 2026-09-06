@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
+      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Futsutsuka na Akujo dewa Gozaimasu",
       "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Futsutsuka-na-Akujo-dewa-Gozaimasu-Episode-9.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Honzuki no Gekokujou Season 4",
-      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-20.jpg",
+      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
+      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Futsutsuka na Akujo dewa Gozaimasu",
       "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
@@ -366,21 +381,6 @@
       "title": "Ryoumin 0-nin Start no Henkyou Ryoushu-sama",
       "url": "https://v2.samehadaku.how/anime/ryoumin-0-nin-start-no-henkyou-ryoushu-sama/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Ryoumin-0-nin-Start-no-Henkyou-Ryoushu-sama-Episode-10.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Tensei Juukishi wa Game",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-10.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788689732744
+  "timestamp": 1788706521867
 }
