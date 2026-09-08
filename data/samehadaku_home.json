@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-6-1.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Mushoku Tensei : Isekai Ittara Honki Dasu Season 3",
-      "url": "https://v2.samehadaku.how/anime/mushoku-tensei-isekai-ittara-honki-dasu-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-2.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Nijusseiki Denki Mokuroku",
-      "url": "https://v2.samehadaku.how/anime/nijusseiki-denki-mokuroku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-1.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mujikaku Seijo",
+      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
@@ -351,36 +381,6 @@
       "title": "Mahou Shoujo Lyrical Nanoha EXGV",
       "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Iwamoto-senpai no Suisen",
-      "url": "https://v2.samehadaku.how/anime/iwamoto-senpai-no-suisen/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-6.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mao",
-      "url": "https://v2.samehadaku.how/anime/mao/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-1.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1788883131987
+  "timestamp": 1788900189204
 }
