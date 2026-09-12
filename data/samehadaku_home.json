@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Mairimashita Iruma kun Season 4",
+      "url": "https://v2.samehadaku.how/anime/mairimashita-iruma-kun-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-3.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-21.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-3.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Tomb Raider King",
-      "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tomb-Rider-King-Episode-10.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Lv999 no Murabito",
-      "url": "https://v2.samehadaku.how/anime/lv999-no-murabito/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Lv999-no-Murabito-Episode-12-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Mairimashita Iruma kun Season 4",
+      "url": "https://v2.samehadaku.how/anime/mairimashita-iruma-kun-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-3.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-21.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
@@ -351,36 +381,6 @@
       "title": "Katainaka no Ossan, Kensei ni Naru S2",
       "url": "https://v2.samehadaku.how/anime/katainaka-no-ossan-kensei-ni-naru-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Screenshot-842.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Re:Zero kara Hajimeru Isekai Seikatsu Season 4",
-      "url": "https://v2.samehadaku.how/anime/rezero-kara-hajimeru-isekai-seikatsu-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-1.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Clevatess Season 2",
-      "url": "https://v2.samehadaku.how/anime/clevatess-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-8.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789207528521
+  "timestamp": 1789225131112
 }
