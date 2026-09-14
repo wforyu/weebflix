@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Buchigire Reijou wa Houfuku",
       "url": "https://v2.samehadaku.how/anime/buchigire-reijou-wa-houfuku/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Buchigire-Reijou-wa-Houfuku-Episode-11.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
-      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-11.jpg",
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Buchigire Reijou wa Houfuku",
       "url": "https://v2.samehadaku.how/anime/buchigire-reijou-wa-houfuku/",
@@ -366,21 +381,6 @@
       "title": "Iwamoto-senpai no Suisen",
       "url": "https://v2.samehadaku.how/anime/iwamoto-senpai-no-suisen/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-3.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Yomi no Tsugai",
-      "url": "https://v2.samehadaku.how/anime/yomi-no-tsugai/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Yomi-no-Tsugai-Episode-23.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789407695103
+  "timestamp": 1789421312804
 }
