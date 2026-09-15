@@ -1,6 +1,66 @@
 {
   "hero": [
     {
+      "title": "Movie The Monkey (2025) BluRay",
+      "url": "http://45.11.57.188/movie-the-monkey-2025-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2025/03/The-Monkey-2025.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Sixth Sense: B-Side Episode 1",
+      "url": "http://45.11.57.188/sixth-sense-b-side-episode-1/",
+      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Sixth-Sense-B-Side-2026.jpg?resize=246,350",
+      "episode": "Ep 1",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "New Recruit Season 4 Episode 14",
+      "url": "http://45.11.57.188/new-recruit-season-4-episode-14/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/New-Recruit-Season-4-2026.jpg?resize=246,350",
+      "episode": "Ep 14",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "1 Night 2 Days Season 4 Episode 342",
+      "url": "http://45.11.57.188/1-night-2-days-season-4-episode-342/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
+      "episode": "Ep 342",
+      "type": "TV Show",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "See You Later… Maybe Episode 15 END",
       "url": "http://45.11.57.188/see-you-later-maybe-episode-15/",
       "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2026/09/See-You-Later.-Maybe-2026.jpg?resize=246,350",
@@ -89,13 +149,15 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Abyss 2026 Episode 16 END",
-      "url": "http://45.11.57.188/abyss-2026-episode-16-end/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/09/Abyss-2026.jpg?resize=246,350",
-      "episode": "Ep 16 END",
-      "type": "Drama",
+      "title": "Movie The Monkey (2025) BluRay",
+      "url": "http://45.11.57.188/movie-the-monkey-2025-bluray/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2025/03/The-Monkey-2025.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -106,10 +168,10 @@
       "latestUpdate": ""
     },
     {
-      "title": "Running Man Episode 820",
-      "url": "http://45.11.57.188/running-man-episode-820/",
-      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2021/05/Running-Man-2010-1.jpg?resize=246,350",
-      "episode": "Ep 820",
+      "title": "Sixth Sense: B-Side Episode 1",
+      "url": "http://45.11.57.188/sixth-sense-b-side-episode-1/",
+      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Sixth-Sense-B-Side-2026.jpg?resize=246,350",
+      "episode": "Ep 1",
       "type": "TV Show",
       "status": "",
       "score": "",
@@ -121,11 +183,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Movie The First Ride (2025) WEBDL",
-      "url": "http://45.11.57.188/movie-the-first-ride-2025-webdl/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/03/The-First-Ride-2025.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "New Recruit Season 4 Episode 14",
+      "url": "http://45.11.57.188/new-recruit-season-4-episode-14/",
+      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/New-Recruit-Season-4-2026.jpg?resize=246,350",
+      "episode": "Ep 14",
+      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -136,11 +198,11 @@
       "latestUpdate": ""
     },
     {
-      "title": "Movie Eraser (1996) BluRay",
-      "url": "http://45.11.57.188/movie-eraser-1996-bluray/",
-      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/09/Eraser-1996.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "1 Night 2 Days Season 4 Episode 342",
+      "url": "http://45.11.57.188/1-night-2-days-season-4-episode-342/",
+      "imageUrl": "http://i3.wp.com/45.11.57.188/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
+      "episode": "Ep 342",
+      "type": "TV Show",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,9 +211,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "See You Later… Maybe Episode 15 END",
       "url": "http://45.11.57.188/see-you-later-maybe-episode-15/",
@@ -382,66 +442,6 @@
       "url": "http://45.11.57.188/lanterns-season-1-episode-5/",
       "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/08/Lanterns-Season-1-2026.jpg?resize=246,350",
       "episode": "Ep 5",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Cycle of Sin Episode 2",
-      "url": "http://45.11.57.188/cycle-of-sin-episode-2/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/09/Cycle-of-Sin-2026.jpg?resize=246,350",
-      "episode": "Ep 2",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Though I Am an Inept Villainess Episode 10",
-      "url": "http://45.11.57.188/though-i-am-an-inept-villainess-episode-10/",
-      "imageUrl": "http://i0.wp.com/45.11.57.188/wp-content/uploads/2026/07/Though-I-Am-an-Inept-Villainess-2026.jpg?resize=246,350",
-      "episode": "Ep 10",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "The Walking Dead: Dead City Season 3 Episode 8",
-      "url": "http://45.11.57.188/the-walking-dead-dead-city-season-3-episode-8/",
-      "imageUrl": "http://i2.wp.com/45.11.57.188/wp-content/uploads/2026/07/The-Walking-Dead-Dead-City-Season-3-2026.jpg?resize=246,350",
-      "episode": "Ep 8",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Sparks of Tomorrow Episode 11",
-      "url": "http://45.11.57.188/sparks-of-tomorrow-episode-11/",
-      "imageUrl": "http://i1.wp.com/45.11.57.188/wp-content/uploads/2026/07/Sparks-of-Tomorrow-2026.jpg?resize=246,350",
-      "episode": "Ep 11",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1789442642819
+  "timestamp": 1789470261168
 }
