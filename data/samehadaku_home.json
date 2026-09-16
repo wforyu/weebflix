@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Hibike! Euphonium: The Final Movie Part 1",
+      "url": "https://v2.samehadaku.how/anime/hibike-euphonium-the-final-movie-part-1/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-6-2.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Sora wa Akai Kawa no Hotori",
       "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-5.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-5.jpg",
+      "title": "Hibike! Euphonium: The Final Movie Part 1",
+      "url": "https://v2.samehadaku.how/anime/hibike-euphonium-the-final-movie-part-1/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-6-2.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Sora wa Akai Kawa no Hotori",
       "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
@@ -366,21 +381,6 @@
       "title": "Saijo no Osewa",
       "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-2.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mahou Shoujo Lyrical Nanoha EXGV",
-      "url": "https://v2.samehadaku.how/anime/mahou-shoujo-lyrical-nanoha-exgv/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-3.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789528807109
+  "timestamp": 1789555836086
 }
