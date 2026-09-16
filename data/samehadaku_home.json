@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu Season 4",
+      "url": "https://v2.samehadaku.how/anime/rezero-kara-hajimeru-isekai-seikatsu-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-5.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Clevatess Season 2",
+      "url": "https://v2.samehadaku.how/anime/clevatess-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-14.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Hibike! Euphonium: The Final Movie Part 1",
       "url": "https://v2.samehadaku.how/anime/hibike-euphonium-the-final-movie-part-1/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-6-2.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu Season 2",
-      "url": "https://v2.samehadaku.how/anime/gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Gaikotsu-Kishi-sama-Tadaima-Isekai-e-Odekakechuu-Season-2-Episode-11.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/One-Piece-Episode-1178.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu Season 4",
+      "url": "https://v2.samehadaku.how/anime/rezero-kara-hajimeru-isekai-seikatsu-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-5.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Clevatess Season 2",
+      "url": "https://v2.samehadaku.how/anime/clevatess-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-14.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Hibike! Euphonium: The Final Movie Part 1",
       "url": "https://v2.samehadaku.how/anime/hibike-euphonium-the-final-movie-part-1/",
@@ -351,36 +381,6 @@
       "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
       "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-11.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Futsutsuka na Akujo dewa Gozaimasu",
-      "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-14.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Saijo no Osewa",
-      "url": "https://v2.samehadaku.how/anime/saijo-no-osewa/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-2.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789555836086
+  "timestamp": 1789574870674
 }
