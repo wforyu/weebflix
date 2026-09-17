@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-12.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mebius Dust",
+      "url": "https://v2.samehadaku.how/anime/mebius-dust/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Mebius-Dust-Episode-11.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tomb Raider King",
       "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tomb-Rider-King-Episode-11.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Mujikaku Seijo",
-      "url": "https://v2.samehadaku.how/anime/mujikaku-seijo/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-9.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Liar Game",
-      "url": "https://v2.samehadaku.how/anime/liar-game/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-4.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-12.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Mebius Dust",
+      "url": "https://v2.samehadaku.how/anime/mebius-dust/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Mebius-Dust-Episode-11.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Tomb Raider King",
       "url": "https://v2.samehadaku.how/anime/tomb-raider-king/",
@@ -351,36 +381,6 @@
       "title": "Toumei na Yoru ni Kakeru",
       "url": "https://v2.samehadaku.how/anime/toumei-na-yoru-ni-kakeru/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-12.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu Season 2",
-      "url": "https://v2.samehadaku.how/anime/gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Gaikotsu-Kishi-sama-Tadaima-Isekai-e-Odekakechuu-Season-2-Episode-11.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/One-Piece-Episode-1178.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789661661060
+  "timestamp": 1789678607053
 }

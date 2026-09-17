@@ -1,10 +1,25 @@
 {
   "hero": [
     {
-      "title": "Plastic Beauty Episode 4",
-      "url": "http://45.11.57.194/plastic-beauty-episode-4/",
+      "title": "Monster: The Lizzie Borden Story Episode 8 END",
+      "url": "http://45.11.57.194/monster-the-lizzie-borden-story-episode-8-end/",
+      "imageUrl": "http://i3.wp.com/45.11.57.194/wp-content/uploads/2026/09/Monster-The-Lizzie-Borden-Story-2026.jpg?resize=246,350",
+      "episode": "Ep 8 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Plastic Beauty Episode 8 END",
+      "url": "http://45.11.57.194/plastic-beauty-episode-8-end/",
       "imageUrl": "http://i2.wp.com/45.11.57.194/wp-content/uploads/2026/09/Plastic-Beauty-2026.jpg?resize=246,350",
-      "episode": "Ep 4",
+      "episode": "Ep 8 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -134,13 +149,15 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kick A Goal Episode 232",
-      "url": "http://45.11.57.194/kick-a-goal-episode-232-nomorsesuaiottkcw/",
-      "imageUrl": "http://i2.wp.com/45.11.57.194/wp-content/uploads/2021/12/Kick-A-Goal-2021-1.jpg?resize=246,350",
-      "episode": "Ep 232",
-      "type": "TV Show",
+      "title": "Monster: The Lizzie Borden Story Episode 8 END",
+      "url": "http://45.11.57.194/monster-the-lizzie-borden-story-episode-8-end/",
+      "imageUrl": "http://i3.wp.com/45.11.57.194/wp-content/uploads/2026/09/Monster-The-Lizzie-Borden-Story-2026.jpg?resize=246,350",
+      "episode": "Ep 8 END",
+      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -149,14 +166,12 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
-      "title": "Plastic Beauty Episode 4",
-      "url": "http://45.11.57.194/plastic-beauty-episode-4/",
+      "title": "Plastic Beauty Episode 8 END",
+      "url": "http://45.11.57.194/plastic-beauty-episode-8-end/",
       "imageUrl": "http://i2.wp.com/45.11.57.194/wp-content/uploads/2026/09/Plastic-Beauty-2026.jpg?resize=246,350",
-      "episode": "Ep 4",
+      "episode": "Ep 8 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -427,21 +442,6 @@
       "url": "http://45.11.57.194/love-in-the-moonlight-redrawn-episode-1/",
       "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/Love-in-the-Moonlight-Redrawn-2026.jpg?resize=246,350",
       "episode": "Ep 1",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "The Return of Superman Episode 636",
-      "url": "http://45.11.57.194/the-return-of-superman-episode-636/",
-      "imageUrl": "http://i3.wp.com/45.11.57.194/wp-content/uploads/2021/05/The-Return-of-Superman-2013-1.jpg?resize=246,350",
-      "episode": "Ep 636",
       "type": "TV Show",
       "status": "",
       "score": "",
@@ -1361,6 +1361,21 @@
   ],
   "cat4": [
     {
+      "title": "Monster: The Lizzie Borden Story",
+      "url": "http://45.11.57.194/monster-the-lizzie-borden-story/",
+      "imageUrl": "http://i3.wp.com/45.11.57.194/wp-content/uploads/2026/09/Monster-The-Lizzie-Borden-Story-2026.jpg?resize=246,350",
+      "episode": "Completed",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Plastic Beauty",
       "url": "http://45.11.57.194/plastic-beauty/",
       "imageUrl": "http://i2.wp.com/45.11.57.194/wp-content/uploads/2026/09/Plastic-Beauty-2026.jpg?resize=246,350",
@@ -1644,22 +1659,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Thunder 3",
-      "url": "http://45.11.57.194/thunder-3/",
-      "imageUrl": "http://i1.wp.com/45.11.57.194/wp-content/uploads/2026/07/Thunder-3-2026.jpg?resize=246,350",
-      "episode": "Ongoing",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
-  "timestamp": 1789661666531
+  "timestamp": 1789678612135
 }
