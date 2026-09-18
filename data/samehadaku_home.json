@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Ryoumin 0-nin Start no Henkyou Ryoushu-sama",
+      "url": "https://v2.samehadaku.how/anime/ryoumin-0-nin-start-no-henkyou-ryoushu-sama/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Ryoumin-0-nin-Start-no-Henkyou-Ryoushu-sama-Episode-12.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-12.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Sora wa Akai Kawa no Hotori",
-      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-5.jpg",
+      "title": "Ryoumin 0-nin Start no Henkyou Ryoushu-sama",
+      "url": "https://v2.samehadaku.how/anime/ryoumin-0-nin-start-no-henkyou-ryoushu-sama/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Ryoumin-0-nin-Start-no-Henkyou-Ryoushu-sama-Episode-12.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
@@ -366,21 +381,6 @@
       "title": "Degarashi Ouji",
       "url": "https://v2.samehadaku.how/anime/degarashi-ouji/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-13.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Toumei na Yoru ni Kakeru",
-      "url": "https://v2.samehadaku.how/anime/toumei-na-yoru-ni-kakeru/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-12.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789727657041
+  "timestamp": 1789746559715
 }
