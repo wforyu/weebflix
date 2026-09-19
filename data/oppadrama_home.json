@@ -1,11 +1,11 @@
 {
   "hero": [
     {
-      "title": "Movie You+Me – Against the World (2026) WEBDL",
-      "url": "http://45.11.57.194/movie-youme-against-the-world-2026-webdl/",
-      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/YouMe-–-Against-the-World-2026.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
+      "title": "The Ramparts of Ice Episode 14 END",
+      "url": "http://45.11.57.194/the-ramparts-of-ice-episode-14/",
+      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/04/The-Ramparts-of-Ice-2026.jpg?resize=246,350",
+      "episode": "Ep 14 END",
+      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -16,11 +16,26 @@
       "latestUpdate": ""
     },
     {
-      "title": "Until the T-Shirt Dries Episode 10",
+      "title": "Until the T-Shirt Dries Episode 10 END",
       "url": "http://45.11.57.194/until-the-t-shirt-dries-episode-10/",
       "imageUrl": "http://i1.wp.com/45.11.57.194/wp-content/uploads/2026/07/Until-the-T-Shirt-Dries-2026.jpg?resize=246,350",
-      "episode": "Ep 10",
+      "episode": "Ep 10 END",
       "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Movie You+Me – Against the World (2026) WEBDL",
+      "url": "http://45.11.57.194/movie-youme-against-the-world-2026-webdl/",
+      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/YouMe-–-Against-the-World-2026.jpg?resize=246,350",
+      "episode": "Movie",
+      "type": "Movie",
       "status": "",
       "score": "",
       "studio": "",
@@ -134,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Spring of the Blade Episode 8",
-      "url": "http://45.11.57.194/spring-of-the-blade-episode-8/",
-      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/Spring-of-the-Blade-2026.jpg?resize=246,350",
-      "episode": "Ep 8",
+      "title": "The Ramparts of Ice Episode 14 END",
+      "url": "http://45.11.57.194/the-ramparts-of-ice-episode-14/",
+      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/04/The-Ramparts-of-Ice-2026.jpg?resize=246,350",
+      "episode": "Ep 14 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,30 +166,28 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
+    {
+      "title": "Until the T-Shirt Dries Episode 10 END",
+      "url": "http://45.11.57.194/until-the-t-shirt-dries-episode-10/",
+      "imageUrl": "http://i1.wp.com/45.11.57.194/wp-content/uploads/2026/07/Until-the-T-Shirt-Dries-2026.jpg?resize=246,350",
+      "episode": "Ep 10 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Movie You+Me – Against the World (2026) WEBDL",
       "url": "http://45.11.57.194/movie-youme-against-the-world-2026-webdl/",
       "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/YouMe-–-Against-the-World-2026.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Until the T-Shirt Dries Episode 10",
-      "url": "http://45.11.57.194/until-the-t-shirt-dries-episode-10/",
-      "imageUrl": "http://i1.wp.com/45.11.57.194/wp-content/uploads/2026/07/Until-the-T-Shirt-Dries-2026.jpg?resize=246,350",
-      "episode": "Ep 10",
-      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -428,21 +443,6 @@
       "imageUrl": "http://i3.wp.com/45.11.57.194/wp-content/uploads/2026/08/My-AI-Partner-Strange-Love-2026.jpg?resize=246,350",
       "episode": "Ep 5",
       "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Cycle of Sin Episode 4",
-      "url": "http://45.11.57.194/cycle-of-sin-episode-4/",
-      "imageUrl": "http://i0.wp.com/45.11.57.194/wp-content/uploads/2026/09/Cycle-of-Sin-2026.jpg?resize=246,350",
-      "episode": "Ep 4",
-      "type": "Drama",
       "status": "",
       "score": "",
       "studio": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1789813104613
+  "timestamp": 1789831309115
 }
