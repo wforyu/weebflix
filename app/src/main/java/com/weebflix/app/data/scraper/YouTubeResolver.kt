@@ -436,6 +436,33 @@ object YouTubeResolver {
             Log.w(TAG, "client ${ctx.clientName}: streamingData is null")
             return PlayerResult(null, flagged = false)
         }
+        val isLive = respJson.optJSONObject("playabilityStatus")
+            ?.optJSONObject("liveStreamabilityRenderer") != null ||
+            respJson.optJSONObject("videoDetails")?.optBoolean("isLiveContent", false) == true
+        val hlsUrl = streaming.optString("hlsManifestUrl", "")
+        // LIVE STREAMS: playability has no fixed duration and the adaptive formats are live
+        // segment URLs without init/index ranges (no DASH byte-range representation possible).
+        // YouTube always exposes a merged HLS manifest for live content — playing it directly
+        // (single MediaItem, ExoPlayer HLS) is the only reliable path. The old behavior merged
+        // two separate live segment streams (video-only + audio-only) which froze on-device.
+        if (isLive && hlsUrl.isNotEmpty()) {
+            val details = respJson.optJSONObject("videoDetails")
+            Log.d(TAG, "client ${ctx.clientName}: LIVE stream, using HLS manifest")
+            return PlayerResult(
+                ResolvedYouTube(
+                    videoId = videoId,
+                    title = details?.optString("title") ?: "",
+                    author = details?.optString("author") ?: "",
+                    views = details?.optString("viewCount") ?: "",
+                    published = publishDateOf(respJson),
+                    thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
+                    durationMs = 0,
+                    videoFormats = listOf(YouTubeStream(url = hlsUrl, mimeType = "application/x-mpegURL", isVideo = true)),
+                    audioFormats = emptyList(),
+                    isLive = true
+                ), flagged = false
+            )
+        }
         val formats = streaming.optJSONArray("adaptiveFormats") ?: JSONObject.NULL
         if (formats !is org.json.JSONArray || formats.length() == 0) {
             val hls = streaming.optString("hlsManifestUrl", "")
@@ -455,7 +482,8 @@ object YouTubeResolver {
                         thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
                         durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
                         videoFormats = listOf(YouTubeStream(url = manifest, mimeType = "application/x-mpegURL", isVideo = true)),
-                        audioFormats = emptyList()
+                        audioFormats = emptyList(),
+                        isLive = isLive
                     ), flagged = false
                 )
             }
@@ -494,7 +522,8 @@ object YouTubeResolver {
                 thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
                 durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
                 videoFormats = video,
-                audioFormats = audio
+                audioFormats = audio,
+                isLive = isLive
             ),
             flagged = false
         )

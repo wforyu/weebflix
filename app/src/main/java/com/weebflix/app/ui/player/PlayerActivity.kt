@@ -424,6 +424,7 @@ class PlayerActivity : AppCompatActivity() {
     private var isYtDisliked = false
     private var isYtSubscribed = false
     private var startPositionMs: Long = 0L
+    private var initialSeekPending = false
     private var pendingYtSeekMs: Long = 0L
     private var ytFullscreen = false
     private var ytNetworkRetryCount = 0
@@ -596,6 +597,8 @@ class PlayerActivity : AppCompatActivity() {
         nextEpisodeUrl = intent.getStringExtra("nextEpisodeUrl") ?: ""
         nextEpisodeTitle = intent.getStringExtra("nextEpisodeTitle") ?: ""
         startPositionMs = intent.getLongExtra("startPositionMs", 0L)
+        initialSeekPending = activeProviderId != com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID &&
+            startPositionMs > 0
 
         initViews()
         setupYtRelatedList()
@@ -4117,6 +4120,12 @@ class PlayerActivity : AppCompatActivity() {
                                     tvLoadingHint.visibility = View.GONE
                                     tvError.visibility = View.GONE
                                     syncByteRetryCount = 0
+                                    if (initialSeekPending && player.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_WINDOW)) {
+                                        val dur = player.duration
+                                        val target = if (dur > 0) minOf(startPositionMs, dur) else startPositionMs
+                                        player.seekTo(target)
+                                        initialSeekPending = false
+                                    }
                                 }
                                 Player.STATE_ENDED -> {
                                     isPlaying = false
@@ -5867,12 +5876,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun initExoPlayerYouTube(resolved: com.weebflix.app.data.scraper.ResolvedYouTube, seekMs: Long = 0L) {
         val video = com.weebflix.app.data.scraper.YouTubeResolver.pickVideo(resolved.videoFormats)
         val audio = com.weebflix.app.data.scraper.YouTubeResolver.pickAudio(resolved.audioFormats)
-        if (video == null || audio == null) {
+        if (!resolved.isLive && (video == null || audio == null)) {
             showError("Stream video/audio tidak tersedia")
             return
         }
-        Log.d(TAG, "YouTube streams: video=${video.height}p ${video.mimeType} bitrate=${video.bitrate} | audio=${audio.mimeType} bitrate=${audio.bitrate} lang=${audio.language} orig=${audio.isOriginalAudio} def=${audio.isDefaultAudio}")
-        pendingYtSeekMs = seekMs
+        Log.d(TAG, "YouTube streams: video=${video?.height ?: 0}p ${video?.mimeType ?: "-"} bitrate=${video?.bitrate ?: 0} | audio=${audio?.mimeType ?: "-"} bitrate=${audio?.bitrate ?: 0} lang=${audio?.language ?: ""} orig=${audio?.isOriginalAudio ?: false} def=${audio?.isDefaultAudio ?: false} live=${resolved.isLive}")
+        pendingYtSeekMs = if (resolved.isLive) 0L else seekMs
 
         showExoPlayerUi()
         releaseMediaSession()
@@ -5908,35 +5917,56 @@ class PlayerActivity : AppCompatActivity() {
             .build()
         trackSelector.parameters = params
         ytTrackSelector = trackSelector
-        ytResolutionOptions = resolved.videoFormats
-            .map { it.height }
-            .filter { it > 0 }
-            .distinct()
-            .sortedDescending()
+        ytResolutionOptions = if (resolved.isLive) {
+            emptyList()
+        } else {
+            resolved.videoFormats
+                .map { it.height }
+                .filter { it > 0 }
+                .distinct()
+                .sortedDescending()
+        }
         ytCurrentResolution = 0
-        btnQuality.visibility = View.VISIBLE
+        btnQuality.visibility = if (resolved.isLive) View.GONE else View.VISIBLE
         btnSleepTimer.visibility = View.VISIBLE
         updateSleepTimerButton()
 
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(upstreamFactory)
 
-        // ABR (YouTube-style): build an on-demand DASH manifest from all adaptive formats so
-        // ExoPlayer's DefaultTrackSelector switches resolutions with the available bandwidth
-        // (starts low on slow links, climbs automatically, drops when throttled). Falls back
-        // to a single fixed format (MergingMediaSource) when formats lack byte ranges.
-        val dashManifest = com.weebflix.app.data.scraper.YouTubeDashManifest.build(resolved)
-        val merged: androidx.media3.exoplayer.source.MediaSource = if (dashManifest != null) {
-            Log.d(TAG, "YouTube DASH ABR: video=${resolved.videoFormats.map { "${it.height}p" }.distinct().sorted()}")
-            val dataUri = "data:application/dash+xml;base64," +
-                android.util.Base64.encodeToString(dashManifest.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
-            val dashFactory = androidx.media3.datasource.DefaultDataSource.Factory(this, upstreamFactory)
-            androidx.media3.exoplayer.dash.DashMediaSource.Factory(dashFactory)
-                .createMediaSource(MediaItem.fromUri(dataUri))
+        // LIVE STREAMS: play YouTube's merged HLS manifest as a single MediaItem (ExoPlayer HLS
+        // handles the dynamic/ever-growing duration). DASH ABR and video+audio merging don't apply —
+        // live adaptive formats are segments without byte ranges, and there's no separate audio-only
+        // stream in the combined manifest.
+        val merged: androidx.media3.exoplayer.source.MediaSource
+        if (resolved.isLive) {
+            val liveUrl = resolved.videoFormats.firstOrNull()?.url?.takeIf { it.isNotEmpty() }
+            if (liveUrl == null) {
+                showError("Stream live tidak tersedia")
+                return
+            }
+            Log.d(TAG, "YouTube LIVE: playing HLS manifest directly")
+            merged = mediaSourceFactory.createMediaSource(MediaItem.fromUri(liveUrl))
         } else {
-            Log.d(TAG, "YouTube DASH unavailable (no byte ranges), falling back to fixed format")
-            val videoSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(video.url))
-            val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(audio.url))
-            androidx.media3.exoplayer.source.MergingMediaSource(videoSource, audioSource)
+            // ABR (YouTube-style): build an on-demand DASH manifest from all adaptive formats so
+            // ExoPlayer's DefaultTrackSelector switches resolutions with the available bandwidth
+            // (starts low on slow links, climbs automatically, drops when throttled). Falls back
+            // to a single fixed format (MergingMediaSource) when formats lack byte ranges.
+            val dashManifest = com.weebflix.app.data.scraper.YouTubeDashManifest.build(resolved)
+            merged = if (dashManifest != null) {
+                Log.d(TAG, "YouTube DASH ABR: video=${resolved.videoFormats.map { "${it.height}p" }.distinct().sorted()}")
+                val dataUri = "data:application/dash+xml;base64," +
+                    android.util.Base64.encodeToString(dashManifest.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+                val dashFactory = androidx.media3.datasource.DefaultDataSource.Factory(this, upstreamFactory)
+                androidx.media3.exoplayer.dash.DashMediaSource.Factory(dashFactory)
+                    .createMediaSource(MediaItem.fromUri(dataUri))
+            } else {
+                Log.d(TAG, "YouTube DASH unavailable (no byte ranges), falling back to fixed format")
+                val v = video ?: return
+                val a = audio ?: return
+                val videoSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(v.url))
+                val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(a.url))
+                androidx.media3.exoplayer.source.MergingMediaSource(videoSource, audioSource)
+            }
         }
 
         exoPlayer = ExoPlayer.Builder(this)

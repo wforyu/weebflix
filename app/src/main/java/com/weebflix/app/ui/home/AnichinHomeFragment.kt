@@ -332,6 +332,7 @@ class AnichinHomeFragment : Fragment() {
             intent.putExtra("imageUrl", entry.imageUrl)
             intent.putExtra("animeUrl", entry.animeUrl)
             intent.putExtra("providerId", ProviderFactory.ANICHIN_ID)
+            intent.putExtra("startPositionMs", entry.progressMs)
             startActivity(intent)
         }
         rvContinueWatching.apply {

@@ -316,7 +316,8 @@ class OppaDramaHomeFragment : Fragment() {
                 putExtra("animeTitle", entry.animeTitle)
                 putExtra("imageUrl", entry.imageUrl)
                 putExtra("animeUrl", entry.animeUrl)
-                putExtra("providerId", ProviderFactory.OPPADRAMA_ID)
+putExtra("providerId", ProviderFactory.OPPADRAMA_ID)
+                putExtra("startPositionMs", entry.progressMs)
             })
         }
         rvContinueWatching.apply {

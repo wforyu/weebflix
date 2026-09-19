@@ -333,6 +333,7 @@ class MissavHomeFragment : Fragment() {
             intent.putExtra("imageUrl", entry.imageUrl)
             intent.putExtra("animeUrl", entry.animeUrl)
             intent.putExtra("providerId", ProviderFactory.MISSAV_ID)
+            intent.putExtra("startPositionMs", entry.progressMs)
             startActivity(intent)
         }
         rvContinueWatching.apply {

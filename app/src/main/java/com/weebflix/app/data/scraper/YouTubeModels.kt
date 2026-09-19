@@ -152,7 +152,8 @@ data class ResolvedYouTube(
     val durationMs: Long = 0,
     val videoFormats: List<YouTubeStream> = emptyList(),
     val audioFormats: List<YouTubeStream> = emptyList(),
-    val blockReason: String = ""
+    val blockReason: String = "",
+    val isLive: Boolean = false
 ) {
     val isEmpty: Boolean get() = videoFormats.isEmpty() && audioFormats.isEmpty()
 }

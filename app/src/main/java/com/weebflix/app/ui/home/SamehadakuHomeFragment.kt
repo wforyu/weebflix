@@ -299,6 +299,7 @@ class SamehadakuHomeFragment : Fragment() {
             intent.putExtra("imageUrl", entry.imageUrl)
             intent.putExtra("animeUrl", entry.animeUrl)
             intent.putExtra("providerId", com.weebflix.app.data.provider.ProviderFactory.SAMEHADAKU_ID)
+            intent.putExtra("startPositionMs", entry.progressMs)
             startActivity(intent)
         }
         rvContinueWatching.apply {

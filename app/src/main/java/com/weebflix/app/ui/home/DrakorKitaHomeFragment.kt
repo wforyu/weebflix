@@ -250,7 +250,8 @@ class DrakorKitaHomeFragment : Fragment() {
                 putExtra("animeTitle", entry.animeTitle)
                 putExtra("imageUrl", entry.imageUrl)
                 putExtra("animeUrl", entry.animeUrl)
-                putExtra("providerId", ProviderFactory.DRAKORKITA_ID)
+putExtra("providerId", ProviderFactory.DRAKORKITA_ID)
+                putExtra("startPositionMs", entry.progressMs)
             })
         }
         rvContinueWatching.apply {
