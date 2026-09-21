@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
+      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-7.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kuroneko to Majo no Kyoushitsu",
       "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-13.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Yomi no Tsugai",
-      "url": "https://v2.samehadaku.how/anime/yomi-no-tsugai/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Yomi-no-Tsugai-Episode-24-END.jpg",
+      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
+      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-7.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kuroneko to Majo no Kyoushitsu",
       "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
@@ -366,21 +381,6 @@
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-11.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei shitara Slime Datta Ken Season 4",
-      "url": "https://v2.samehadaku.how/anime/tensei-shitara-slime-datta-ken-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tensei-shitara-Slime-Datta-Ken-Season-4-Episode-23.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1789960770045
+  "timestamp": 1789991978961
 }
