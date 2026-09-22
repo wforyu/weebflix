@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-8.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Grand Blue Season 3",
+      "url": "https://v2.samehadaku.how/anime/grand-blue-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Grand-Blue-Season-3-Episode-12-END.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Buchigire Reijou wa Houfuku",
       "url": "https://v2.samehadaku.how/anime/buchigire-reijou-wa-houfuku/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Buchigire-Reijou-wa-Houfuku-Episode-12-END.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/One-Piece-Episode-1179.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Futsutsuka na Akujo dewa Gozaimasu",
-      "url": "https://v2.samehadaku.how/anime/futsutsuka-na-akujo-dewa-gozaimasu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Futsutsuka-na-Akujo-dewa-Gozaimasu-Episode-11-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-8.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Grand Blue Season 3",
+      "url": "https://v2.samehadaku.how/anime/grand-blue-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Grand-Blue-Season-3-Episode-12-END.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Buchigire Reijou wa Houfuku",
       "url": "https://v2.samehadaku.how/anime/buchigire-reijou-wa-houfuku/",
@@ -351,36 +381,6 @@
       "title": "Iwamoto-senpai no Suisen",
       "url": "https://v2.samehadaku.how/anime/iwamoto-senpai-no-suisen/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-6.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Yomi no Tsugai",
-      "url": "https://v2.samehadaku.how/anime/yomi-no-tsugai/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Yomi-no-Tsugai-Episode-24-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Black Torch",
-      "url": "https://v2.samehadaku.how/anime/black-torch/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-5.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790014239901
+  "timestamp": 1790047144668
 }
