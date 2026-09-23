@@ -17,6 +17,7 @@ import json
 import time
 import os
 import requests
+from urllib.parse import urljoin
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -44,11 +45,11 @@ PROVIDERS = {
         "netflix_path": "/network/netflix/?verify_human=1",
     },
     "anichin": {
-        "base_url": "https://anichin.cafe",
+        "base_url": "https://anichin.moe",
         "home_path": "/",
         "ongoing_path": "/ongoing/",
         "completed_path": "/completed/",
-        "all_path": "/seri/",
+        "all_path": "/anime/",
     },
     "otakudesu": {
         "base_url": "https://otakudesu.blog",
@@ -245,6 +246,8 @@ def parse_anichin_from_articles(articles):
             if not a:
                 continue
             href = a.get("href", "")
+            if href and not href.startswith("http"):
+                href = urljoin(PROVIDERS["anichin"]["base_url"], href)
             title = a.get("title", "")
             if not title:
                 tt = bsx.select_one(".tt")

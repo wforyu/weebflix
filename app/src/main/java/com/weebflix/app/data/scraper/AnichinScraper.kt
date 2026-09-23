@@ -25,7 +25,7 @@ class AnichinScraper : AnimeProvider {
 
     override val id: String = ProviderFactory.ANICHIN_ID
     override val name: String = "Anichin"
-    override val defaultBaseUrl: String = "https://anichin.cafe"
+    override val defaultBaseUrl: String = "https://anichin.moe"
 
     override var baseUrl: String
         get() = ProviderConfig.getBaseUrl(id)
@@ -34,6 +34,20 @@ class AnichinScraper : AnimeProvider {
         }
 
     private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
+
+    private val oldDomains = listOf("anichin.cafe", "anichin.care")
+
+    private fun rewriteToCurrentDomain(url: String): String {
+        return try {
+            val baseHost = java.net.URL(defaultBaseUrl).host
+            val u = java.net.URL(url)
+            if (oldDomains.any { u.host?.contains(it) == true || it == u.host }) {
+                val newUrl = url.replace(u.host!!, baseHost)
+                Log.d("AnichinResolve", "Rewrote URL: $url -> $newUrl")
+                newUrl
+            } else url
+        } catch (_: Exception) { url }
+    }
 
     private val cookieJar = object : CookieJar {
         override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<Cookie>) {
@@ -108,8 +122,8 @@ class AnichinScraper : AnimeProvider {
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
-                    val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val url = toAbsolute(a?.attr("href") ?: "")
+                    val imageUrl = toAbsolute(element.select(".limit img.ts-post-image").attr("src"))
                     val epNum = element.select(".limit .bt span.epx").text()
 
                     if (title.isNotEmpty() && url.isNotEmpty()) {
@@ -143,8 +157,8 @@ class AnichinScraper : AnimeProvider {
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
-                    val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val url = toAbsolute(a?.attr("href") ?: "")
+                    val imageUrl = toAbsolute(element.select(".limit img.ts-post-image").attr("src"))
                     val epNum = element.select(".limit .bt span.epx").text()
                     val type = element.select(".limit .typez").text()
                     val status = if (epNum.contains("Ongoing", ignoreCase = true) || epNum.contains("Completed", ignoreCase = true)) epNum else ""
@@ -181,8 +195,8 @@ class AnichinScraper : AnimeProvider {
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
-                    val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val url = toAbsolute(a?.attr("href") ?: "")
+                    val imageUrl = toAbsolute(element.select(".limit img.ts-post-image").attr("src"))
                     val type = element.select(".limit .typez").text()
 
                     if (title.isNotEmpty() && url.isNotEmpty()) {
@@ -208,7 +222,7 @@ class AnichinScraper : AnimeProvider {
 
     suspend fun getAllAnime(page: Int): List<Anime> = withContext(Dispatchers.IO) {
         try {
-            val url = if (page <= 1) "$baseUrl/seri/" else "$baseUrl/seri/?page=$page"
+            val url = if (page <= 1) "$baseUrl/anime/" else "$baseUrl/anime/page/$page/"
             val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
@@ -216,8 +230,8 @@ class AnichinScraper : AnimeProvider {
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
-                    val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val url = toAbsolute(a?.attr("href") ?: "")
+                    val imageUrl = toAbsolute(element.select(".limit img.ts-post-image").attr("src"))
                     val epNum = element.select(".limit .bt span.epx").text()
                     val type = element.select(".limit .typez").text()
                     val status = if (epNum.contains("Ongoing", ignoreCase = true) || epNum.contains("Completed", ignoreCase = true)) epNum else ""
@@ -254,8 +268,8 @@ class AnichinScraper : AnimeProvider {
                 try {
                     val a = element.select("div.bsx > a").first()
                     val title = a?.attr("title") ?: element.select(".tt").text()
-                    val url = a?.attr("href") ?: ""
-                    val imageUrl = element.select(".limit img.ts-post-image").attr("src")
+                    val url = toAbsolute(a?.attr("href") ?: "")
+                    val imageUrl = toAbsolute(element.select(".limit img.ts-post-image").attr("src"))
                     val epNum = element.select(".limit .bt span.epx").text()
                     val type = element.select(".limit .typez").text()
                     val status = if (epNum.contains("Ongoing", ignoreCase = true) || epNum.contains("Completed", ignoreCase = true)) epNum else ""
@@ -284,15 +298,25 @@ class AnichinScraper : AnimeProvider {
 
     override suspend fun getAnimeDetail(url: String): AnimeDetail = withContext(Dispatchers.IO) {
         try {
-            var doc = fetchDocument(url)
+            var doc = fetchDocument(toAbsolute(rewriteToCurrentDomain(url)))
             var detail = parseAnimeDetail(doc, url)
 
             if (detail.episodes.isEmpty()) {
-                val seriesUrl = doc.select(".ts-breadcrumb ol li a[href*='/seri/'], .breadcrumb ol li a[href*='/seri/']").first()?.attr("href").orEmpty()
-                if (seriesUrl.isNotEmpty() && seriesUrl != url) {
-                    Log.d("AnichinDetail", "No episode list found (episode page?), resolving to series: $seriesUrl")
-                    doc = fetchDocument(seriesUrl)
-                    detail = parseAnimeDetail(doc, seriesUrl)
+                val seriesUrl = doc.select(
+                    ".ts-breadcrumb a[href*='/seri/'], .breadcrumb a[href*='/seri/'], " +
+                        ".ts-breadcrumb a[href*='/anime/'], .breadcrumb a[href*='/anime/'], " +
+                        ".ts-breadcrumb ol li a[href*='/seri/'], .breadcrumb ol li a[href*='/seri/']"
+                ).first()?.attr("href")
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: doc.select(".ts-breadcrumb a[itemprop='item']").eachAttr("href")
+                        .firstOrNull { it.isNotEmpty() && it != "/" }
+                        .orEmpty()
+                var resolved = toAbsolute(seriesUrl)
+                resolved = rewriteToCurrentDomain(resolved)
+                if (resolved.isNotEmpty() && resolved != url) {
+                    Log.d("AnichinDetail", "No episode list found (episode page?), resolving to series: $resolved")
+                    doc = fetchDocument(resolved)
+                    detail = parseAnimeDetail(doc, resolved)
                 }
             }
 
@@ -306,7 +330,7 @@ class AnichinScraper : AnimeProvider {
     private fun parseAnimeDetail(doc: org.jsoup.nodes.Document, url: String): AnimeDetail {
         val title = doc.select("h1.entry-title").text()
         val synopsis = doc.select("div.desc, div.entry-content p").text()
-        val imageUrl = doc.select("div.thumb img, div.thumbook img").attr("src")
+        val imageUrl = toAbsolute(doc.select("div.thumb img, div.thumbook img").attr("src"))
 
         var status = ""
         var type = ""
@@ -343,7 +367,7 @@ class AnichinScraper : AnimeProvider {
         val episodes = mutableListOf<Episode>()
         doc.select("div.eplister > ul > li").forEach { element ->
             try {
-                val epUrl = element.select("a").attr("href")
+                val epUrl = toAbsolute(element.select("a").attr("href"))
                 val epNum = element.select("div.epl-num").text()
                 val epTitle = element.select("div.epl-title").text()
                 val epDate = element.select("div.epl-date").text()
@@ -381,7 +405,7 @@ class AnichinScraper : AnimeProvider {
 
     override suspend fun getEpisodeServers(episodeUrl: String): List<VideoServer> = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument(episodeUrl)
+            val doc = fetchDocument(rewriteToCurrentDomain(episodeUrl))
             val servers = mutableListOf<VideoServer>()
 
             doc.select("select.mirror option").forEach { option ->
@@ -396,7 +420,7 @@ class AnichinScraper : AnimeProvider {
 
                     val iframeSrc = if (decoded != null) {
                         val iframeDoc = Jsoup.parse(decoded)
-                        iframeDoc.select("iframe").first()?.attr("src") ?: ""
+                        iframeDoc.select("iframe").first()?.attr("src")?.let { toAbsolute(it) } ?: ""
                     } else ""
 
                     val directUrl = extractDirectUrl(decoded ?: encodedValue)
@@ -414,7 +438,7 @@ class AnichinScraper : AnimeProvider {
             if (servers.isEmpty()) {
                 doc.select("div.select_serv ul li a").forEach { a ->
                     val name = a.text().trim()
-                    val href = a.attr("href")
+                    val href = toAbsolute(a.attr("href"))
                     if (name.isNotEmpty() && href.isNotEmpty()) {
                         servers.add(VideoServer(name = name, url = href))
                     }
@@ -433,7 +457,9 @@ class AnichinScraper : AnimeProvider {
         return lower.contains("dailymotion.com") || lower.contains("archive.org") ||
             lower.contains("mega.nz") || lower.contains("ok.ru") ||
             lower.contains("rumble.com") || lower.contains("anichin-player.web.id") ||
-            lower.contains("rubyvidhub") || lower.contains("vk.com")
+            lower.contains("rubyvidhub") || lower.contains("morencius") ||
+            lower.contains("rpmvid") || lower.contains("d.tube") ||
+            lower.contains("turbovidhls") || lower.contains("vk.com")
     }
 
     private fun extractDirectUrl(html: String): String {
@@ -451,6 +477,106 @@ class AnichinScraper : AnimeProvider {
         return ""
     }
 
+    private fun md5Hex(input: String): String {
+        val digest = java.security.MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun aesCtrDecrypt(key: ByteArray, data: ByteArray): ByteArray {
+        val cipher = javax.crypto.Cipher.getInstance("AES/CTR/NoPadding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            javax.crypto.spec.SecretKeySpec(key, "AES"),
+            javax.crypto.spec.IvParameterSpec(key.copyOfRange(0, 16))
+        )
+        return cipher.doFinal(data)
+    }
+
+    /**
+     * Anichin "New Player [ADS]" = player.abyssplayer.com/{id} — embed SoTrym yang sama persis
+     * dengan Hydrax OppaDrama: `const datas` base64 → decrypt AES-256-CTR
+     * (key = md5hex("user_id:slug:md5_id"), counter = key[:16]) → JSON dengan mp4.sources
+     * (progressive MP4 AES-CTR-encrypted di *.sssrr.org, hanya 64KB pertama terenkripsi).
+     * Pilih source terkecil dan kembalikan URI hydrax:// yang di-decrypt HydraxDataSource.
+     */
+    private fun extractHydraxMp4(embedHtml: String): String {
+        try {
+            val datasMatch = Regex("""const\s+datas\s*=\s*"([^"]+)""").find(embedHtml) ?: return ""
+            val cfgJson = org.json.JSONObject(String(Base64.decode(datasMatch.groupValues[1], Base64.DEFAULT), Charsets.ISO_8859_1))
+            val slug = cfgJson.optString("slug")
+            val md5Id = cfgJson.optString("md5_id")
+            val userId = cfgJson.optString("user_id")
+            val mediaStr = cfgJson.optString("media")
+            if (slug.isEmpty() || md5Id.isEmpty() || mediaStr.isEmpty()) return ""
+
+            val mediaKey = md5Hex("$userId:$slug:$md5Id").toByteArray(Charsets.US_ASCII)
+            val mediaBytes = ByteArray(mediaStr.length) { (mediaStr[it].code and 0xFF).toByte() }
+            val mediaJson = org.json.JSONObject(String(aesCtrDecrypt(mediaKey, mediaBytes), Charsets.UTF_8))
+            val mp4 = mediaJson.optJSONObject("mp4") ?: return ""
+            val sources = mp4.optJSONArray("sources") ?: return ""
+
+            var bestSize = Long.MAX_VALUE
+            var bestUrl = ""
+            var bestPath = ""
+            for (i in 0 until sources.length()) {
+                val s = sources.optJSONObject(i) ?: continue
+                val size = s.optLong("size", Long.MAX_VALUE)
+                if (size < bestSize) {
+                    bestSize = size
+                    bestUrl = s.optString("url")
+                    bestPath = s.optString("path")
+                }
+            }
+            if (bestUrl.isEmpty() || bestPath.isEmpty() || bestSize == Long.MAX_VALUE) return ""
+
+            val fullUrl = if (bestUrl.endsWith("/") || bestPath.startsWith("/")) "$bestUrl$bestPath" else "$bestUrl/$bestPath"
+            val fileKey = md5Hex(bestPath.substringAfterLast('/'))
+            val payload = org.json.JSONObject().put("u", fullUrl).put("k", fileKey).put("s", bestSize)
+            val b64 = Base64.encodeToString(payload.toString().toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP)
+            Log.d("AnichinResolve", "Hydrax: selected source size=$bestSize file=$fullUrl")
+            return "hydrax://$b64"
+        } catch (e: Exception) {
+            Log.e("Anichin", "extractHydraxMp4 failed", e)
+            return ""
+        }
+    }
+
+    /**
+     * Anichin "Dailymotion [ADS]" = anichin-player.web.id/index.php?video={videoId} —
+     * proxy yang iframe-nya ke geo.dailymotion.com. Video asli private Dailymotion
+     * (access_id). Resolusi: metadata dailymotion.com/player/metadata/video/{id}
+     * → qualities.auto[0].url = signed m3u8 master (cdndirector.dailymotion.com).
+     * Master/child/init/segment berfungsi dengan Referer https://www.dailymotion.com/
+     * (verified no-cookie 200) → main di ExoPlayer. Token m3u8 ~10 menit, refetch per resolve.
+     */
+    private fun resolveDailymotion(embedUrl: String): String {
+        return try {
+            val videoId = Regex("""[?&]video=([A-Za-z0-9_-]+)""").find(embedUrl)?.groupValues
+                ?.getOrElse(1) { "" } ?: ""
+            if (videoId.isEmpty()) return ""
+            val dmClient = OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .followRedirects(true)
+                .build()
+            val req = Request.Builder()
+                .url("https://www.dailymotion.com/player/metadata/video/$videoId")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                .addHeader("Accept", "application/json")
+                .addHeader("Referer", "https://www.dailymotion.com/")
+                .build()
+            val body = dmClient.newCall(req).execute().use { it.body?.string() ?: "" }
+            val json = org.json.JSONObject(body)
+            val auto = json.optJSONObject("qualities")?.optJSONArray("auto") ?: return ""
+            if (auto.length() == 0) return ""
+            val murl = auto.optJSONObject(0)?.optString("url", "") ?: ""
+            if (murl.startsWith("http")) murl else ""
+        } catch (e: Exception) {
+            Log.e("Anichin", "resolveDailymotion failed", e)
+            ""
+        }
+    }
+
     override suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
         try {
             val embedUrl = server.url
@@ -458,45 +584,26 @@ class AnichinScraper : AnimeProvider {
 
             Log.d("AnichinResolve", "Resolving: ${server.name}, url=$embedUrl")
 
-            if (embedUrl.contains("anichin.stream")) {
-                Log.d("AnichinResolve", "Anichin stream detected, trying to extract m3u8")
-                val html = fetchHtml(embedUrl)
-                val unpacked = unpackPackedJs(html)
-                val searchHtml = unpacked + "\n" + html
-
-                val hlsPatterns = listOf(
-                    Regex("""["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']"""),
-                    Regex("""file\s*[=:]\s*["']([^"']+\.m3u8[^"']*)["']"""),
-                    Regex("""(?:https?:)?//[^\s'"<>]+\.m3u8[^\s'"<>]*"""),
-                    Regex("""["']file["']\s*:\s*["']([^"']+)["']""")
-                )
-
-                for (pattern in hlsPatterns) {
-                    val match = pattern.find(searchHtml)
-                    if (match != null) {
-                        var file = match.groupValues.getOrElse(1) { match.value }.trim()
-                        if (file.startsWith("//")) file = "https:$file"
-                        else if (file.startsWith("/")) file = "https://anichin.stream$file"
-                        else if (!file.startsWith("http")) file = "https://anichin.stream/$file"
-                        if (file.startsWith("http")) {
-                            Log.d("AnichinResolve", "Found HLS URL: $file")
-                            return@withContext file
-                        }
-                    }
+            if (embedUrl.contains("anichin-player.web.id")) {
+                Log.d("AnichinResolve", "Dailymotion mirror: $embedUrl")
+                val dmUrl = resolveDailymotion(embedUrl)
+                if (dmUrl.isNotEmpty()) {
+                    Log.d("AnichinResolve", "Dailymotion resolved to m3u8 (ExoPlayer): $dmUrl")
+                    return@withContext dmUrl
                 }
-
-                val directUrl = extractDirectVideoUrlFromHtml(searchHtml, embedUrl)
-                if (directUrl.isNotEmpty()) {
-                    Log.d("AnichinResolve", "Found direct URL: $directUrl")
-                    return@withContext directUrl
-                }
-
-                Log.d("AnichinResolve", "No m3u8 found, returning stream URL for WebView")
                 return@withContext embedUrl
             }
 
             if (embedUrl.contains("abysscdn.com") || embedUrl.contains("abyssplayer")) {
                 Log.d("AnichinResolve", "Abyss player: $embedUrl")
+                val embedHtml = try { fetchHtml(embedUrl) } catch (e: Exception) { "" }
+                if (embedHtml.isNotEmpty()) {
+                    val hydraxUrl = extractHydraxMp4(embedHtml)
+                    if (hydraxUrl.isNotEmpty()) {
+                        Log.d("AnichinResolve", "Abyss resolved to encrypted MP4 (ExoPlayer): $hydraxUrl")
+                        return@withContext hydraxUrl
+                    }
+                }
                 return@withContext embedUrl
             }
 
@@ -521,22 +628,27 @@ class AnichinScraper : AnimeProvider {
 
     override suspend fun getEpisodeNavigation(episodeUrl: String): EpisodeNavigation = withContext(Dispatchers.IO) {
         try {
-            val doc = fetchDocument(episodeUrl)
-            val prevUrl = doc.select("a[rel=prev]").attr("href")
+            val doc = fetchDocument(rewriteToCurrentDomain(episodeUrl))
+            val prevUrl = toAbsolute(doc.select("a[rel=prev]").attr("href"))
             val prevTitle = doc.select("a[rel=prev]").text()
-            val nextUrl = doc.select("a[rel=next]").attr("href")
+            val nextUrl = toAbsolute(doc.select("a[rel=next]").attr("href"))
             val nextTitle = doc.select("a[rel=next]").text()
 
             EpisodeNavigation(
-                prevEpisodeUrl = prevUrl,
+                prevEpisodeUrl = if (prevUrl.isNotEmpty()) rewriteToCurrentDomain(prevUrl) else "",
                 prevEpisodeTitle = prevTitle,
-                nextEpisodeUrl = nextUrl,
+                nextEpisodeUrl = if (nextUrl.isNotEmpty()) rewriteToCurrentDomain(nextUrl) else "",
                 nextEpisodeTitle = nextTitle
             )
         } catch (e: Exception) {
             e.printStackTrace()
             EpisodeNavigation()
         }
+    }
+
+    private fun toAbsolute(url: String): String {
+        if (url.isEmpty() || url.startsWith("http")) return url
+        return if (url.startsWith("//")) "https:$url" else baseUrl + url
     }
 
     private fun isCloudflareChallenge(html: String): Boolean {

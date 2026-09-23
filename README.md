@@ -11,7 +11,7 @@ Aplikasi Android untuk nonton streaming anime, drakor, dan donghua dari berbagai
 | **Samehadaku** | `v2.samehadaku.how` | Anime (Latest, Ongoing, Popular) |
 | **DrakorKita** | `drakor.kita.mobi` | Drakor (Episode, Movie, Serie) — download-pipeline + Fast HLS |
 | **OppaDrama** | `http://45.11.57.192` | Drakor (Episode, Movie, Serie) — Web API + token-based server resolution |
-| **Anichin** | `anichin.cafe` | Donghua/Anime (Latest, Ongoing, Completed, All Anime) — WordPress + animestream theme |
+| **Anichin** | `anichin.moe` | Donghua/Anime (Latest, Ongoing, Completed, All Anime) — WordPress + animestream theme |
 | **Otakudesu** | `otakudesu.blog` | Anime (Latest, Ongoing, Complete) — WordPress, streaming via Blogspot + mirror download |
 | **YouTube** | — | Feed/search/trending + playback **tanpa iklan** (raw DASH), OAuth login, komentar, like/subscribe, channel detail, account bottom sheet (mini player) |
 
@@ -203,7 +203,7 @@ Default:
 - Samehadaku: `https://v2.samehadaku.how`
 - DrakorKita: `https://drakor.kita.mobi`
 - OppaDrama: `http://45.11.57.192`
-- Anichin: `https://anichin.cafe`
+- Anichin: `https://anichin.moe`
 - Otakudesu: `https://otakudesu.blog`
 
 Bisa diganti dari menu Settings di aplikasi (per-provider, dengan validasi URL + reset).

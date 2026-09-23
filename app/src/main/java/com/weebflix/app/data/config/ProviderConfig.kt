@@ -19,7 +19,7 @@ object ProviderConfig {
     private const val DEFAULT_BASE_URL_OPPADRAMA = "http://45.11.57.192"
 
     private const val KEY_BASE_URL_ANICHIN = "base_url_anichin"
-    private const val DEFAULT_BASE_URL_ANICHIN = "https://anichin.cafe"
+    private const val DEFAULT_BASE_URL_ANICHIN = "https://anichin.moe"
 
     private const val KEY_BASE_URL_YOUTUBE = "base_url_youtube"
     private const val DEFAULT_BASE_URL_YOUTUBE = "https://www.youtube.com"
@@ -58,6 +58,8 @@ object ProviderConfig {
         "drakorita.com", "drakorita.net", "drakorkita.cyou", "drakorkita.cfd"
     )
 
+    private val oldAnichinDomains = listOf("anichin.cafe", "anichin.care")
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
@@ -70,6 +72,11 @@ object ProviderConfig {
         val storedDrakorUrl = prefs.getString(KEY_BASE_URL_DRAKORKITA, null)
         if (storedDrakorUrl != null && oldDrakorDomains.any { storedDrakorUrl.contains(it) }) {
             prefs.edit().remove(KEY_BASE_URL_DRAKORKITA).apply()
+        }
+
+        val storedAnichinUrl = prefs.getString(KEY_BASE_URL_ANICHIN, null)
+        if (storedAnichinUrl != null && oldAnichinDomains.any { storedAnichinUrl.contains(it) }) {
+            prefs.edit().remove(KEY_BASE_URL_ANICHIN).apply()
         }
     }
 

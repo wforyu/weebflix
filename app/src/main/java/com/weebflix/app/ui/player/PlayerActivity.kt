@@ -208,15 +208,15 @@ class PlayerActivity : AppCompatActivity() {
                             } else if (chain.request().url.host.contains("cloudflarestorage.com")) {
                                 request.addHeader("Referer", "https://filedon.co/")
                                     .addHeader("Origin", "https://filedon.co")
-                            } else if (chain.request().url.host.contains("anichin.stream") || chain.request().url.host.contains("1a-1791.com")) {
-                                request.addHeader("Referer", "https://anichin.stream/")
-                                    .addHeader("Origin", "https://anichin.stream")
                             } else if (chain.request().url.host.contains("drakorkita.stream") || chain.request().url.host in drakorP2pHosts) {
                                 request.addHeader("Referer", "https://drakorkita.stream/")
                                     .addHeader("Origin", "https://drakorkita.stream")
                             } else if (chain.request().url.host.contains("surrit.com")) {
                                 request.addHeader("Referer", "https://missav.ws/")
                                     .addHeader("Origin", "https://missav.ws")
+                            } else if (chain.request().url.host.contains("dailymotion.com") || chain.request().url.host.contains("dmcdn.net")) {
+                                request.addHeader("Referer", "https://www.dailymotion.com/")
+                                    .addHeader("Origin", "https://www.dailymotion.com")
                             }
                             chain.proceed(request.build())
                         }
@@ -3990,11 +3990,6 @@ class PlayerActivity : AppCompatActivity() {
                         "Referer" to "https://filedon.co/",
                         "Origin" to "https://filedon.co"
                     ))
-                } else if (videoUrl.contains("anichin.stream") || videoUrl.contains("1a-1791.com")) {
-                    setDefaultRequestProperties(mapOf(
-                        "Referer" to "https://anichin.stream/",
-                        "Origin" to "https://anichin.stream"
-                    ))
                 } else if (isDrakorP2pHls) {
                     setDefaultRequestProperties(mapOf(
                         "Referer" to "https://drakorkita.stream/",
@@ -4004,6 +3999,11 @@ class PlayerActivity : AppCompatActivity() {
                     setDefaultRequestProperties(mapOf(
                         "Referer" to "https://missav.ws/",
                         "Origin" to "https://missav.ws"
+                    ))
+                } else if (videoUrl.contains("dailymotion.com") || videoUrl.contains("dmcdn.net")) {
+                    setDefaultRequestProperties(mapOf(
+                        "Referer" to "https://www.dailymotion.com/",
+                        "Origin" to "https://www.dailymotion.com"
                     ))
                 }
             }
@@ -4041,8 +4041,8 @@ class PlayerActivity : AppCompatActivity() {
 
         val cleanHls = videoUrl.contains("/hls2/") || videoUrl.contains(".urlset/") ||
             videoUrl.contains("dramiyos-cdn.com") || videoUrl.contains("acek-cdn.com") ||
-            videoUrl.contains("minochinos") || videoUrl.contains("anichin.stream") ||
-            videoUrl.contains("1a-1791.com") || videoUrl.contains("surrit.com")
+            videoUrl.contains("minochinos") || videoUrl.contains("surrit.com") ||
+            videoUrl.contains("dmcdn.net")
         val loadControl = if (cleanHls) {
             DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
@@ -5624,7 +5624,6 @@ class PlayerActivity : AppCompatActivity() {
         val directSuffixes = listOf(".mp4", ".m3u8", ".mpd", ".mkv", ".webm", ".m4v", "googlevideo.com")
         if (directSuffixes.any { v.contains(it) || u.contains(it) }) return true
         if (v.contains("filedon.co") || u.contains("filedon.co")) return true
-        if (v.contains("anichin.stream") || u.contains("anichin.stream")) return true
         if (v.contains("minochinos.com") || u.contains("minochinos.com")) return true
         if (v.contains("filelions") || u.contains("filelions")) return true
         if (v.contains("wibufile") || u.contains("wibufile")) return true
@@ -6732,8 +6731,11 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "Scraper resolved: $scraperUrl")
                 loadingPlayer.visibility = View.GONE
                 tvError.visibility = View.GONE
-                if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains(".mkv") || scraperUrl.contains(".webm") || scraperUrl.contains(".m4v") || scraperUrl.contains("googlevideo.com")) {
+                if (scraperUrl.contains(".mp4") || scraperUrl.contains(".m3u8") || scraperUrl.contains(".mpd") || scraperUrl.contains(".mkv") || scraperUrl.contains(".webm") || scraperUrl.contains(".m4v") || scraperUrl.contains("googlevideo.com") || scraperUrl.startsWith("hydrax://")) {
                     resolvedUrlCache[serverIndex] = scraperUrl
+                    if (scraperUrl.startsWith("hydrax://")) {
+                        Log.d(TAG, "Anichin/Abyss hydrax detected, playing encrypted MP4 in ExoPlayer")
+                    }
                     initExoPlayer(scraperUrl)
                 } else if ((activeProviderId == com.weebflix.app.data.provider.ProviderFactory.ANICHIN_ID ||
                     activeProviderId == com.weebflix.app.data.provider.ProviderFactory.SAMEHADAKU_ID) && isWebViewPlayableEmbed(scraperUrl)) {
@@ -6775,7 +6777,9 @@ class PlayerActivity : AppCompatActivity() {
             lower.contains("mega.nz") || lower.contains("ok.ru") ||
             lower.contains("rumble.com") || lower.contains("anichin-player.web.id") ||
             lower.contains("rubyvidhub") || lower.contains("abyssplayer") ||
-            lower.contains("vk.com") || lower.contains("filedon.co")
+            lower.contains("vk.com") || lower.contains("filedon.co") ||
+            lower.contains("morencius") || lower.contains("rpmvid") ||
+            lower.contains("d.tube") || lower.contains("turbovidhls")
     }
 
     private fun rewriteAnichinPlayerPage(url: String): android.webkit.WebResourceResponse? {
