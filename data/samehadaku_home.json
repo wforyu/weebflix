@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Tensei shitara Slime Datta Ken Season 4",
+      "url": "https://v2.samehadaku.how/anime/tensei-shitara-slime-datta-ken-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tensei-shitara-Slime-Datta-Ken-Season-4-Episode-24-END.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-13.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Grand Blue Season 3",
-      "url": "https://v2.samehadaku.how/anime/grand-blue-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Grand-Blue-Season-3-Episode-12-END.jpg",
+      "title": "Tensei shitara Slime Datta Ken Season 4",
+      "url": "https://v2.samehadaku.how/anime/tensei-shitara-slime-datta-ken-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Tensei-shitara-Slime-Datta-Ken-Season-4-Episode-24-END.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
@@ -366,21 +381,6 @@
       "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
       "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-7.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kuroneko to Majo no Kyoushitsu",
-      "url": "https://v2.samehadaku.how/anime/kuroneko-to-majo-no-kyoushitsu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-13.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790334524364
+  "timestamp": 1790353915669
 }
