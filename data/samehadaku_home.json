@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-23.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-9.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Clevatess Season 2",
-      "url": "https://v2.samehadaku.how/anime/clevatess-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-4-7.jpg",
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-23.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Nige Jouzu no Wakagimi S2",
       "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
@@ -366,21 +381,6 @@
       "title": "Toumei na Yoru ni Kakeru",
       "url": "https://v2.samehadaku.how/anime/toumei-na-yoru-ni-kakeru/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Toumei-na-Yoru-ni-Kakeru-Kimi-to-Episode-12-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Degarashi Ouji",
-      "url": "https://v2.samehadaku.how/anime/degarashi-ouji/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-15.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790393502065
+  "timestamp": 1790419734638
 }
