@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-4.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tensei Kizoku Kantei Skill de Nariagaru Season 3",
       "url": "https://v2.samehadaku.how/anime/tensei-kizoku-kantei-skill-de-nariagaru-season-3/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-16.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Nige Jouzu no Wakagimi S2",
-      "url": "https://v2.samehadaku.how/anime/nige-jouzu-no-wakagimi-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-2-9.jpg",
+      "title": "Liar Game",
+      "url": "https://v2.samehadaku.how/anime/liar-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-4.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tensei Kizoku Kantei Skill de Nariagaru Season 3",
       "url": "https://v2.samehadaku.how/anime/tensei-kizoku-kantei-skill-de-nariagaru-season-3/",
@@ -366,21 +381,6 @@
       "title": "Otome Game Sekai wa Mob Season 2",
       "url": "https://v2.samehadaku.how/anime/otome-game-sekai-wa-mob-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Otome-Game-Sekai-wa-Mob-Seasaon-2-Episode-12-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Katainaka no Ossan, Kensei ni Naru S2",
-      "url": "https://v2.samehadaku.how/anime/katainaka-no-ossan-kensei-ni-naru-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-19.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790600066439
+  "timestamp": 1790636162611
 }
