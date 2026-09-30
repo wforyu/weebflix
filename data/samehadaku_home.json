@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-17.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-10-4.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Honzuki no Gekokujou Season 4",
-      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Honzuki-no-Gekokujou-Season-4-Episode-23.jpg",
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/web-1-17.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Liar Game",
       "url": "https://v2.samehadaku.how/anime/liar-game/",
@@ -366,21 +381,6 @@
       "title": "Mebius Dust",
       "url": "https://v2.samehadaku.how/anime/mebius-dust/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Mebius-Dust-Episode-12-END.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Otome Game Sekai wa Mob Season 2",
-      "url": "https://v2.samehadaku.how/anime/otome-game-sekai-wa-mob-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/Otome-Game-Sekai-wa-Mob-Seasaon-2-Episode-12-END.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790718704340
+  "timestamp": 1790740741773
 }
