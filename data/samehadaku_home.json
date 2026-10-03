@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Honzuki-no-Gekokujou-Season-4-Episode-24-END-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kusuriya no Hitorigoto Season 3",
       "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-1-300x170.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Tensei shitara Ken deshita S2",
-      "url": "https://v2.samehadaku.how/anime/tensei-shitara-ken-deshita-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-300x169.jpg",
+      "title": "Honzuki no Gekokujou Season 4",
+      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Honzuki-no-Gekokujou-Season-4-Episode-24-END-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kusuriya no Hitorigoto Season 3",
       "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
@@ -366,21 +381,6 @@
       "title": "Mushoku Tensei : Isekai Ittara Honki Dasu Season 3",
       "url": "https://v2.samehadaku.how/anime/mushoku-tensei-isekai-ittara-honki-dasu-season-3/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/image-8-6-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "One Piece",
-      "url": "https://v2.samehadaku.how/anime/one-piece/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/09/One-Piece-Episode-1180-300x168.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1790999288109
+  "timestamp": 1791025565263
 }
