@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Ao Ashi",
+      "url": "https://v2.samehadaku.how/anime/ao-ashi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-6-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Ao no Hako Season 2",
       "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-1-300x169.jpg",
@@ -18,7 +33,7 @@
     {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/160106-213x300.jpg",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-3-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -33,7 +48,7 @@
     {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/160106-213x300.jpg",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-2-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",
-      "url": "https://v2.samehadaku.how/anime/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-shita-Daiseijo-wa-Seijo-de-Aru-Koto-wo-Hitakakusu-Episode-1-300x169.jpg",
+      "title": "Ao Ashi",
+      "url": "https://v2.samehadaku.how/anime/ao-ashi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-6-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Ao no Hako Season 2",
       "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
@@ -170,7 +185,7 @@
     {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/160106-213x300.jpg",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-3-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -185,7 +200,7 @@
     {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/160106-213x300.jpg",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-2-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -366,21 +381,6 @@
       "title": "Tokyo Revengers S4",
       "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-3-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Tensei Juukishi wa Game",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-14-300x168.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791114416179
+  "timestamp": 1791131153112
 }
