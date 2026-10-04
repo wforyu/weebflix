@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Ao no Hako Season 2",
+      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-1-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/160106-213x300.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Honzuki no Gekokujou Season 4",
-      "url": "https://v2.samehadaku.how/anime/honzuki-no-gekokujou-season-4/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Honzuki-no-Gekokujou-Season-4-Episode-24-END-300x169.jpg",
+      "title": "Ao no Hako Season 2",
+      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-1-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
@@ -366,21 +381,6 @@
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-14-300x168.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "FX Senshi Kurumi-chan",
-      "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/FX-Senshi-Kurumi-chan-Episode-1-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -770,6 +770,21 @@
       "latestUpdate": ""
     },
     {
+      "title": "Ao Ashi S2",
+      "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/bx191788-XC6F24LdX6a4-212x300.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Ao no Exorcist Season 4",
       "url": "https://v2.samehadaku.how/anime/ao-no-exorcist-yuki-no-hate-hen/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2024/10/144043-213x300.jpg",
@@ -818,21 +833,6 @@
       "title": "Ao no Hako",
       "url": "https://v2.samehadaku.how/anime/ao-no-hako/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2024/10/145349l-212x300.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao no Miburo",
-      "url": "https://v2.samehadaku.how/anime/ao-no-miburo/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2024/10/Ao-no-Miburo.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791087533803
+  "timestamp": 1791114416179
 }
