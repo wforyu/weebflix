@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-5-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Psyren",
       "url": "https://v2.samehadaku.how/anime/psyren/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Psyren-Episode-1-300x170.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Ao Ashi",
-      "url": "https://v2.samehadaku.how/anime/ao-ashi/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-6-300x169.jpg",
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-5-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Psyren",
       "url": "https://v2.samehadaku.how/anime/psyren/",
@@ -366,21 +381,6 @@
       "title": "#Zombie Sagashitemasu",
       "url": "https://v2.samehadaku.how/anime/zombie-sagashitemasu/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Zombie-Sagashitemasu-Episode-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",
-      "url": "https://v2.samehadaku.how/anime/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-shita-Daiseijo-wa-Seijo-de-Aru-Koto-wo-Hitakakusu-Episode-2-300x168.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791290684278
+  "timestamp": 1791325189632
 }
