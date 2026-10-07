@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-7-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-6-300x170.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Tank Chair",
-      "url": "https://v2.samehadaku.how/anime/tank-chair/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-4-300x170.jpg",
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-7-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
@@ -366,21 +381,6 @@
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-2-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kashita Maryoku",
-      "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-4-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791346735426
+  "timestamp": 1791376738239
 }
