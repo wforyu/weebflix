@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Hotaru no Yomeiri",
+      "url": "https://v2.samehadaku.how/anime/hotaru-no-yomeiri/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Hotaru-no-Yomeiri-Episode-1-300x168.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Kusuriya no Hitorigoto Season 3",
+      "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-8-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tokyo Revengers S4",
       "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-8-1-300x169.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Tantei wa Mou, Shindeiru S2",
-      "url": "https://v2.samehadaku.how/anime/tantei-wa-mou-shindeiru-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-4-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Sekai Saikyou no Majo",
-      "url": "https://v2.samehadaku.how/anime/sekai-saikyou-no-majo/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-2-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Hotaru no Yomeiri",
+      "url": "https://v2.samehadaku.how/anime/hotaru-no-yomeiri/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Hotaru-no-Yomeiri-Episode-1-300x168.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Kusuriya no Hitorigoto Season 3",
+      "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-8-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Tokyo Revengers S4",
       "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
@@ -351,36 +381,6 @@
       "title": "Psyren",
       "url": "https://v2.samehadaku.how/anime/psyren/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Psyren-Episode-1-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei Goblin dakedo Shitsumon Aru?",
-      "url": "https://v2.samehadaku.how/anime/tensei-goblin-dakedo-shitsumon-aru/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-Goblin-dakedo-Shitsumon-Aru-Episode-2-v2-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei Goblin dakedo Shitsumon Aru?",
-      "url": "https://v2.samehadaku.how/anime/tensei-goblin-dakedo-shitsumon-aru/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-Goblin-dakedo-Shitsumon-Aru-Episode-1-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791549248113
+  "timestamp": 1791584096476
 }
