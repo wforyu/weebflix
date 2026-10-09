@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Tokyo Revengers S4",
+      "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-8-1-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-15-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Sora wa Akai Kawa no Hotori",
-      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-7-300x170.jpg",
+      "title": "Tokyo Revengers S4",
+      "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-8-1-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tsuihou sareta Tensei Juukishi wa Game",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
@@ -366,21 +381,6 @@
       "title": "Tensei Goblin dakedo Shitsumon Aru?",
       "url": "https://v2.samehadaku.how/anime/tensei-goblin-dakedo-shitsumon-aru/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-Goblin-dakedo-Shitsumon-Aru-Episode-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",
-      "url": "https://v2.samehadaku.how/anime/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Doumo-Suki-na-Hito-ni-Horegusuri-wo-Irai-sareta-Majo-desu.-Episode-1-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791520457667
+  "timestamp": 1791549248113
 }
