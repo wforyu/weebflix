@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Kashita Maryoku",
+      "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Kashita-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Diamond no Ace Act II Season 2 Cour 2",
       "url": "https://v2.samehadaku.how/anime/diamond-no-ace-act-ii-season-2-cour-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Screenshot-909-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Ao no Hako Season 2",
-      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-2-300x169.jpg",
+      "title": "Kashita Maryoku",
+      "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Kashita-2-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Diamond no Ace Act II Season 2 Cour 2",
       "url": "https://v2.samehadaku.how/anime/diamond-no-ace-act-ii-season-2-cour-2/",
@@ -366,21 +381,6 @@
       "title": "Magical★Explorer",
       "url": "https://v2.samehadaku.how/anime/magical%e2%98%85explorer/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-3-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "#Zombie Sagashitemasu",
-      "url": "https://v2.samehadaku.how/anime/zombie-sagashitemasu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Zombie-Sagashitemasu-Episode-2-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1791850084085
+  "timestamp": 1791898467926
 }
