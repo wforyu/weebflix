@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "FX Senshi Kurumi-chan",
+      "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/FX-Senshi-Kurumi-chan-Episode-3-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kikansha no Mahou wa Tokubetsu desu Season 2",
       "url": "https://v2.samehadaku.how/anime/kikansha-no-mahou-wa-tokubetsu-desu-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Kikansha-no-Mahou-wa-Tokubetsu-desu-Season-2-Episode-2-300x168.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kyouran Reijou Nia Liston",
-      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Nia-2-300x169.jpg",
+      "title": "FX Senshi Kurumi-chan",
+      "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/FX-Senshi-Kurumi-chan-Episode-3-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kikansha no Mahou wa Tokubetsu desu Season 2",
       "url": "https://v2.samehadaku.how/anime/kikansha-no-mahou-wa-tokubetsu-desu-season-2/",
@@ -366,21 +381,6 @@
       "title": "Ao Ashi S2",
       "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-Ashi-2-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",
-      "url": "https://v2.samehadaku.how/anime/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Doumo-Suki-na-Hito-ni-Horegusuri-wo-Irai-sareta-Majo-desu.-Episode-2-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1792061488495
+  "timestamp": 1792081110742
 }
