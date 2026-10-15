@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu S2",
+      "url": "https://v2.samehadaku.how/anime/hyouken-no-majutsushi-ga-sekai-wo-suberu-s2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Hyouken-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-16-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "FX Senshi Kurumi-chan",
       "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/FX-Senshi-Kurumi-chan-Episode-3-300x169.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
-      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Chitose-C2-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-10-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu S2",
+      "url": "https://v2.samehadaku.how/anime/hyouken-no-majutsushi-ga-sekai-wo-suberu-s2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Hyouken-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-16-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "FX Senshi Kurumi-chan",
       "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
@@ -351,36 +381,6 @@
       "title": "Psyren",
       "url": "https://v2.samehadaku.how/anime/psyren/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Psyren-Episode-2-300x167.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei Goblin dakedo Shitsumon Aru?",
-      "url": "https://v2.samehadaku.how/anime/tensei-goblin-dakedo-shitsumon-aru/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Tensei-Goblin-dakedo-Shitsumon-Aru-Episode-3-300x168.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao Ashi S2",
-      "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-Ashi-2-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1792081110742
+  "timestamp": 1792097718005
 }
