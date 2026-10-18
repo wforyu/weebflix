@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Ao no Hako Season 2",
+      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-3-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kashita Maryoku",
       "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-9-1-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kusuriya no Hitorigoto Season 3",
-      "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-12-300x170.jpg",
+      "title": "Ao no Hako Season 2",
+      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-3-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kashita Maryoku",
       "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
@@ -366,21 +381,6 @@
       "title": "Kikansha no Mahou wa Tokubetsu desu Season 2",
       "url": "https://v2.samehadaku.how/anime/kikansha-no-mahou-wa-tokubetsu-desu-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Kikansha-no-Mahou-wa-Tokubetsu-desu-Season-2-Episode-2-300x168.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Shin Tennis no Oujisama: U-17 World Cup – Kesshou Member Ketteisen",
-      "url": "https://v2.samehadaku.how/anime/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Shin-Tennis-no-Oujisama-Kesshou-Member-Ketteisen-Episode-3-300x168.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1792267604254
+  "timestamp": 1792319009500
 }
