@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-4-3-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Bleach: Sennen Kessen-hen – Kashin-tan (Cour 4)",
       "url": "https://v2.samehadaku.how/anime/bleach-sennen-kessen-hen-kashin-tan-cour-4/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/BLEACH-Sennen-Kessen-hen-Cour-4-Episode-9-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Yowaki Max",
-      "url": "https://v2.samehadaku.how/anime/yowaki-max/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-2-3-300x169.jpg",
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-4-3-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Bleach: Sennen Kessen-hen – Kashin-tan (Cour 4)",
       "url": "https://v2.samehadaku.how/anime/bleach-sennen-kessen-hen-kashin-tan-cour-4/",
@@ -366,21 +381,6 @@
       "title": "Diamond no Ace Act II Season 2 Cour 2",
       "url": "https://v2.samehadaku.how/anime/diamond-no-ace-act-ii-season-2-cour-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-11-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao no Hako Season 2",
-      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-3-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1792493745139
+  "timestamp": 1792513267845
 }
