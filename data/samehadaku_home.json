@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
+      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-15-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-25-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-24-300x170.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Tensei Kizoku Kantei Skill de Nariagaru Season 3",
-      "url": "https://v2.samehadaku.how/anime/tensei-kizoku-kantei-skill-de-nariagaru-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-23-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
-      "url": "https://v2.samehadaku.how/anime/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Shinja-Zero-no-Megami-sama-to-Hajimeru-Isekai-Kouryaku-Episode-3-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
+      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-15-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Sora wa Akai Kawa no Hotori",
+      "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-25-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
@@ -351,36 +381,6 @@
       "title": "Diamond no Ace Act II Season 2 Cour 2",
       "url": "https://v2.samehadaku.how/anime/diamond-no-ace-act-ii-season-2-cour-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-4-4-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Mission: Yozakura Family Season 2 Part 2",
-      "url": "https://v2.samehadaku.how/anime/mission-yozakura-family-season-2-part-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Mission-Yozakura-Family-Season-2-Part-2-Episode-3-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao Ashi S2",
-      "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-2-5-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1793122075745
+  "timestamp": 1793137724780
 }

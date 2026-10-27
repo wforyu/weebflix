@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Summer Vacation Episode 2",
+      "url": "https://v1.oppadrama.cc/summer-vacation-episode-2/",
+      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 2",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Paris Has Fallen Season 2 Episode 8 END",
+      "url": "https://v1.oppadrama.cc/paris-has-fallen-season-2-episode-8-end/",
+      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Paris-Has-Fallen-Season-2-2026.jpg?resize=246,350",
+      "episode": "Ep 8 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kidnap Game Episode 4",
       "url": "https://v1.oppadrama.cc/kidnap-game-episode-4/",
       "imageUrl": "https://i2.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Kidnap-Game-2026.jpg?resize=246,350",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Love in Disguise Episode 4",
-      "url": "https://v1.oppadrama.cc/love-in-disguise-episode-4/",
-      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Love-in-Disguise-2026.jpg?resize=246,350",
-      "episode": "Ep 4",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Bleach: Thousand-Year Blood War Episode 50 END",
-      "url": "https://v1.oppadrama.cc/bleach-thousand-year-blood-war-episode-50/",
-      "imageUrl": "https://i2.wp.com/v1.oppadrama.cc/wp-content/uploads/2023/07/Bleach-Thousand-Year-Blood-War-2026.jpg?resize=246,350",
-      "episode": "Ep 50 END",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Summer Vacation Episode 2",
+      "url": "https://v1.oppadrama.cc/summer-vacation-episode-2/",
+      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 2",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Paris Has Fallen Season 2 Episode 8 END",
+      "url": "https://v1.oppadrama.cc/paris-has-fallen-season-2-episode-8-end/",
+      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Paris-Has-Fallen-Season-2-2026.jpg?resize=246,350",
+      "episode": "Ep 8 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Kidnap Game Episode 4",
       "url": "https://v1.oppadrama.cc/kidnap-game-episode-4/",
@@ -421,27 +451,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "cat1": [
     {
-      "title": "1 Night 2 Days Season 4 Episode 346",
-      "url": "https://v1.oppadrama.cc/1-night-2-days-season-4-episode-346/",
-      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2021/05/1-Night-2-Days-Season-4-2019-1.jpg?resize=246,350",
-      "episode": "Ep 346",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "The Lament of Autumn Episode 27",
-      "url": "https://v1.oppadrama.cc/the-lament-of-autumn-episode-27/",
-      "imageUrl": "https://i0.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/The-Lament-of-Autumn-2026.jpg?resize=246,350",
-      "episode": "Ep 27",
+      "title": "Summer Vacation",
+      "url": "https://v1.oppadrama.cc/summer-vacation/",
+      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ongoing",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -451,9 +468,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "cat1": [
+    },
     {
       "title": "Love on the Menu",
       "url": "https://v1.oppadrama.cc/love-on-the-menu/",
@@ -488,21 +503,6 @@
       "title": "Love in Disguise",
       "url": "https://v1.oppadrama.cc/love-in-disguise/",
       "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Love-in-Disguise-2026.jpg?resize=246,350",
-      "episode": "Ongoing",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Summer Vacation",
-      "url": "https://v1.oppadrama.cc/summer-vacation/",
-      "imageUrl": "https://i3.wp.com/v1.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
       "episode": "Ongoing",
       "type": "Drama",
       "status": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1793122081095
+  "timestamp": 1793137728891
 }
