@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-24-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-10-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Bleach: Sennen Kessen-hen – Kashin-tan (Cour 4)",
       "url": "https://v2.samehadaku.how/anime/bleach-sennen-kessen-hen-kashin-tan-cour-4/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/BLEACH-Sennen-Kessen-hen-Cour-4-Episode-10-END-300x167.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Yowaki Max",
-      "url": "https://v2.samehadaku.how/anime/yowaki-max/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-8-3-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tank Chair",
-      "url": "https://v2.samehadaku.how/anime/tank-chair/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-22-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/web-1-24-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Kyouran Reijou Nia Liston",
+      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-10-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Bleach: Sennen Kessen-hen – Kashin-tan (Cour 4)",
       "url": "https://v2.samehadaku.how/anime/bleach-sennen-kessen-hen-kashin-tan-cour-4/",
@@ -351,36 +381,6 @@
       "title": "Ao Ashi S2",
       "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/image-2-5-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao no Hako Season 2",
-      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Ao-no-Hako-Season-2-Episode-4-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kashita Maryoku",
-      "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/10/Kashita-Maryoku-wa-Revo-Barai-de-Kyousei-Choushuu-Episode-4-300x163.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1793100959873
+  "timestamp": 1793122075745
 }
