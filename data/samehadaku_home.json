@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu S2",
+      "url": "https://v2.samehadaku.how/anime/hyouken-no-majutsushi-ga-sekai-wo-suberu-s2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-10-1-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-19-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "FX Senshi Kurumi-chan",
       "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/FX-Senshi-Kurumi-chan-Episode-6-300x169.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
-      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-1-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-3-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu S2",
+      "url": "https://v2.samehadaku.how/anime/hyouken-no-majutsushi-ga-sekai-wo-suberu-s2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-10-1-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Tensei Juukishi wa Game",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-tensei-juukishi-wa-game/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Tsuihou-sareta-Tensei-Juukishi-wa-Game-Episode-19-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "FX Senshi Kurumi-chan",
       "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
@@ -351,36 +381,6 @@
       "title": "Kanata kara",
       "url": "https://v2.samehadaku.how/anime/kanata-kara/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Kanata-kara-Episode-5-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Dragon Ball Super: Beerus",
-      "url": "https://v2.samehadaku.how/anime/dragon-ball-super-beerus/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Dragon-Ball-Super-Beerus-Episode-4-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
-      "url": "https://v2.samehadaku.how/anime/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Shinja-Zero-no-Megami-sama-to-Hajimeru-Isekai-Kouryaku-Episode-4-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1793887126120
+  "timestamp": 1793920536334
 }
