@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "FX Senshi Kurumi-chan",
+      "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/FX-Senshi-Kurumi-chan-Episode-6-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kikansha no Mahou wa Tokubetsu desu Season 2",
       "url": "https://v2.samehadaku.how/anime/kikansha-no-mahou-wa-tokubetsu-desu-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Kikansha-no-Mahou-wa-Tokubetsu-desu-Season-2-Episode-5-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Kyouran Reijou Nia Liston",
-      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-6-300x169.jpg",
+      "title": "FX Senshi Kurumi-chan",
+      "url": "https://v2.samehadaku.how/anime/fx-senshi-kurumi-chan/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/FX-Senshi-Kurumi-chan-Episode-6-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kikansha no Mahou wa Tokubetsu desu Season 2",
       "url": "https://v2.samehadaku.how/anime/kikansha-no-mahou-wa-tokubetsu-desu-season-2/",
@@ -366,21 +381,6 @@
       "title": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
       "url": "https://v2.samehadaku.how/anime/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Shinja-Zero-no-Megami-sama-to-Hajimeru-Isekai-Kouryaku-Episode-4-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tensei Kizoku Kantei Skill de Nariagaru Season 3",
-      "url": "https://v2.samehadaku.how/anime/tensei-kizoku-kantei-skill-de-nariagaru-season-3/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-2-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1793855187861
+  "timestamp": 1793887126120
 }
