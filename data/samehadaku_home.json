@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",
+      "url": "https://v2.samehadaku.how/anime/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Doumo-Suki-na-Hito-ni-Horegusuri-wo-Irai-sareta-Majo-desu.-Episode-6-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kanata kara",
       "url": "https://v2.samehadaku.how/anime/kanata-kara/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Kanata-kara-Episode-6-300x167.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Mission: Yozakura Family Season 2 Part 2",
-      "url": "https://v2.samehadaku.how/anime/mission-yozakura-family-season-2-part-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Mission-Yozakura-Family-Season-2-Part-2-Episode-5-300x169.jpg",
+      "title": "Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",
+      "url": "https://v2.samehadaku.how/anime/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Doumo-Suki-na-Hito-ni-Horegusuri-wo-Irai-sareta-Majo-desu.-Episode-6-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kanata kara",
       "url": "https://v2.samehadaku.how/anime/kanata-kara/",
@@ -366,21 +381,6 @@
       "title": "Black Clover Season 2",
       "url": "https://v2.samehadaku.how/anime/black-clover-season-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Black-Clover-Season-2-Episode-6-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Yasei no Last Boss ga Arawareta! S2",
-      "url": "https://v2.samehadaku.how/anime/yasei-no-last-boss-ga-arawareta-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-5-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1794199204789
+  "timestamp": 1794237033545
 }
