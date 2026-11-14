@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Shuiro no Kamen",
+      "url": "https://v2.samehadaku.how/anime/shuiro-no-kamen/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-10-2-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kusuriya no Hitorigoto Season 3",
       "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-12-300x170.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Tensei shitara Ken deshita S2",
-      "url": "https://v2.samehadaku.how/anime/tensei-shitara-ken-deshita-s2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-2-6-300x169.jpg",
+      "title": "Shuiro no Kamen",
+      "url": "https://v2.samehadaku.how/anime/shuiro-no-kamen/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-10-2-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Kusuriya no Hitorigoto Season 3",
       "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
@@ -366,21 +381,6 @@
       "title": "Sora wa Akai Kawa no Hotori",
       "url": "https://v2.samehadaku.how/anime/sora-wa-akai-kawa-no-hotori/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-11-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-10-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1794632140550
+  "timestamp": 1794661064114
 }
