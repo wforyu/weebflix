@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Kusuriya no Hitorigoto Season 3",
+      "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-12-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tokyo Revengers S4",
       "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-8-2-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Sasaki to Pii-chan Season 2",
-      "url": "https://v2.samehadaku.how/anime/sasaki-to-pii-chan-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Sasaki-to-Pii-chan-Season-2-Episode-6-300x169.jpg",
+      "title": "Kusuriya no Hitorigoto Season 3",
+      "url": "https://v2.samehadaku.how/anime/kusuriya-no-hitorigoto-season-3/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-12-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tokyo Revengers S4",
       "url": "https://v2.samehadaku.how/anime/tokyo-revengers-s4/",
@@ -366,21 +381,6 @@
       "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
       "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-10-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kyouran Reijou Nia Liston",
-      "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-11-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1794611632603
+  "timestamp": 1794632140550
 }
