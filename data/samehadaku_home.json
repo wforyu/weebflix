@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
+      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-2-9-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-16-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Kyouran Reijou Nia Liston",
       "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-15-300x169.jpg",
@@ -119,39 +149,39 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
-    {
-      "title": "Tank Chair",
-      "url": "https://v2.samehadaku.how/anime/tank-chair/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-14-300x170.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Yowaki Max",
-      "url": "https://v2.samehadaku.how/anime/yowaki-max/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-2-8-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
     }
   ],
   "latest": [
+    {
+      "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
+      "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-2-9-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
+      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-16-300x170.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Kyouran Reijou Nia Liston",
       "url": "https://v2.samehadaku.how/anime/kyouran-reijou-nia-liston/",
@@ -351,36 +381,6 @@
       "title": "Ao Ashi S2",
       "url": "https://v2.samehadaku.how/anime/ao-ashi-s2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-6-3-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Ao no Hako Season 2",
-      "url": "https://v2.samehadaku.how/anime/ao-no-hako-season-2/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Ao-no-Hako-Season-2-Episode-6-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Kashita Maryoku",
-      "url": "https://v2.samehadaku.how/anime/kashita-maryoku/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-4-4-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1794929353036
+  "timestamp": 1794961868195
 }
