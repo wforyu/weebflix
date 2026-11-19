@@ -1,6 +1,36 @@
 {
   "hero": [
     {
+      "title": "The Silent Killer Episode 5",
+      "url": "https://v2.oppadrama.cc/the-silent-killer-episode-5/",
+      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/The-Silent-Killer-2026.jpg?resize=246,350",
+      "episode": "Ep 5",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
+      "title": "Taming the Husband Episode 3",
+      "url": "https://v2.oppadrama.cc/taming-the-husband-episode-3/",
+      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Taming-the-Husband-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Merry Berry Love Episode 7",
       "url": "https://v2.oppadrama.cc/merry-berry-love-episode-7/",
       "imageUrl": "https://i1.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Merry-Berry-Love-2026.jpg?resize=246,350",
@@ -119,27 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "World Dice Tour Season 4 Episode 4",
-      "url": "https://v2.oppadrama.cc/world-dice-tour-season-4-episode-4/",
-      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/World-Dice-Tour-Season-4-2026.jpg?resize=246,350",
-      "episode": "Ep 4",
-      "type": "TV Show",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "The Lord of the Rings: The Rings of Power Season 3 Episode 6",
-      "url": "https://v2.oppadrama.cc/the-lord-of-the-rings-the-rings-of-power-season-3-episode-6/",
-      "imageUrl": "https://i1.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/The-Lord-of-the-Rings-The-Rings-of-Power-Season-3-2026.jpg?resize=246,350",
-      "episode": "Ep 6",
+      "title": "The Silent Killer Episode 5",
+      "url": "https://v2.oppadrama.cc/the-silent-killer-episode-5/",
+      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/The-Silent-Killer-2026.jpg?resize=246,350",
+      "episode": "Ep 5",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,9 +166,22 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
+    {
+      "title": "Taming the Husband Episode 3",
+      "url": "https://v2.oppadrama.cc/taming-the-husband-episode-3/",
+      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Taming-the-Husband-2026.jpg?resize=246,350",
+      "episode": "Ep 3",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
     {
       "title": "Merry Berry Love Episode 7",
       "url": "https://v2.oppadrama.cc/merry-berry-love-episode-7/",
@@ -411,36 +441,6 @@
       "title": "Movie Sympathy for Mr. Vengeance (2002) BluRay",
       "url": "https://v2.oppadrama.cc/movie-sympathy-for-mr-vengeance-2002-bluray/",
       "imageUrl": "https://i2.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Sympathy-for-Mr.-Vengeance-2002.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie John Q (2002) BluRay",
-      "url": "https://v2.oppadrama.cc/movie-john-q-2002-bluray/",
-      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/John-Q-2002.jpg?resize=246,350",
-      "episode": "Movie",
-      "type": "Movie",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Movie I Fine..Thank You Love You (2014) WEBDL",
-      "url": "https://v2.oppadrama.cc/movie-i-fine-thank-you-love-you-2014-webdl/",
-      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/I-Fine.Thank-You-Love-You-2014.jpg?resize=246,350",
       "episode": "Movie",
       "type": "Movie",
       "status": "",
@@ -757,6 +757,21 @@
   ],
   "cat2": [
     {
+      "title": "Taming the Husband",
+      "url": "https://v2.oppadrama.cc/taming-the-husband/",
+      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Taming-the-Husband-2026.jpg?resize=246,350",
+      "episode": "Ongoing",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Blossom in Darkness",
       "url": "https://v2.oppadrama.cc/blossom-in-darkness/",
       "imageUrl": "https://i1.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Blossom-in-Darkness-2026.jpg?resize=246,350",
@@ -1031,21 +1046,6 @@
       "url": "https://v2.oppadrama.cc/the-early-spring/",
       "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/08/The-Early-Spring-2026-1.jpg?resize=246,350",
       "episode": "Completed",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Remnants of Gold",
-      "url": "https://v2.oppadrama.cc/remnants-of-gold/",
-      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/08/Remnants-of-Gold-2026.jpg?resize=246,350",
-      "episode": "Ongoing",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1795045986732
+  "timestamp": 1795067664578
 }
