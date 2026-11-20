@@ -462,6 +462,25 @@ class AnichinScraper : AnimeProvider {
             lower.contains("turbovidhls") || lower.contains("vk.com")
     }
 
+    /**
+     * Anichin "Rumble" = rumble.com/embed/{id}/ — page HTML memuat master m3u8
+     * langsung (key "hls": {"url": "https:\/\/rumble.com\/hls-vod\/{id}\/playlist.m3u8"}).
+     * Master → variants di hugh.cdn.rumble.cloud (child chunklist), segments
+     * MPEG-TS. Verified: master/child/segment 200 WITHOUT Referer, Range 206
+     * supported → ExoPlayer. Kembalikan master URL apa adanya.
+     */
+    private fun resolveRumble(embedUrl: String): String {
+        return try {
+            val html = try { fetchHtml(embedUrl) } catch (e: Exception) { return "" }
+            val m = Regex("""https?:(?:\\)?/(?:\\)?/rumble\.com(?:\\)?/hls-vod(?:\\)?/[A-Za-z0-9_-]+(?:\\)?/playlist\.m3u8""").find(html)
+            val u = m?.value ?: return ""
+            u.replace("\\/", "/")
+        } catch (e: Exception) {
+            Log.e("Anichin", "resolveRumble failed", e)
+            ""
+        }
+    }
+
     private fun extractDirectUrl(html: String): String {
         val patterns = listOf(
             Regex("""https?://[^\s"'>]+\.(?:mp4|m3u8|mpd)[^\s"'>]*"""),
@@ -603,6 +622,16 @@ class AnichinScraper : AnimeProvider {
                         Log.d("AnichinResolve", "Abyss resolved to encrypted MP4 (ExoPlayer): $hydraxUrl")
                         return@withContext hydraxUrl
                     }
+                }
+                return@withContext embedUrl
+            }
+
+            if (embedUrl.contains("rumble.com")) {
+                Log.d("AnichinResolve", "Rumble mirror: $embedUrl")
+                val rumbleUrl = resolveRumble(embedUrl)
+                if (rumbleUrl.isNotEmpty()) {
+                    Log.d("AnichinResolve", "Rumble resolved to m3u8 (ExoPlayer): $rumbleUrl")
+                    return@withContext rumbleUrl
                 }
                 return@withContext embedUrl
             }

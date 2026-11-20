@@ -332,10 +332,17 @@ class OtakudesuScraper : AnimeProvider {
             val doc = fetchDocument(episodeUrl)
             val servers = mutableListOf<VideoServer>()
 
-            // Streaming iframe: #lightsVideo > iframe[src] (blogger.com/video.g?token=...)
+            // Streaming iframe: #lightsVideo > iframe[src].
+            // Site migrated from blogger.com/video.g to desustream.net/dstream/odcdn
+            // which exposes a direct MP4 in its page HTML.
             val iframeSrc = doc.select("#lightsVideo iframe").first()?.attr("src").orEmpty()
             if (iframeSrc.isNotEmpty()) {
-                servers.add(VideoServer(name = "Blogspot", url = iframeSrc))
+                val name = when {
+                    iframeSrc.contains("desustream") -> "Otakudesu Stream"
+                    iframeSrc.contains("blogger.com") || iframeSrc.contains("video.g?") -> "Blogspot"
+                    else -> "Otakudesu Server"
+                }
+                servers.add(VideoServer(name = name, url = iframeSrc))
             }
 
             // Download mirrors: div.download ul li > <strong>Mp4 360p</strong> + <a href="...">Site</a>
@@ -362,9 +369,27 @@ class OtakudesuScraper : AnimeProvider {
 
     override suspend fun resolveServerVideoUrl(server: VideoServer, episodeUrl: String): String = withContext(Dispatchers.IO) {
         try {
-            // Blogger video.g URLs are handled by PlayerActivity's Blogspot pipeline directly.
             Log.d("OtakudesuResolve", "Resolving: ${server.name}, url=${server.url}")
-            server.url
+            val url = server.url
+
+            // desustream embed carries the real CDN url as: videoURL = "https://...mp4"
+            if (url.contains("desustream")) {
+                val html = fetchHtml(url)
+                val direct = Regex("""videoURL\s*=\s*["']([^"']+\.(?:mp4|m3u8|mkv|webm|m4v)[^"']*)["']""")
+                    .find(html)?.groupValues?.get(1)?.trim().orEmpty()
+                    .ifEmpty {
+                        Regex("""https?://[^"'\s<>]+\.(?:mp4|m3u8|mkv|webm|m4v)[^"'\s<>]*""")
+                            .find(html)?.value.orEmpty()
+                    }
+                if (direct.isNotEmpty()) {
+                    Log.d("OtakudesuResolve", "Desustream direct video: $direct")
+                    return@withContext direct
+                }
+                Log.w("OtakudesuResolve", "No direct video found in desustream page")
+            }
+
+            // Blogger video.g URLs are handled by PlayerActivity's Blogspot pipeline directly.
+            url
         } catch (e: Exception) {
             Log.e("OtakudesuResolve", "Error: ${e.message}")
             e.printStackTrace()

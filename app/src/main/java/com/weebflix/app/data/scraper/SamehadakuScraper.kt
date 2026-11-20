@@ -127,10 +127,20 @@ class SamehadakuScraper : AnimeProvider {
                     val title = element.select("h2.entry-title a").text()
                     val url = element.select("h2.entry-title a").attr("href")
                     val imageUrl = element.select("img.npws, img").first()?.attr("src") ?: ""
+                    val cardText = element.text()
                     val episodeNum = element.select("span:has(dashicons-controls-play) author").text()
+                        .ifEmpty {
+                            Regex("""Episode\s+(\d+)""", RegexOption.IGNORE_CASE)
+                                .find(cardText)?.groupValues?.get(1) ?: ""
+                        }
                     val postedBy = element.select("span:has(dashicons-admin-users) author").text()
+                        .ifEmpty { element.select("span[itemprop=name]").text() }
                     val date = element.select("span:has(dashicons-calendar)").text()
                         .replace("Released on:", "").trim()
+                        .ifEmpty {
+                            Regex("""Released on:\s*(.+)$""", RegexOption.IGNORE_CASE)
+                                .find(cardText)?.groupValues?.get(1)?.trim() ?: ""
+                        }
 
                     if (title.isNotEmpty()) {
                         episodes.add(
@@ -247,7 +257,7 @@ class SamehadakuScraper : AnimeProvider {
             val doc = fetchDocument(url)
             val animeList = mutableListOf<Anime>()
 
-            doc.select("article.animpost").forEach { element ->
+            doc.select("article.animepost, article.animpost").forEach { element ->
                 try {
                     val a = element.select(".animposx a").first()
                     val title = element.select(".data .title h2").text()
@@ -258,7 +268,7 @@ class SamehadakuScraper : AnimeProvider {
                     }
                     val type = element.select(".content-thumb .type").text()
                     val score = element.select(".score").text()
-                        .replace("★", "").replace("Score:", "").trim()
+                        .replace("★", "").replace("Score:", "").replace("?", "").trim()
                     val status = element.select(".data .type").last()?.text() ?: ""
 
                     if (title.isNotEmpty() && url.isNotEmpty()) {
@@ -326,6 +336,7 @@ class SamehadakuScraper : AnimeProvider {
             val doc = fetchDocument(url)
 
             val title = doc.select(".seriestitle, h1.titless, h1.entry-title, .infox h1").text()
+                .ifEmpty { doc.select("h1").first()?.text().orEmpty() }
             val synopsis = doc.select(".entry-content p, .sinopsis p, .infox .desc").text()
             val imageUrl = doc.select(".thumb img, .poster img, .infox img, .thumbwoad img").first()?.attr("src") ?: ""
 
@@ -376,6 +387,36 @@ class SamehadakuScraper : AnimeProvider {
                 }
             }
 
+            // New EastPlay-style theme: episode rows live in div.custom-scrollbar > div
+            // with a numeric badge link, an <h4> title link and a date <span>.
+            if (episodes.isEmpty()) {
+                doc.select("div.custom-scrollbar > div").forEach { element ->
+                    try {
+                        val epLink = element.select("div.shrink-0 a[href*='-episode-'], h4 a[href*='-episode-']").firstOrNull()
+                            ?: element.select("a[href*='-episode-']").firstOrNull()
+                        val epUrl = epLink?.attr("href").orEmpty()
+                        if (epUrl.isEmpty()) return@forEach
+
+                        val epTitle = element.select("h4 a").text().trim()
+                            .ifEmpty { epLink?.text()?.trim().orEmpty() }
+                        val epNum = element.select("div.shrink-0 a").text().trim()
+                            .ifEmpty { Regex("""-episode-(\d+)""").find(epUrl)?.groupValues?.get(1).orEmpty() }
+                        val epDate = element.select("div.flex-grow > span").text().trim()
+
+                        episodes.add(
+                            Episode(
+                                title = epTitle,
+                                url = normalizeUrl(epUrl, url),
+                                episodeNumber = epNum,
+                                uploadDate = epDate
+                            )
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+
             val anime = Anime(
                 title = title,
                 url = url,
@@ -420,8 +461,22 @@ class SamehadakuScraper : AnimeProvider {
                         .ifEmpty { element.select("a").text() }
                     if (name.isEmpty()) return@forEach
 
+                    // New theme stores the whole iframe HTML in data-embed (HTML-escaped).
+                    // player_ajax now returns "-1", so this attribute is the only reliable
+                    // source for the embed URL.
+                    val embedRaw = element.attr("data-embed")
+                        .replace("&#038;", "&").replace("&amp;", "&")
+                    val embedUrl = if (embedRaw.isNotEmpty()) {
+                        Regex("""src\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+                            .find(embedRaw)?.groupValues?.get(1)
+                            ?.let { normalizeUrl(it, episodeUrl) } ?: ""
+                    } else {
+                        element.attr("data-url").let { if (it.isNotEmpty()) normalizeUrl(it, episodeUrl) else "" }
+                    }
+
                     servers.add(VideoServer(
                         name = name,
+                        url = embedUrl,
                         dataPost = dataPost,
                         dataNume = dataNume,
                         dataType = dataType
@@ -456,6 +511,17 @@ class SamehadakuScraper : AnimeProvider {
 
             if (embedUrl.isNotEmpty() && isDirectVideoUrl(embedUrl)) {
                 Log.d("Scraper", "Server URL is already a direct video: $embedUrl")
+                return@withContext embedUrl
+            }
+
+            // Blogspot embed must reach PlayerActivity's XHR/batchexecute pipeline intact.
+            if (embedUrl.contains("blogger.com") || embedUrl.contains("video.g?") || embedUrl.contains("bp.blogspot.com")) {
+                Log.d("Scraper", "Blogger embed from data-embed, handing to PlayerActivity: $embedUrl")
+                return@withContext embedUrl
+            }
+
+            if (embedUrl.contains("mega.nz")) {
+                Log.d("Scraper", "Mega embed from data-embed, handing to WebView: $embedUrl")
                 return@withContext embedUrl
             }
 
@@ -672,35 +738,37 @@ class SamehadakuScraper : AnimeProvider {
         val doc = Jsoup.parse(searchHtml)
 
         doc.select("video source, video").firstOrNull()?.attr("src")?.let { src ->
-            if (src.isNotEmpty() && (src.contains(".mp4") || src.contains(".m3u8") || src.contains(".mpd"))) {
+            if (src.isNotEmpty() && isDirectVideoUrl(src)) {
                 return normalizeUrl(src, embedUrl)
             }
         }
 
         doc.select("video").firstOrNull()?.attr("src")?.let { src ->
-            if (src.isNotEmpty() && (src.contains(".mp4") || src.contains(".m3u8") || src.contains(".mpd"))) {
+            if (src.isNotEmpty() && isDirectVideoUrl(src)) {
                 return normalizeUrl(src, embedUrl)
             }
         }
 
         val patterns = listOf(
+            // icefile / SOURCES-style players: {"link":"https://.../file.mkv", ...}
+            Regex("""["']link["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
             Regex("""["']video_url["']\s*:\s*["'](https?://[^"']+)["']"""),
-            Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
-            Regex("""["']src["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
-            Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
-            Regex("""["']url["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""["']file["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
+            Regex("""["']src["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
+            Regex("""["']source["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
+            Regex("""["']url["']\s*:\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
             Regex("""sources\s*:\s*\[\s*\{[^}]*src\s*:\s*["']([^"']+)["']"""),
-            Regex("""file\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
-            Regex("""(?:https?:)?//[^\s'"<>]+\.(?:mp4|m3u8|mpd)(?:\?[^\s'"<>]*)?"""),
+            Regex("""file\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
+            Regex("""(?:https?:)?//[^\s'"<>]+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)(?:\?[^\s'"<>]*)?"""),
             Regex("""["'](?:videoUrl|mp4Url|m3u8Url|stream)["']\s*:\s*["'](https?://[^"']+)["']"""),
-            Regex("""src\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""),
+            Regex("""src\s*[=:]\s*["'](https?://[^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']"""),
             Regex("""["'](https?://[^"']*googleusercontent\.com[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
             Regex("""["'](https?://[^"']*bp\.blogspot\.com[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
             Regex("""["'](https?://[^"']*blogspot[^"']*\.mp4[^"']*)["']"""),
             Regex("""["'](https?://[^"']*googlevideo[^"']*)["']"""),
             Regex("""["'](https?://[^"']*wibufile[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
             Regex("""["'](https?://[^"']*vipstream[^"']*\.(?:mp4|m3u8)[^"']*)["']"""),
-            Regex("""(?:file|source|src|video)\s*[=:]\s*["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']""")
+            Regex("""(?:file|source|src|video)\s*[=:]\s*["']([^"']+\.(?:mp4|m3u8|mpd|mkv|webm|m4v)[^"']*)["']""")
         )
 
         for (pattern in patterns) {

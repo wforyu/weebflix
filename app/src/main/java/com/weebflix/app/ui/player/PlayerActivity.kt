@@ -1897,6 +1897,49 @@ class PlayerActivity : AppCompatActivity() {
         })();
     """.trimIndent()
 
+    /** Watches any <video>/<audio> in main frame (or accessible iframe) inside a WebView
+     *  embed player and notifies AndroidBridge.onWebViewVideoEnded() when playback reaches
+     *  its end, so auto-next-episode works for WebView-only servers (Anichin mirrors,
+     *  D-Tube, abyssplayer, etc.) that ExoPlayer cannot handle. */
+    private val REF_INJECT_WEBVIEW_AUTONEXT = """
+        (function() {
+            var fired = false;
+            var MIN_EPISODE_SECONDS = 60;
+            function onEnded() {
+                if (fired) return;
+                fired = true;
+                try { AndroidBridge.onWebViewVideoEnded(); } catch(e) {}
+            }
+            function maybeEnded(v) {
+                if (!v || fired) return;
+                var d = v.duration;
+                if (!(d > 0) || !isFinite(d)) return;
+                if (d < MIN_EPISODE_SECONDS) return;
+                if (v.ended || (!v.paused && v.currentTime >= d - 0.8)) onEnded();
+            }
+            function watchDoc(doc) {
+                if (!doc) return;
+                var medias = doc.querySelectorAll('video, audio');
+                for (var i = 0; i < medias.length; i++) {
+                    var m = medias[i];
+                    if (m.wfEndWatched) continue;
+                    m.wfEndWatched = true;
+                    m.addEventListener('ended', function() { maybeEnded(this); });
+                    m.addEventListener('timeupdate', function() { maybeEnded(this); });
+                }
+                var frames = doc.querySelectorAll('iframe');
+                for (var j = 0; j < frames.length; j++) {
+                    try { watchDoc(frames[j].contentDocument); } catch(e) {}
+                }
+            }
+            function poll() {
+                watchDoc(document);
+                if (!fired) setTimeout(poll, 1500);
+            }
+            poll();
+        })();
+    """.trimIndent()
+
     private val REF_INJECT_CLEAN_PAGE = """
         (function() {
             try {
@@ -2102,6 +2145,7 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "EP-WEBVIEW page loaded: $url")
                 WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
                 view?.evaluateJavascript(REF_INJECT_POPUP_BLOCKER, null)
+                view?.evaluateJavascript(REF_INJECT_WEBVIEW_AUTONEXT, null)
                 if (customCleanJs != null) {
                     view?.evaluateJavascript(customCleanJs, null)
                 } else if (!skipInjections) {
@@ -3904,6 +3948,19 @@ class PlayerActivity : AppCompatActivity() {
         @JavascriptInterface
         fun onHlsError(msg: String?) {
             Log.e(TAG, "WV-Player: HLS error: $msg")
+        }
+
+        @JavascriptInterface
+        fun onWebViewVideoEnded() {
+            Log.d(TAG, "EP-WEBVIEW: embedded video reached its end")
+            runOnUiThread {
+                if (!isWebViewPlayback || isFinishing) return@runOnUiThread
+                if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) return@runOnUiThread
+                if (autoPlayActive || autoPlayCountdown > 0) return@runOnUiThread
+                if (nextEpisodeUrl.isEmpty()) return@runOnUiThread
+                Log.d(TAG, "EP-WEBVIEW: video ended, starting auto-play countdown to next episode")
+                startAutoPlayCountdown()
+            }
         }
     }
 
