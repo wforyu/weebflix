@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Shuiro no Kamen",
+      "url": "https://v2.samehadaku.how/anime/shuiro-no-kamen/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-17-300x169.jpg",
+      "episode": "",
+      "type": "",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Tougen Anki: Nikko Kegon no Taki-hen",
       "url": "https://v2.samehadaku.how/anime/tougen-anki-nikko-kegon-no-taki-hen/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Tougen-Anki-Nikko-Kegon-no-Taki-hen-Episode-8-300x169.jpg",
@@ -134,11 +149,13 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Shin Tennis no Oujisama: U-17 World Cup – Kesshou Member Ketteisen",
-      "url": "https://v2.samehadaku.how/anime/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/Shin-Tennis-no-Oujisama-Kesshou-Member-Ketteisen-Episode-8-300x168.jpg",
+      "title": "Shuiro no Kamen",
+      "url": "https://v2.samehadaku.how/anime/shuiro-no-kamen/",
+      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-17-300x169.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Tougen Anki: Nikko Kegon no Taki-hen",
       "url": "https://v2.samehadaku.how/anime/tougen-anki-nikko-kegon-no-taki-hen/",
@@ -366,21 +381,6 @@
       "title": "Chitose-kun wa Ramune Bin no Naka Cour 2",
       "url": "https://v2.samehadaku.how/anime/chitose-kun-wa-ramune-bin-no-naka-cour-2/",
       "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/image-2-9-300x169.jpg",
-      "episode": "",
-      "type": "",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Tsuihou sareta Cheat Fuyo Majutsushi",
-      "url": "https://v2.samehadaku.how/anime/tsuihou-sareta-cheat-fuyo-majutsushi/",
-      "imageUrl": "https://v2.samehadaku.how/wp-content/uploads/2026/11/web-1-16-300x170.jpg",
       "episode": "",
       "type": "",
       "status": "",
@@ -1299,5 +1299,5 @@
   ],
   "cat3": [],
   "cat4": [],
-  "timestamp": 1795239505362
+  "timestamp": 1795270367768
 }
