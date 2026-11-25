@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Summer Vacation Episode 10",
+      "url": "https://v2.oppadrama.cc/summer-vacation-episode-10/",
+      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 10",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "Movie Stray Kids: The Dominate Experience (2026) WEBDL",
       "url": "https://v2.oppadrama.cc/movie-stray-kids-the-dominate-experience-2026-webdl/",
       "imageUrl": "https://i2.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/Stray-Kids-The-dominATE-Experience-2026.jpg?resize=246,350",
@@ -134,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Line of Fire 2026 Season 1 Episode 9",
-      "url": "https://v2.oppadrama.cc/line-of-fire-2026-season-1-episode-9/",
-      "imageUrl": "https://i0.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/09/Line-of-Fire-2026-Season-1.jpg?resize=246,350",
-      "episode": "Ep 9",
+      "title": "Summer Vacation Episode 10",
+      "url": "https://v2.oppadrama.cc/summer-vacation-episode-10/",
+      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 10",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "Movie Stray Kids: The Dominate Experience (2026) WEBDL",
       "url": "https://v2.oppadrama.cc/movie-stray-kids-the-dominate-experience-2026-webdl/",
@@ -436,12 +451,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "cat1": [
     {
-      "title": "Reasonable Doubt 2022 Season 4 Episode 10 END",
-      "url": "https://v2.oppadrama.cc/reasonable-doubt-2022-season-4-episode-10-end/",
-      "imageUrl": "https://i1.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Reasonable-Doubt-2022-Season-4-2026.jpg?resize=246,350",
-      "episode": "Ep 10 END",
+      "title": "Summer Vacation",
+      "url": "https://v2.oppadrama.cc/summer-vacation/",
+      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ongoing",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -451,9 +468,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "cat1": [
+    },
     {
       "title": "Crash Season 2",
       "url": "https://v2.oppadrama.cc/crash-season-2/",
@@ -503,21 +518,6 @@
       "title": "The Substitute",
       "url": "https://v2.oppadrama.cc/the-substitute/",
       "imageUrl": "https://i2.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/11/The-Substitute-2026.jpg?resize=246,350",
-      "episode": "Ongoing",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Summer Vacation",
-      "url": "https://v2.oppadrama.cc/summer-vacation/",
-      "imageUrl": "https://i3.wp.com/v2.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
       "episode": "Ongoing",
       "type": "Drama",
       "status": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1795539450286
+  "timestamp": 1795571665892
 }
