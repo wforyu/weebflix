@@ -1,6 +1,21 @@
 {
   "hero": [
     {
+      "title": "Summer Vacation Episode 10 END",
+      "url": "https://v3.oppadrama.cc/summer-vacation-episode-10/",
+      "imageUrl": "https://i3.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 10 END",
+      "type": "Drama",
+      "status": "",
+      "score": "",
+      "studio": "",
+      "season": "",
+      "synopsis": "",
+      "totalEpisodes": "",
+      "genres": [],
+      "latestUpdate": ""
+    },
+    {
       "title": "What a Boss Wants Episode 5",
       "url": "https://v3.oppadrama.cc/what-a-boss-wants-episode-5/",
       "imageUrl": "https://i1.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/11/What-a-Boss-Wants-2026.jpg?resize=246,350",
@@ -134,12 +149,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "latest": [
     {
-      "title": "Blossom in Darkness Episode 21",
-      "url": "https://v3.oppadrama.cc/blossom-in-darkness-episode-21/",
-      "imageUrl": "https://i1.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/11/Blossom-in-Darkness-2026.jpg?resize=246,350",
-      "episode": "Ep 21",
+      "title": "Summer Vacation Episode 10 END",
+      "url": "https://v3.oppadrama.cc/summer-vacation-episode-10/",
+      "imageUrl": "https://i3.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Ep 10 END",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -149,9 +166,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "latest": [
+    },
     {
       "title": "What a Boss Wants Episode 5",
       "url": "https://v3.oppadrama.cc/what-a-boss-wants-episode-5/",
@@ -436,12 +451,14 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    },
+    }
+  ],
+  "cat1": [
     {
-      "title": "River of No Return Episode 12",
-      "url": "https://v3.oppadrama.cc/river-of-no-return-episode-12/",
-      "imageUrl": "https://i2.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/11/River-of-No-Return-2026.jpg?resize=246,350",
-      "episode": "Ep 12",
+      "title": "Summer Vacation",
+      "url": "https://v3.oppadrama.cc/summer-vacation/",
+      "imageUrl": "https://i3.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
+      "episode": "Completed",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -451,9 +468,7 @@
       "totalEpisodes": "",
       "genres": [],
       "latestUpdate": ""
-    }
-  ],
-  "cat1": [
+    },
     {
       "title": "What a Boss Wants",
       "url": "https://v3.oppadrama.cc/what-a-boss-wants/",
@@ -519,21 +534,6 @@
       "url": "https://v3.oppadrama.cc/the-remarried-empress/",
       "imageUrl": "https://i0.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/11/The-Remarried-Empress-2026.jpg?resize=246,350",
       "episode": "Completed",
-      "type": "Drama",
-      "status": "",
-      "score": "",
-      "studio": "",
-      "season": "",
-      "synopsis": "",
-      "totalEpisodes": "",
-      "genres": [],
-      "latestUpdate": ""
-    },
-    {
-      "title": "Summer Vacation",
-      "url": "https://v3.oppadrama.cc/summer-vacation/",
-      "imageUrl": "https://i3.wp.com/v3.oppadrama.cc/wp-content/uploads/2026/10/Summer-Vacation-2026.jpg?resize=246,350",
-      "episode": "Ongoing",
       "type": "Drama",
       "status": "",
       "score": "",
@@ -1661,5 +1661,5 @@
       "latestUpdate": ""
     }
   ],
-  "timestamp": 1795625242130
+  "timestamp": 1795656814405
 }
