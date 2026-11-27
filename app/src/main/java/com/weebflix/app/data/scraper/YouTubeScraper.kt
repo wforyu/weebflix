@@ -56,14 +56,20 @@ class YouTubeScraper : AnimeProvider {
 
     private data class YtResult(val json: JSONObject?, val flagged: Boolean)
 
-    private fun context(c: YtClient) = JSONObject()
-        .put("client", JSONObject()
+    private fun context(c: YtClient, visitor: String?): JSONObject {
+        val client = JSONObject()
             .put("clientName", c.name)
             .put("clientVersion", c.version)
             .apply { if (c.sdk > 0) put("androidSdkVersion", c.sdk) }
             .put("hl", "id")
             .put("gl", "ID")
-            .put("utcOffsetMinutes", 0))
+            .put("utcOffsetMinutes", 0)
+        // Innertube expects visitorData on search/browse/next requests; without it some
+        // networks get an empty response or an immediate bot gate. Reuse the resolver's
+        // cached visitor so every scraper call looks like the same browser session.
+        visitor?.let { client.put("visitorData", it) }
+        return JSONObject().put("client", client)
+    }
 
     /**
      * Rate-limit aware innertube POST. YouTube flags the IP (HTTP 400 "invalid argument")
@@ -85,7 +91,11 @@ class YouTubeScraper : AnimeProvider {
      *  so comments must be fetched with ANDROID_VR which still returns full commentRenderer. */
     private fun postWith(c: YtClient, endpoint: String, fill: (JSONObject) -> Unit): YtResult {
         try {
-            val body = JSONObject().put("context", context(c))
+            val visitor = YouTubeResolver.getVisitorData()
+            val body = JSONObject()
+                .put("context", context(c, visitor))
+                .put("contentCheckOk", true)
+                .put("racyCheckOk", true)
             fill(body)
             Log.d(TAG, "$endpoint[${c.name}] body: $body")
             val request = Request.Builder()
@@ -94,6 +104,8 @@ class YouTubeScraper : AnimeProvider {
                 .addHeader("Accept", "application/json")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Origin", "https://www.youtube.com")
+                .addHeader("Referer", "https://www.youtube.com/")
+                .apply { visitor?.let { addHeader("X-Goog-Visitor-Id", it) } }
                 .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()
             client.newCall(request).execute().use { resp ->

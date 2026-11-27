@@ -1,5 +1,6 @@
 package com.weebflix.app.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +20,7 @@ import com.weebflix.app.ui.util.TvUtils
 import com.weebflix.app.ui.util.padSystemBars
 import com.weebflix.app.ui.youtube.YouTubeHistoryFragment
 import com.weebflix.app.ui.youtube.YouTubeHomeFragment
+import com.weebflix.app.ui.youtube.YouTubeSearchActivity
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var youtubeFragment: YouTubeHomeFragment? = null
     private var settingsFragment: SettingsFragment? = null
     private var activeFragment: Fragment? = null
+    private var previousNavItemId: Int = R.id.nav_home
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,14 +57,22 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
+                    previousNavItemId = item.itemId
                     showFragment(getHomeFragment())
                     true
                 }
                 R.id.nav_search -> {
-                    showFragment(getSearchFragment())
+                    if (ProviderConfig.activeProviderId == ProviderFactory.YOUTUBE_ID) {
+                        startActivity(Intent(this, YouTubeSearchActivity::class.java))
+                        bottomNav.selectedItemId = previousNavItemId
+                    } else {
+                        previousNavItemId = item.itemId
+                        showFragment(getSearchFragment())
+                    }
                     true
                 }
                 R.id.nav_ongoing -> {
+                    previousNavItemId = item.itemId
                     if (ProviderConfig.activeProviderId == ProviderFactory.YOUTUBE_ID) {
                         showFragment(getYouTubeHistoryFragment())
                     } else {
@@ -70,10 +81,12 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_youtube -> {
+                    previousNavItemId = item.itemId
                     showFragment(getYouTubeFragment())
                     true
                 }
                 R.id.nav_settings -> {
+                    previousNavItemId = item.itemId
                     showFragment(getSettingsFragment())
                     true
                 }

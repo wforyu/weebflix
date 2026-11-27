@@ -123,24 +123,31 @@ object YouTubeCipher {
         return URLDecoder.decode(url, "UTF-8") + separator + sp + "=" + deciphered
     }
 
-    /** Fetches base.js via OkHttp and returns cached ops. */
+    /** Fetches base.js via OkHttp and returns ops, refreshing periodically (YouTube rotates player JS). */
     fun getCipherOps(client: OkHttpClient): List<Op>? {
-        if (cachedOps != null) return cachedOps
+        val now = System.currentTimeMillis()
+        if (cachedOps != null && now - cachedAtMs < CIPHER_TTL_MS) return cachedOps
         val page = fetch(client, "https://www.youtube.com/embed/jNQXAC9IVRw")
-            ?: return null
+            ?: return cachedOps
         val jsUrl = extractBaseJsUrl(page) ?: run {
             Log.w(TAG, "no jsUrl found")
-            return null
+            return cachedOps
         }
         val js = fetch(client, jsUrl) ?: run {
             Log.w(TAG, "base.js fetch failed: $jsUrl")
-            return null
+            return cachedOps
         }
-        cachedOps = parseOps(js)
+        val parsed = parseOps(js)
+        if (parsed != null) {
+            cachedOps = parsed
+            cachedAtMs = now
+        }
         return cachedOps
     }
 
+    private const val CIPHER_TTL_MS = 6 * 60 * 60 * 1000L
     private var cachedOps: List<Op>? = null
+    private var cachedAtMs: Long = 0L
 
     private fun fetch(client: OkHttpClient, url: String): String? {
         return try {

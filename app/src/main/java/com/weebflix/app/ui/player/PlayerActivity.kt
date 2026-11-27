@@ -429,6 +429,7 @@ class PlayerActivity : AppCompatActivity() {
     private var ytFullscreen = false
     private var ytNetworkRetryCount = 0
     private val maxNetworkRetries = 3
+    private var ytStaleRetryCount = 0
     private var ytPendingRetryVideoId: String = ""
     private var ytPendingRetrySeekMs: Long = 0L
     private var ytPendingRetryRunnable: Runnable? = null
@@ -441,6 +442,8 @@ class PlayerActivity : AppCompatActivity() {
     private var resolveGeneration: Long = 0
     private var isWebViewPlayback = false
     private var webViewPlaybackUrl = ""
+    private var webViewProgressMs = 0L
+    private var webViewDurationMs = 0L
     private var webViewFullscreenView: View? = null
     private var webViewFullscreenCallback: android.webkit.WebChromeClient.CustomViewCallback? = null
 
@@ -2042,9 +2045,65 @@ class PlayerActivity : AppCompatActivity() {
         })();
     """.trimIndent()
 
+    /** Best-effort "Skip Ad" auto-click for WebView-only player pages. Sites that stitch
+     *  pre-roll ads into their own player response cannot be bypassed from the app side;
+     *  this only clicks a real, visible skip control when the page exposes one. */
+    private val REF_INJECT_AD_SKIP = """
+        (function() {
+            try {
+                if (window._wfSkipAdInstalled) return;
+                window._wfSkipAdInstalled = true;
+                var SKIP_RE = /^\s*(?:skip|lewati|lanjut(?:kan)?)\b.{0,50}$/i;
+                var AD_RE = /(?:iklan|advert|\bad\b|\bads\b)/i;
+                var AD_CTX_RE = /(?:^|[\s_-])(?:ad|ads|advert|iklan)(?:[\s_-]|$)/i;
+                function tryClick(el) {
+                    try {
+                        if (el.__wfSkipClicked) return false;
+                        var raw = (el.innerText || el.value || el.textContent || '').trim();
+                        if (!raw || raw.length > 60 || !SKIP_RE.test(raw)) return false;
+                        var ctx = [
+                            el.id || '', String(el.className || ''),
+                            el.parentElement ? (el.parentElement.id || '') : '',
+                            el.parentElement ? String(el.parentElement.className || '') : ''
+                        ].join(' ');
+                        if (!AD_RE.test(raw) && !AD_CTX_RE.test(ctx)) return false;
+                        var r = el.getBoundingClientRect();
+                        if (r.width <= 8 || r.height <= 8) return false;
+                        el.__wfSkipClicked = true;
+                        el.click();
+                        return true;
+                    } catch (e) { return false; }
+                }
+                function scan(doc) {
+                    if (!doc) return;
+                    var els = doc.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"], div, span');
+                    for (var i = 0; i < els.length; i++) {
+                        if (tryClick(els[i])) break;
+                    }
+                }
+                function tick() {
+                    scan(document);
+                    var frames = document.querySelectorAll('iframe');
+                    for (var i = 0; i < frames.length; i++) {
+                        try { scan(frames[i].contentDocument); } catch (e) {}
+                    }
+                }
+                tick();
+                var timer = setInterval(tick, 700);
+                setTimeout(function() { clearInterval(timer); }, 120000);
+                try {
+                    var obs = new MutationObserver(function() { tick(); });
+                    obs.observe(document.documentElement, { childList: true, subtree: true });
+                    setTimeout(function() { obs.disconnect(); }, 120000);
+                } catch (e) {}
+            } catch (e) {}
+        })();
+    """.trimIndent()
+
     private fun playEpisodePageViaWebView(episodeUrl: String, server: VideoServer? = null, autoSelectJs: String? = null, skipInjections: Boolean = false, customCleanJs: String? = null) {
         ensureWebView()
         resetVideoZoom()
+        resetWebViewProgress()
         isWebViewPlayback = true
         webViewPlaybackUrl = episodeUrl
         exoPlayer?.pause()
@@ -2144,7 +2203,9 @@ class PlayerActivity : AppCompatActivity() {
                 view?.visibility = View.VISIBLE
                 Log.d(TAG, "EP-WEBVIEW page loaded: $url")
                 WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+                view?.evaluateJavascript(WEBVIEW_VIDEO_BRIDGE_JS, null)
                 view?.evaluateJavascript(REF_INJECT_POPUP_BLOCKER, null)
+                view?.evaluateJavascript(REF_INJECT_AD_SKIP, null)
                 view?.evaluateJavascript(REF_INJECT_WEBVIEW_AUTONEXT, null)
                 if (customCleanJs != null) {
                     view?.evaluateJavascript(customCleanJs, null)
@@ -2316,6 +2377,8 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 view?.visibility = View.VISIBLE
                 view?.evaluateJavascript(AD_REMOVAL_JS, null)
+                view?.evaluateJavascript(REF_INJECT_POPUP_BLOCKER, null)
+                view?.evaluateJavascript(REF_INJECT_AD_SKIP, null)
             }
 
             override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
@@ -2448,6 +2511,8 @@ class PlayerActivity : AppCompatActivity() {
                 wvLoadingSpinner.visibility = View.GONE
                 WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
                 view?.evaluateJavascript(AD_REMOVAL_JS, null)
+                view?.evaluateJavascript(REF_INJECT_POPUP_BLOCKER, null)
+                view?.evaluateJavascript(REF_INJECT_AD_SKIP, null)
                 Log.d(TAG, "VIDEO-WEBVIEW loaded: $url")
             }
 
@@ -2538,6 +2603,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun playVideoViaHtml5WebView(videoUrl: String) {
         ensureWebView()
         resetVideoZoom()
+        resetWebViewProgress()
         isWebViewPlayback = true
         webViewPlaybackUrl = videoUrl
 
@@ -2882,6 +2948,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun exitWebViewPlayback() {
         isWebViewPlayback = false
         webViewPlaybackUrl = ""
+        resetWebViewProgress()
 
         webView?.stopLoading()
         webView?.loadUrl("about:blank")
@@ -3917,6 +3984,16 @@ class PlayerActivity : AppCompatActivity() {
                 if (!isWebViewPlayback) return@runOnUiThread
                 val curSec = currentTime.toFloat()
                 val durSec = duration.toFloat()
+                webViewProgressMs = if (currentTime.isNaN() || currentTime.isInfinite() || currentTime <= 0.0) {
+                    0L
+                } else {
+                    (currentTime * 1000.0).toLong()
+                }
+                webViewDurationMs = if (duration.isNaN() || duration.isInfinite() || duration <= 0.0) {
+                    0L
+                } else {
+                    (duration * 1000.0).toLong()
+                }
                 tvWvCurrentTime.text = formatTime(curSec)
                 tvWvTotalTime.text = formatTime(durSec)
                 if (!wvUserSeeking && durSec > 0) {
@@ -3926,7 +4003,14 @@ class PlayerActivity : AppCompatActivity() {
                 val icon = if (paused) R.drawable.ic_player_play else R.drawable.ic_player_pause
                 btnWvPlayPause.setImageResource(icon)
                 btnWvCenterPlayPause.setImageResource(icon)
-                if (!paused) wvScheduleAutoHide()
+                if (!paused) {
+                    wvScheduleAutoHide()
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastHistorySaveMs > 5000) {
+                        lastHistorySaveMs = now
+                        saveWatchHistory()
+                    }
+                }
             }
         }
 
@@ -3955,6 +4039,10 @@ class PlayerActivity : AppCompatActivity() {
             Log.d(TAG, "EP-WEBVIEW: embedded video reached its end")
             runOnUiThread {
                 if (!isWebViewPlayback || isFinishing) return@runOnUiThread
+                if (webViewDurationMs > 0) {
+                    webViewProgressMs = webViewDurationMs
+                    saveWatchHistory()
+                }
                 if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) return@runOnUiThread
                 if (autoPlayActive || autoPlayCountdown > 0) return@runOnUiThread
                 if (nextEpisodeUrl.isEmpty()) return@runOnUiThread
@@ -5373,6 +5461,7 @@ class PlayerActivity : AppCompatActivity() {
     // ExoPlayer — e.g. OppaDrama FileLions/Hydrax after TurboVIP ran in the WebView.
     private fun showExoPlayerUi() {
         resetVideoZoom()
+        resetWebViewProgress()
         isWebViewPlayback = false
         webViewPlayerControls.visibility = View.GONE
         webView?.stopLoading()
@@ -5858,9 +5947,12 @@ class PlayerActivity : AppCompatActivity() {
         if (index in servers.indices) playServer(servers[index])
     }
 
-    private fun playYouTubeVideo(videoId: String, seekMs: Long = startPositionMs) {
+    private fun playYouTubeVideo(videoId: String, seekMs: Long = startPositionMs, isRetry: Boolean = false) {
         currentYtVideoId = videoId
-        ytNetworkRetryCount = 0
+        if (!isRetry) {
+            ytNetworkRetryCount = 0
+            ytStaleRetryCount = 0
+        }
         ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
         ytPendingRetryRunnable = null
         ytPendingRetryVideoId = ""
@@ -6125,7 +6217,26 @@ class PlayerActivity : AppCompatActivity() {
                                 }
                                 ytRetryHandler.postDelayed(ytPendingRetryRunnable!!, delayMs)
                             } else if (fullMsg.contains("403", ignoreCase = true)) {
-                                showError("Stream kedaluwarsa. Buka video lagi untuk stream baru.")
+                                // Signed googlevideo URLs expire. Drop the memoized resolution and
+                                // re-resolve once before telling the user to reopen the video.
+                                if (ytStaleRetryCount < 1 && currentYtVideoId.isNotEmpty()) {
+                                    ytStaleRetryCount++
+                                    val retryId = currentYtVideoId
+                                    val retrySeek = exoPlayer?.currentPosition ?: 0L
+                                    ytPendingRetryRunnable?.let { ytRetryHandler.removeCallbacks(it) }
+                                    ytPendingRetryRunnable = Runnable {
+                                        if (!isFinishing && retryId == currentYtVideoId) {
+                                            Log.w(TAG, "YouTube stream 403, re-resolving once")
+                                            loadingPlayer.visibility = View.VISIBLE
+                                            tvError.visibility = View.GONE
+                                            com.weebflix.app.data.scraper.YouTubeResolver.clearMemo()
+                                            playYouTubeVideo(retryId, retrySeek, isRetry = true)
+                                        }
+                                    }
+                                    ytRetryHandler.postDelayed(ytPendingRetryRunnable!!, 1500L)
+                                } else {
+                                    showError("Stream kedaluwarsa. Buka video lagi untuk stream baru.")
+                                }
                             } else {
                                 showError("Gagal memutar video: ${error.cause?.message ?: msg}")
                             }
@@ -6522,6 +6633,7 @@ class PlayerActivity : AppCompatActivity() {
         pendingAutoFailRunnable = null
         turboRetryCount = 0
         dlTrackingActive = false
+        resetWebViewProgress()
 
         if (activeProviderId == com.weebflix.app.data.provider.ProviderFactory.YOUTUBE_ID) {
             val ytId = server.videoUrl.removePrefix("youtube://")
@@ -8121,12 +8233,24 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun resetWebViewProgress() {
+        webViewProgressMs = 0L
+        webViewDurationMs = 0L
+    }
+
     private fun saveWatchHistory() {
-        val player = exoPlayer ?: return
         if (episodeUrl.isEmpty()) return
-        val position = player.currentPosition
-        val duration = player.duration
-        if (duration < 10000) return
+        val position: Long
+        val duration: Long
+        if (isWebViewPlayback) {
+            position = webViewProgressMs
+            duration = webViewDurationMs
+        } else {
+            val player = exoPlayer ?: return
+            position = player.currentPosition
+            duration = player.duration
+        }
+        if (duration < 10000 || position < 3000) return
         WatchHistoryManager.saveProgress(
             context = this,
             episodeUrl = episodeUrl,
@@ -8143,6 +8267,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        saveWatchHistory()
         // JANGAN pause player di sini: biar audio tetap jalan saat app di-background layar
         // dikunci (bunyi layar dikunci audio mati) — perilaku seperti YouTube/GoTube.
         // Wakelock WAKE_MODE_NETWORK di player menjaga CPU/network selama playback berjalan.

@@ -48,19 +48,34 @@ object YouTubeResolver {
             .build()
     }
 
-    private val memo = ConcurrentHashMap<String, ResolvedYouTube>()
+    private data class CachedResolution(val result: ResolvedYouTube, val savedAtMs: Long)
+
+    /** Signed googlevideo URLs and visitor tokens go stale; never keep a resolution indefinitely. */
+    private val memo = ConcurrentHashMap<String, CachedResolution>()
+    private const val MEMO_TTL_MS = 30 * 60 * 1000L
+    private const val LIVE_MEMO_TTL_MS = 5 * 60 * 1000L
 
     /** Drops cached resolutions (e.g. after login/logout so blocked results are re-fetched with auth). */
     fun clearMemo() {
         memo.clear()
     }
 
+    private fun cache(videoId: String, result: ResolvedYouTube) {
+        if (result.isEmpty || result.blockReason.isNotEmpty()) return
+        memo[videoId] = CachedResolution(result, System.currentTimeMillis())
+    }
+
+    /** Shared with the scraper so search/feed/comment innertube calls carry the same visitor id. */
+    fun getVisitorData(): String? = ensureVisitor()
+
     @Volatile private var visitorData: String? = null
+    @Volatile private var visitorFailAtMs = 0L
     private val visitorLock = Any()
 
     /** Drops the cached visitor id so the next resolve bootstraps a fresh one (e.g. after a bot-gate). */
     fun resetVisitor() {
         visitorData = null
+        visitorFailAtMs = 0L
     }
 
     /** Fetches a fresh visitor id via a lightweight WEB search (works on flagged IPs where player is gated). */
@@ -68,6 +83,9 @@ object YouTubeResolver {
         visitorData?.let { return it }
         synchronized(visitorLock) {
             visitorData?.let { return it }
+            // A failed bootstrap must not turn every search/feed/comment call into another
+            // network round-trip; retry only after a short cooldown.
+            if (visitorFailAtMs > 0L && System.currentTimeMillis() - visitorFailAtMs < 30_000L) return null
             try {
                 val clientJson = JSONObject()
                     .put("clientName", "WEB")
@@ -81,15 +99,22 @@ object YouTubeResolver {
                     .url("https://www.youtube.com/youtubei/v1/search?key=$INNERTUBE_WEB_KEY&prettyPrint=false")
                     .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
                     .addHeader("Content-Type", "application/json")
+                    .addHeader("Origin", "https://www.youtube.com")
+                    .addHeader("Referer", "https://www.youtube.com/")
                     .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
                     .build()
                 client.newCall(request).execute().use { resp ->
-                    if (!resp.isSuccessful) return null
+                    if (!resp.isSuccessful) {
+                        visitorFailAtMs = System.currentTimeMillis()
+                        return null
+                    }
                     val json = JSONObject(resp.body?.string() ?: "")
                     visitorData = json.optJSONObject("responseContext")?.optString("visitorData")?.takeIf { it.isNotEmpty() }
+                    if (visitorData == null) visitorFailAtMs = System.currentTimeMillis()
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "visitor bootstrap failed: ${e.message}")
+                visitorFailAtMs = System.currentTimeMillis()
             }
             return visitorData
         }
@@ -108,7 +133,11 @@ object YouTubeResolver {
     }
 
     fun resolve(videoId: String): ResolvedYouTube {
-        memo[videoId]?.let { return it }
+        memo[videoId]?.let { cached ->
+            val ttl = if (cached.result.isLive) LIVE_MEMO_TTL_MS else MEMO_TTL_MS
+            if (System.currentTimeMillis() - cached.savedAtMs <= ttl) return cached.result
+            memo.remove(videoId)
+        }
 
         val clients = listOf(
             // VISIONOS: Apple Vision Pro client — new default (yt-dlp 2026.08.19).
@@ -230,10 +259,14 @@ object YouTubeResolver {
                 try {
                     val tvRes = fetchPlayer(videoId, tvCtx, auth = true)
                     if (tvRes.streams != null && !tvRes.streams.isEmpty) {
-                        memo[videoId] = tvRes.streams
+                        cache(videoId, tvRes.streams)
                         return tvRes.streams
                     }
                     if (tvRes.blockReason.isNotEmpty()) blockReason = tvRes.blockReason
+                    // A Bearer-only TV pass gets HTTP 400 on every client; stop early and let
+                    // the anonymous pass take over instead of burning the second attempt.
+                    if (tvRes.flagged || tvRes.http400) break
+                    if (tvCtx !== tvOauthClients.last()) Thread.sleep(800)
                 } catch (e: Exception) {
                     Log.w(TAG, "TV OAuth ${tvCtx.clientName}/${tvCtx.clientVersion} failed: ${e.message}")
                 }
@@ -251,7 +284,7 @@ object YouTubeResolver {
             val (authed, authedBr) = tryClients(auth = true, bailOnHttp400 = true)
             blockReason = authedBr
             if (authed != null) {
-                memo[videoId] = authed
+                cache(videoId, authed)
                 return authed
             }
             Log.w(TAG, "authenticated player failed (likely HTTP 400 INVALID_ARGUMENT), retrying anonymous")
@@ -259,7 +292,7 @@ object YouTubeResolver {
 
         val (anon, anonBr) = tryClients(auth = false)
         if (anon != null) {
-            memo[videoId] = anon
+            cache(videoId, anon)
             return anon
         }
         if (anonBr.isNotEmpty()) blockReason = anonBr
@@ -276,7 +309,7 @@ object YouTubeResolver {
                 null
             }
             if (retried?.streams != null && !retried.streams.isEmpty) {
-                memo[videoId] = retried.streams
+                cache(videoId, retried.streams)
                 return retried.streams
             }
             if (retried != null && retried.blockReason.isNotEmpty()) blockReason = retried.blockReason
@@ -471,6 +504,8 @@ object YouTubeResolver {
             // If we have HLS/DASH manifest, use it directly via ExoPlayer
             if (hls.isNotEmpty() || dash.isNotEmpty()) {
                 val manifest = if (hls.isNotEmpty()) hls else dash
+                // DASH is XML, not HLS — ExoPlayer picks the extractor from this MIME type.
+                val manifestMime = if (hls.isNotEmpty()) "application/x-mpegURL" else "application/dash+xml"
                 val details = respJson.optJSONObject("videoDetails")
                 return PlayerResult(
                     ResolvedYouTube(
@@ -481,7 +516,7 @@ object YouTubeResolver {
                         published = publishDateOf(respJson),
                         thumbnail = pickThumb(details?.optJSONObject("thumbnail")),
                         durationMs = (details?.optLong("lengthSeconds", 0) ?: 0L) * 1000,
-                        videoFormats = listOf(YouTubeStream(url = manifest, mimeType = "application/x-mpegURL", isVideo = true)),
+                        videoFormats = listOf(YouTubeStream(url = manifest, mimeType = manifestMime, isVideo = true)),
                         audioFormats = emptyList(),
                         isLive = isLive
                     ), flagged = false
